@@ -196,7 +196,9 @@ class TestCephes(TestCase):
     def test_hyp1f1(self):
         assert_approx_equal(cephes.hyp1f1(1,1,1), exp(1.0))
         assert_approx_equal(cephes.hyp1f1(3,4,-6), 0.026056422099537251095)
-        cephes.hyp1f1(1,1,1)
+        assert_equal(cephes.hyp1f1(0,-3.0,3), 1.0)
+        assert_equal(cephes.hyp1f1(-3,-3,3), 13)
+        assert_equal(cephes.hyp1f1(-9,-9,3), 22471./1120)
     def test_hyp1f2(self):
         cephes.hyp1f2(1,1,1,1)
     def test_hyp2f0(self):
@@ -501,6 +503,8 @@ class TestAssocLaguerre(TestCase):
         assert_array_almost_equal(a2,a1(.2),8)
         a2 = assoc_laguerre(1,11,1)
         assert_array_almost_equal(a2,a1(1),8)
+        assert_equal(assoc_laguerre(0, 0, -2), 1.0)
+        assert_equal(assoc_laguerre(2, 0, -2), 1.0)
 
 class TestBesselpoly(TestCase):
     def test_besselpoly(self):

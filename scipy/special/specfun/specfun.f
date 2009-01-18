@@ -5589,18 +5589,13 @@ C
         A1=A
         X0=X
         HG=0.0D0
-        IF (B.EQ.0.0D0.OR.B.EQ.-ABS(INT(B))) THEN
-           HG=1.0D+300
-        ELSE IF (A.EQ.0.0D0.OR.X.EQ.0.0D0) THEN
+        IF (A.EQ.0.0D0.OR.X.EQ.0.0D0) THEN
            HG=1.0D0
+        ELSE IF ((B.EQ.0.0D0.OR.B.EQ.-ABS(INT(B))) 
+     &           .AND..NOT.(A.EQ.INT(A).AND.A.GE.B.AND.A.LT.0.0D0)) THEN
+           HG=1.0D+300
         ELSE IF (A.EQ.-1.0D0) THEN
            HG=1.0D0-X/B
-        ELSE IF (A.EQ.B) THEN
-           HG=DEXP(X)
-        ELSE IF (A-B.EQ.1.0D0) THEN
-           HG=(1.0D0+X/B)*DEXP(X)
-        ELSE IF (A.EQ.1.0D0.AND.B.EQ.2.0D0) THEN
-           HG=(DEXP(X)-1.0D0)/X
         ELSE IF (A.EQ.INT(A).AND.A.LT.0.0D0) THEN
            M=INT(-A)
            R=1.0D0
@@ -5608,6 +5603,12 @@ C
            DO 10 K=1,M
               R=R*(A+K-1.0D0)/K/(B+K-1.0D0)*X
 10            HG=HG+R
+        ELSE IF (A.EQ.B) THEN
+           HG=DEXP(X)
+        ELSE IF (A-B.EQ.1.0D0) THEN
+           HG=(1.0D0+X/B)*DEXP(X)
+        ELSE IF (A.EQ.1.0D0.AND.B.EQ.2.0D0) THEN
+           HG=(DEXP(X)-1.0D0)/X
         ENDIF
         IF (HG.NE.0.0D0) RETURN
         IF (X.LT.0.0D0) THEN
