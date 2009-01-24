@@ -94,7 +94,8 @@ int mtherr(char *name, int code)
     if ((code <= 0) || (code >= 8))
 	code = 0;
 
-    if (scipy_special_print_error_messages) {
+    if (scipy_special_print_error_messages || code == 5 || code == 7) {
+        /* Always display 'fatal' errors */
         scipy_special_raise_warning("%s: %s error", name, ermsg[code]);
     }
 
