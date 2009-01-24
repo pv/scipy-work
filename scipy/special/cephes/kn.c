@@ -80,7 +80,7 @@ asymptotically, where
 #include "mconf.h"
 
 #define EUL 5.772156649015328606065e-1
-#define MAXFAC 31
+#define MAXFAC 1000
 #ifdef ANSIPROT
 extern double fabs ( double );
 extern double exp ( double );
@@ -108,7 +108,7 @@ if( n > MAXFAC )
 	{
 overf:
 	mtherr( "kn", OVERFLOW );
-	return( MAXNUM );
+	return( INFINITY );
 	}
 
 if(x <= 0.0) {
