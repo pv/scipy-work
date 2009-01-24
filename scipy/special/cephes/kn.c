@@ -80,7 +80,7 @@ asymptotically, where
 #include "mconf.h"
 
 #define EUL 5.772156649015328606065e-1
-#define MAXFAC 31
+#define MAXFAC 1000
 extern double MACHEP, MAXNUM, MAXLOG, PI;
 
 double kn( nn, x )
@@ -100,7 +100,7 @@ if( n > MAXFAC )
 	{
 overf:
 	mtherr( "kn", OVERFLOW );
-	return( MAXNUM );
+	return( NPY_INFINITY );
 	}
 
 if(x <= 0.0) {

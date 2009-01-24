@@ -1656,8 +1656,7 @@ class TestBessel(TestCase):
         assert_(dc[k] < 1e-9, (v[k], x[k], special.iv(v[k], x[k]), special.iv(v[k], x[k]+0j)))
 
     def test_kv_cephes_vs_amos(self):
-        #self.check_cephes_vs_amos(kv, kn, rtol=1e-9, atol=1e-305)
-        self.check_cephes_vs_amos(special.kv, special.kv, rtol=1e-9, atol=1e-305)
+        self.check_cephes_vs_amos(special.kv, special.kn, rtol=1e-9, atol=1e-305)
 
     def test_ticket_623(self):
         assert_tol_equal(special.jv(3, 4), 0.43017147387562193)
