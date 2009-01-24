@@ -1631,12 +1631,12 @@ class TestBessel(TestCase):
         assert_array_almost_equal(yvp1,yvpr,10)
 
     def check_cephes_vs_amos(self, f1, f2, rtol=1e-11, atol=0):
-        for v in [-120, -100.3, -20., -10., -1., 0., 1., 12.49, 120., 301]:
+        for v in [-120, -100.3, -20., -10., -1., -.5, 0., 1., 12.49, 120., 301]:
             for z in [-1300, -11, -10, -1, 1., 10., 200.5, 401., 600.5, 700.6,
                       1300, 10003]:
                 c1, c2, c3 = f1(v, z), f1(v,z+0j), f2(int(v), z)
                 if np.isinf(c1):
-                    assert np.abs(c2) >= 1e150, (v, z)
+                    assert np.abs(c2) >= 1e300, (v, z)
                 elif np.isnan(c1):
                     assert c2.imag != 0, (v, z)
                 else:
@@ -1651,7 +1651,7 @@ class TestBessel(TestCase):
         self.check_cephes_vs_amos(yv, yn, rtol=1e-11, atol=1e-305)
 
     def test_iv_cephes_vs_amos(self):
-        self.check_cephes_vs_amos(iv, iv, rtol=1e-8, atol=1e-305)
+        self.check_cephes_vs_amos(iv, iv, rtol=1e-12, atol=1e-305)
 
     def test_kv_cephes_vs_amos(self):
         self.check_cephes_vs_amos(kv, kn, rtol=1e-9, atol=1e-305)
@@ -1674,7 +1674,7 @@ class TestBessel(TestCase):
         assert_tol_equal(kv(-2,   1   ), 1.624838898635178)
         assert_tol_equal(jv(-0.5, 1   ), 0.43109886801837607952)
         assert_tol_equal(yv(-0.5, 1   ), 0.6713967071418031)
-        #assert_tol_equal(iv(-0.5, 1   ), 1.231200214592967)
+        assert_tol_equal(iv(-0.5, 1   ), 1.231200214592967)
         assert_tol_equal(kv(-0.5, 1   ), 0.4610685044478945)
         # amos
         assert_tol_equal(jv(-1,   1+0j), -0.4400505857449335)
@@ -1721,6 +1721,14 @@ class TestBessel(TestCase):
         assert isnan(kve(1, -1))
         assert isnan(airye(-1)[0:2]).all(), airye(-1)
         assert not isnan(airye(-1)[2:4]).any(), airye(-1)
+
+    def test_ticket_503(self):
+        """Real-valued Bessel I overflow"""
+        assert_tol_equal(iv(1, 700), 1.528500390233901e302)
+        assert_tol_equal(iv(1000, 1120), 1.301564549405821e301)
+
+    def test_iv_hyperg_poles(self):
+        assert_tol_equal(iv(-0.5, 1), 1.231200214592967)
 
     def iv_series(self, v, z, n=200):
         k = arange(0, n).astype(float_)
