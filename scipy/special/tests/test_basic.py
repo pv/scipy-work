@@ -200,7 +200,8 @@ class TestCephes(TestCase):
     def test_hyp1f2(self):
         cephes.hyp1f2(1,1,1,1)
     def test_hyp2f0(self):
-        cephes.hyp2f0(1,1,1,1)
+        v, err = cephes.hyp2f0(-2, 1, -0.3, 1)
+        assert_equal(v, 1.78)
     def test_hyp2f1(self):
         assert_equal(cephes.hyp2f1(1,1,1,0),1.0)
     def test_hyp3f0(self):
