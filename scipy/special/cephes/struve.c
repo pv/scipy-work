@@ -57,6 +57,8 @@ double onef2(), threef0();
 static double stop = 1.37e-17;
 extern double MACHEP, INFINITY;
 
+double cephes_yv_asymptotic_debye(v, x);
+
 double onef2( a, b, c, x, err )
 double a, b, c, x;
 double *err;
@@ -282,29 +284,6 @@ else
 	}
 }
 
-
-
-
-/* Bessel function of noninteger order
- */
-
-double yv( v, x )
-double v, x;
-{
-double y, t;
-int n;
-
-y = floor( v );
-if( y == v )
-	{
-	n = v;
-	y = yn( n, x );
-	return( y );
-	}
-t = PI * v;
-y = (cos(t) * jv( v, x ) - jv( -v, x ))/sin(t);
-return( y );
-}
 
 /* Crossover points between ascending series and asymptotic series
  * for Struve function
