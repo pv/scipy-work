@@ -53,6 +53,7 @@ Copyright 1984, 1987, 1988, 2000 by Stephen L. Moshier
 
 
 #include "mconf.h"
+#include "bessel_factors.h"
 #ifdef ANSIPROT
 extern double hyperg ( double, double, double );
 extern double exp ( double );
