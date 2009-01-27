@@ -1596,7 +1596,7 @@ class TestBessel(TestCase):
         an = yn_zeros(443,5)
         assert_tol_equal(an, [450.13573091578090314, 463.05692376675001542, 
                               472.80651546418663566, 481.27353184725625838,
-                              488.98055964441374646], rtol=1e-19)
+                              488.98055964441374646], rtol=1e-15)
 
     def test_ynp_zeros(self):
         ao = ynp_zeros(0,2)
