@@ -19,11 +19,15 @@
 #define NANF NPY_NANF
 #define NANL NPY_NANL
 
+#ifndef INFINITY
 #define INFINITY NPY_INFINITY
+#endif
 #define INFINITYF NPY_INFINITYF
 #define INFINITYL NPY_INFINITYL
 
+#ifndef PZERO
 #define PZERO NPY_PZERO
+#endif
 #define PZEROF NPY_PZEROF
 #define PZEROL NPY_PZEROL
 
@@ -32,10 +36,8 @@
 #define EPSILONL 1e-26L
 
 #define MAXNUM  1.7976931348623157e+308
-#define MAXNUMF 3.4028235e+38
-#define MAXNUML 1.189731495357231765e+4932
-
-#define MAXITER  100
+#define MAXNUMF 3.4028235e+38F
+#define MAXNUML 1.189731495357231765e+4932L
 
 /*
  * Mathematical constants
@@ -60,7 +62,7 @@
 #define PLOSS           6       /* partial loss of precision */
 #define TOOMANY         7       /* too many iterations */
 
-int mtherr(char *name, int code);
+void scf_error(char *name, int code);
 
 
 /*

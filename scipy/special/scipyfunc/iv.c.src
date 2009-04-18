@@ -64,6 +64,8 @@ enum {
     need_k = 0x2
 };
 
+#define MAXITER  500
+
 /**begin repeat
  * #real = float,double,npy_longdouble#
  * #c = f,,l#
@@ -92,7 +94,7 @@ static void ikv_temme@c@(@real@ v, @real@ x, @real@ *I, @real@ *K);
     sign = 1;
     if (x < 0.0) {
 	if (t != v) {
-	    mtherr("iv", DOMAIN);
+	    scf_error("iv", DOMAIN);
 	    return NAN@C@;
 	}
 	if (v != 2.0 * floor@c@(v / 2.0)) {
@@ -106,7 +108,7 @@ static void ikv_temme@c@(@real@ v, @real@ x, @real@ *I, @real@ *K);
 	    return 1.0;
         }
 	if (v < 0.0) {
-	    mtherr("iv", OVERFLOW);
+	    scf_error("iv", OVERFLOW);
 	    return INFINITY@C@;
 	} else
 	    return 0.0;
@@ -156,7 +158,7 @@ static @real@ iv_asymptotic@c@(@real@ v, @real@ x)
 	factor = (mu - (2 * k - 1) * (2 * k - 1)) / (8 * x) / k;
 	if (k > 100) {
 	    /* didn't converge */
-	    mtherr("iv(iv_asymptotic)", TLOSS);
+	    scf_error("iv(iv_asymptotic)", TLOSS);
 	    break;
 	}
 	term *= -factor;
@@ -279,11 +281,11 @@ void ikv_asymptotic_uniform@c@(@real@ v, @real@ x,
 
     if (fabs(term) > 1e-3*fabs(i_sum)) {
 	/* Didn't converge */
-	mtherr("ikv_asymptotic_uniform", TLOSS);
+	scf_error("ikv_asymptotic_uniform", TLOSS);
     }
     if (fabs(term) > EPSILON@C@*fabs(i_sum)) {
 	/* Some precision lost */
-	mtherr("ikv_asymptotic_uniform", PLOSS);
+	scf_error("ikv_asymptotic_uniform", PLOSS);
     }
 
     if (k_value != NULL) {
@@ -370,7 +372,7 @@ static int temme_ik_series@c@(@real@ v, @real@ x, @real@ *K, @real@ *K1)
 	}
     }
     if (k == MAXITER) {
-	mtherr("ikv_temme@c@(temme_ik_series)", TLOSS);
+	scf_error("ikv_temme@c@(temme_ik_series)", TLOSS);
     }
 
     *K = sum;
@@ -419,7 +421,7 @@ static int CF1_ik@c@(@real@ v, @real@ x, @real@ *fv)
 	}
     }
     if (k == MAXITER) {
-	mtherr("ikv_temme@c@(CF1_ik)", TLOSS);
+	scf_error("ikv_temme@c@(CF1_ik)", TLOSS);
     }
 
     *fv = f;
@@ -481,7 +483,7 @@ static int CF2_ik@c@(@real@ v, @real@ x, @real@ *Kv, @real@ *Kv1)
 	}
     }
     if (k == MAXITER) {
-	mtherr("ikv_temme@c@(CF2_ik)", TLOSS);
+	scf_error("ikv_temme@c@(CF2_ik)", TLOSS);
     }
 
     *Kv = sqrt@c@(PI@C@ / (2 * x)) * exp(-x) / S;
@@ -523,13 +525,13 @@ void ikv_temme@c@(@real@ v, @real@ x, @real@ *I, @real@ *K)
     if (x < 0) {
         if (I != NULL) *I = NAN@C@;
         if (K != NULL) *K = NAN@C@;
-	mtherr("ikv_temme", DOMAIN);
+	scf_error("ikv_temme", DOMAIN);
 	return;
     }
     if (x == 0) {
 	Iv = (v == 0) ? 1 : 0;
 	if (kind & need_k) {
-	    mtherr("ikv_temme", OVERFLOW);
+	    scf_error("ikv_temme", OVERFLOW);
 	    Kv = INFINITY@C@;
 	}
         else {
@@ -539,8 +541,8 @@ void ikv_temme@c@(@real@ v, @real@ x, @real@ *I, @real@ *K)
 	if (reflect && (kind & need_i)) {
 	    @real@ z = (u + n % 2);
 	    Iv = sin@c@(PI@C@ * z) == 0 ? Iv : INFINITY@C@;
-	    if (Iv == INFINITY@C@ || Iv == -INFINITY@C@) {
-		mtherr("ikv_temme", OVERFLOW);
+            if (Iv == INFINITY@C@ || Iv == -INFINITY@C@) {
+		scf_error("ikv_temme", OVERFLOW);
             }
 	}
 

@@ -3,20 +3,19 @@
  */
 
 #include "scipyfunc.h"
-
-extern double gamma ( double );
+#include "cephes_protos.h"
 
 double scf_gamma(double x)
 {
-    return gamma(x);
+    return Gamma(x);
 }
 
 float scf_gammaf(float x)
 {
-    return (float)gamma((double)x);
+    return (float)Gamma((double)x);
 }
 
 npy_longdouble scf_gammal(npy_longdouble x)
 {
-    return (npy_longdouble)gamma((double)x);
+    return (npy_longdouble)Gamma((double)x);
 }

@@ -20,8 +20,6 @@
 #include "specfun_wrappers.h"
 #include "c_misc/misc.h"
 
-#include "scipyfunc.h"
-
 /* Defined in mtherr in the cephes library */
 extern int scipy_special_print_error_messages;
 
@@ -147,7 +145,7 @@ static void * igami_data[] = { (void *)igami, (void *)igami, };
 static void * gammaincinv_data[] = { (void *)gammaincinv,
                                      (void *)gammaincinv, };
 
-static void * iv_data[] = { (void *)scf_iv, (void *)scf_iv, (void *)cbesi_wrap, (void *)cbesi_wrap,};
+static void * iv_data[] = { (void *)iv, (void *)iv, (void *)cbesi_wrap, (void *)cbesi_wrap,};
 static void * ive_data[] = { (void *)cbesi_wrap_e_real, (void *)cbesi_wrap_e_real, (void *)cbesi_wrap_e, (void *)cbesi_wrap_e, };
 static void * j0_data[] = { (void *)j0,  (void *)j0,  };
 static void * y0_data[] = { (void *)y0, (void *)y0, };
