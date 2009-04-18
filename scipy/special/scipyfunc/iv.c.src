@@ -276,7 +276,7 @@ void ikv_asymptotic_uniform@c@(@real@ v, @real@ x,
         k_sum += (n % 2 == 0) ? term : -term;
 
 	/* Check convergence */
-	if (fabs@c@(term) < EPSILON@C@*1e-9) {
+	if (fabs@c@(term) < EPSILON@C@) {
 	    break;
         }
 
