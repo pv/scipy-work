@@ -168,7 +168,7 @@ static @real@ iv_asymptotic@c@(@real@ v, @real@ x)
 	term *= -factor;
 	sum += term;
 	++k;
-    } while (fabs(term) > EPSILON@C@ * fabs(sum));
+    } while (fabs@c@(term) > EPSILON@C@ * fabs@c@(sum));
     return sum * prefactor;
 }
 
@@ -243,12 +243,12 @@ void ikv_asymptotic_uniform@c@(@real@ v, @real@ x,
     z = x / v;
     t = 1 / sqrt@c@(1 + z * z);
     t2 = t * t;
-    eta = sqrt@c@(1 + z * z) + log(z / (1 + 1 / t));
+    eta = sqrt@c@(1 + z * z) + log@c@(z / (1 + 1 / t));
 
-    i_prefactor = sqrt@c@(t / (2 * PI@C@ * v)) * exp(v * eta);
+    i_prefactor = sqrt@c@(t / (2 * PI@C@ * v)) * exp@c@(v * eta);
     i_sum = 1.0;
 
-    k_prefactor = sqrt@c@(PI@C@ * t / (2 * v)) * exp(-v * eta);
+    k_prefactor = sqrt@c@(PI@C@ * t / (2 * v)) * exp@c@(-v * eta);
     k_sum = 1.0;
 
     divisor = v;
@@ -276,18 +276,18 @@ void ikv_asymptotic_uniform@c@(@real@ v, @real@ x,
         k_sum += (n % 2 == 0) ? term : -term;
 
 	/* Check convergence */
-	if (fabs(term) < EPSILON@C@) {
+	if (fabs@c@(term) < EPSILON@C@*1e-9) {
 	    break;
         }
 
 	divisor *= v;
     }
 
-    if (fabs(term) > 1e-3*fabs(i_sum)) {
+    if (fabs@c@(term) > 1e-3*fabs@c@(i_sum)) {
 	/* Didn't converge */
 	scf_error("ikv_asymptotic_uniform", TLOSS);
     }
-    if (fabs(term) > EPSILON@C@*fabs(i_sum)) {
+    if (fabs@c@(term) > EPSILON@C@*fabs@c@(i_sum)) {
 	/* Some precision lost */
 	scf_error("ikv_asymptotic_uniform", PLOSS);
     }
@@ -338,8 +338,8 @@ static int temme_ik_series@c@(@real@ v, @real@ x, @real@ *K, @real@ *K1)
      * |x| <= 2, Temme series converge rapidly
      * |x| > 2, the larger the |x|, the slower the convergence
      */
-    BOOST_ASSERT(fabs(x) <= 2);
-    BOOST_ASSERT(fabs(v) <= 0.5f);
+    BOOST_ASSERT(fabs@c@(x) <= 2);
+    BOOST_ASSERT(fabs@c@(v) <= 0.5f);
 
     @real@ gp = scf_gamma@c@(v + 1) - 1;
     @real@ gm = scf_gamma@c@(-v + 1) - 1;
@@ -347,9 +347,9 @@ static int temme_ik_series@c@(@real@ v, @real@ x, @real@ *K, @real@ *K1)
     a = log@c@(x / 2);
     b = exp@c@(v * a);
     sigma = -a * v;
-    c = fabs(v) < EPSILON@C@ ? 1 : sin@c@(PI@C@ * v) / (v * PI@C@);
-    d = fabs(sigma) < EPSILON@C@ ? 1 : sinh@c@(sigma) / sigma;
-    gamma1 = fabs(v) < EPSILON@C@ ? -EULER@C@ : (0.5@C@ / v) * (gp - gm) * c;
+    c = fabs@c@(v) < EPSILON@C@ ? 1 : sin@c@(PI@C@ * v) / (v * PI@C@);
+    d = fabs@c@(sigma) < EPSILON@C@ ? 1 : sinh@c@(sigma) / sigma;
+    gamma1 = fabs@c@(v) < EPSILON@C@ ? -EULER@C@ : (0.5@C@ / v) * (gp - gm) * c;
     gamma2 = (2 + gp + gm) * c / 2;
 
     /* initial values */
@@ -371,7 +371,7 @@ static int temme_ik_series@c@(@real@ v, @real@ x, @real@ *K, @real@ *K1)
 	coef *= x * x / (4 * k);
 	sum += coef * f;
 	sum1 += coef * h;
-	if (fabs(coef * f) < fabs(sum) * tolerance) {
+	if (fabs@c@(coef * f) < fabs@c@(sum) * tolerance) {
 	    break;
 	}
     }
@@ -420,7 +420,7 @@ static int CF1_ik@c@(@real@ v, @real@ x, @real@ *fv)
 	D = 1 / D;
 	delta = C * D;
 	f *= delta;
-	if (fabs(delta - 1) <= tolerance) {
+	if (fabs@c@(delta - 1) <= tolerance) {
 	    break;
 	}
     }
@@ -449,7 +449,7 @@ static int CF2_ik@c@(@real@ v, @real@ x, @real@ *Kv, @real@ *Kv1)
      * |x| -> 0, CF2_ik fails to converge
      */
 
-    BOOST_ASSERT(fabs(x) > 1);
+    BOOST_ASSERT(fabs@c@(x) > 1);
 
     /*
      * Steed's algorithm, see Thompson and Barnett,
@@ -482,7 +482,7 @@ static int CF2_ik@c@(@real@ v, @real@ x, @real@ *Kv, @real@ *Kv1)
 	S += Q * delta;
 
 	/* S converges slower than f */
-	if (fabs(Q * delta) < fabs(S) * tolerance) {
+	if (fabs@c@(Q * delta) < fabs@c@(S) * tolerance) {
 	    break;
 	}
     }
@@ -490,7 +490,7 @@ static int CF2_ik@c@(@real@ v, @real@ x, @real@ *Kv, @real@ *Kv1)
 	scf_error("ikv_temme@c@(CF2_ik)", TLOSS);
     }
 
-    *Kv = sqrt@c@(PI@C@ / (2 * x)) * exp(-x) / S;
+    *Kv = sqrt@c@(PI@C@ / (2 * x)) * exp@c@(-x) / S;
     *Kv1 = *Kv * (0.5f + v + x + (v * v - 0.25f) * f) / x;
 
     return 0;
