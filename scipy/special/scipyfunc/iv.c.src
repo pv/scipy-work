@@ -54,6 +54,10 @@
  *
  */
 
+/*
+ * XXX: uses C99 sinf etc. functions; would need to use npy_*?
+ */
+
 #include <stdlib.h>
 #include <math.h>
 #include "scipyfunc.h"
