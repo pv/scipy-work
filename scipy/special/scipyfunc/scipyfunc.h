@@ -4,6 +4,7 @@
 #include <Python.h>
 #include <numpy/npy_math.h>
 #include <math.h>
+#include <stdlib.h>
 
 /*
  * Floating-point precision constants
@@ -39,6 +40,10 @@
 #define MAXNUMF 3.4028235e+38F
 #define MAXNUML 1.189731495357231765e+4932L
 
+#define MAXLOG  7.08396418532264106224E2
+#define MAXLOGF 1e1F
+#define MAXLOGL 7.08396418532264106224E2L
+
 /*
  * Mathematical constants
  */
@@ -64,10 +69,30 @@
 
 void scf_error(char *name, int code);
 
+#define ASSERT(x) assert(x)
 
 /*
  * Functions
  */
+
+/* Evaluating polynomials and rationals */
+double scf_evaluate_polynomial(const double *c, double z, int count);
+double scf_evaluate_polynomial_rev(const double *c, double z, int count);
+double scf_evaluate_rational(const double *num, const double *denom,
+                             double z, int count);
+
+float scf_evaluate_polynomialf(const float *c, float z, int count);
+float scf_evaluate_polynomial_revf(const float *c, float z, int count);
+float scf_evaluate_rationalf(const float *num, const float *denom, float z,
+                             int count);
+
+npy_longdouble scf_evaluate_polynomiall(const npy_longdouble *c,
+                                        npy_longdouble z, int count);
+npy_longdouble scf_evaluate_polynomial_revl(const npy_longdouble *c,
+                                            npy_longdouble z, int count);
+npy_longdouble scf_evaluate_rationall(const npy_longdouble *num,
+                                      const npy_longdouble *denom,
+                                      npy_longdouble z, int count);
 
 /* Bessel I, real-valued */
 double scf_iv(double v, double x);

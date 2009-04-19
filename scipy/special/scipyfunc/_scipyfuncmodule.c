@@ -58,6 +58,15 @@ static void scipyfunc_get_types(char *name,
             types[j++] = PyArray_LONGDOUBLE;
             types[j++] = PyArray_LONGDOUBLE;
             types[j++] = PyArray_LONGDOUBLE;
+        } else if (functions[k] == PyUFunc_f_f) {
+            types[j++] = PyArray_FLOAT;
+            types[j++] = PyArray_FLOAT;
+        } else if (functions[k] == PyUFunc_d_d) {
+            types[j++] = PyArray_DOUBLE;
+            types[j++] = PyArray_DOUBLE;
+        } else if (functions[k] == PyUFunc_g_g) {
+            types[j++] = PyArray_LONGDOUBLE;
+            types[j++] = PyArray_LONGDOUBLE;
         } else {
             char msg[1024];
             PyOS_snprintf(msg, 1024,
@@ -86,6 +95,11 @@ static void scipyfunc_init_ufuncs(PyObject *dictionary)
         PyUFuncGenericFunction f[] = {PyUFunc_ff_f,PyUFunc_dd_d,PyUFunc_gg_g};
         void *d[] = {scf_ivf, scf_iv, scf_ivl};
         ADD_UFUNC("iv", iv_docstring, f, d, 2, 1);
+    }
+    {
+        PyUFuncGenericFunction f[] = {PyUFunc_f_f,PyUFunc_d_d,PyUFunc_g_g};
+        void *d[] = {scf_gammaf, scf_gamma, scf_gammal};
+        ADD_UFUNC("gamma", gamma_docstring, f, d, 1, 1);
     }
 }
 
