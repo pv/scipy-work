@@ -74,7 +74,7 @@ static @real@ scf_is_odd@c@(@real@ x);
     
     if(z <= 0) {
         if (floor@c@(z) == z) {
-            scf_error("scf_gamma@c@", SING);
+            scf_error("scf_gamma@c@", SING, "%g", (double)z);
             return INFINITY@C@;
         }
 
@@ -82,13 +82,13 @@ static @real@ scf_is_odd@c@(@real@ x);
         {
             result = scf_gamma@c@(-z) * scf_sinpx@c@(z);
             if ((fabs@c@(result) < 1) && (MAXNUM@C@ * fabs@c@(result) < PI@C@)) {
-                scf_error("scf_gamma@c@", OVERFLOW);
+                scf_error("scf_gamma@c@", OVERFLOW, "%g", (double)z);
                 return INFINITY@C@;
             }
 
             result = -PI@C@ / result;
             if (result == 0) {
-                scf_error("scf_gamma@c@", UNDERFLOW);
+                scf_error("scf_gamma@c@", UNDERFLOW, "%g", (double)z);
             }
 
             return result;
@@ -112,14 +112,14 @@ static @real@ scf_is_odd@c@(@real@ x);
 
             zgh = (z + @lanczos@_g@c@() - 0.5@C@);
             if (log@c@(zgh) * z / 2 > MAXNUM@C@) {
-                scf_error("scf_gamma@c@", OVERFLOW);
+                scf_error("scf_gamma@c@", OVERFLOW, "%g", (double)z);
                 return INFINITY@C@;
             }
 
             hp = pow@c@(zgh, (z / 2) - 0.25@C@);
             result *= hp / exp@c@(zgh);
             if (MAXNUM@C@ / hp < result) {
-                scf_error("scf_gamma@c@", OVERFLOW);
+                scf_error("scf_gamma@c@", OVERFLOW, "%g", (double)z);
                 return INFINITY@C@;
             }
             result *= hp;

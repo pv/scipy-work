@@ -34,7 +34,7 @@
 
 #define EPSILON  2.2204460492503131e-16
 #define EPSILONF 1.1920929e-07F
-#define EPSILONL 1e-26L
+#define EPSILONL 1e-19L
 
 #define MAXNUM  1.7976931348623157e+308
 #define MAXNUMF 3.4028235e+38F
@@ -67,7 +67,12 @@
 #define PLOSS           6       /* partial loss of precision */
 #define TOOMANY         7       /* too many iterations */
 
-void scf_error(char *name, int code);
+typedef void *scf_error_handler_t(char *func_name, int code, char *code_name,
+                                  char *msg);
+
+void scf_error_set_ignore(int code, int ignore);
+void scf_error(char *func_name, int code, char *msg_fmt, ...);
+void scf_error_set_handler(scf_error_handler_t *handler);
 
 #define ASSERT(x) assert(x)
 

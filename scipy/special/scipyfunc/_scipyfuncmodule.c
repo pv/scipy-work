@@ -103,6 +103,35 @@ static void scipyfunc_init_ufuncs(PyObject *dictionary)
     }
 }
 
+
+/*
+ * Warnings and errors
+ */
+
+static PyObject *scipyfunc_SpecialFunctionWarning = NULL;
+
+static void scipyfuncmodule_raise_warning(char *fmt, ...)
+{
+    NPY_ALLOW_C_API_DEF
+    char msg[1024];
+    va_list ap;
+
+    va_start(ap, fmt);
+    PyOS_vsnprintf(msg, 1024, fmt, ap);
+    va_end(ap);
+
+    NPY_ALLOW_C_API
+    PyErr_Warn(scipyfunc_SpecialFunctionWarning, msg);
+    NPY_DISABLE_C_API
+}
+
+static void scipyfuncmodule_error_handler(char *name, int code, char *code_name,
+                                          char *msg)
+{
+    scipyfuncmodule_raise_warning("%s: %s (%s)", name, code_name, msg);
+}
+
+
 /*
  * Initialize the module
  */
@@ -125,8 +154,17 @@ PyMODINIT_FUNC initscipyfunc(void)
     /* Add some symbolic constants to the module */
     d = PyModule_GetDict(m);
 
+    /* Add warning object */
+    scipyfunc_SpecialFunctionWarning = PyErr_NewException(
+        "scipyfunc.SpecialFunctionWarning", PyExc_RuntimeWarning, NULL);
+    PyModule_AddObject(m, "SpecialFunctionWarning",
+                       scipyfunc_SpecialFunctionWarning);
+
     /* Load the scipyfunc ufuncs into the namespace */
     scipyfunc_init_ufuncs(d);
+
+    /* Set error/warning handler */
+    scf_error_set_handler(scipyfuncmodule_error_handler);
 
     /* Check for errors */
     if (PyErr_Occurred())
