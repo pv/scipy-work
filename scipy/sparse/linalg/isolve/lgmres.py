@@ -20,7 +20,7 @@ def norm2(q):
     return nrm2(q)
 
 def lgmres(A, b, x0=None, tol=1e-5, maxiter=1000, M=None, callback=None,
-           inner_m=50, outer_k=3, outer_maxiter=None, outer_v=None):
+           inner_m=20, outer_k=3, outer_v=None):
     """
     Solve a matrix equation using the LGMRES algorithm.
 
@@ -80,23 +80,16 @@ def lgmres(A, b, x0=None, tol=1e-5, maxiter=1000, M=None, callback=None,
 
     if outer_v is None:
         outer_v = []
-    if outer_maxiter is None:
-        outer_maxiter = maxiter
 
     axpy, dotc, scal = None, None, None
-    total_iter = 0
-    exit_flag = False
 
-    for k_outer in xrange(outer_maxiter):
-        total_iter += 1
+    for k_outer in xrange(maxiter):
         f_outer = matvec(x)
         r_outer = f_outer - b
 
         # -- callback
         if callback is not None:
             callback(x)
-        if total_iter >= maxiter:
-            break
 
         # -- determine input type routines
         if axpy is None:
@@ -134,15 +127,7 @@ def lgmres(A, b, x0=None, tol=1e-5, maxiter=1000, M=None, callback=None,
             else:
                 z = vs[-1]
 
-            total_iter += 1
             v_new = psolve(matvec(z))
-
-            # -- callback
-            if callback is not None:
-                callback(x)
-            if total_iter >= maxiter:
-                exit_flag = True
-                break
 
             #     ++ orthogonalize
             hcur = []
@@ -185,9 +170,6 @@ def lgmres(A, b, x0=None, tol=1e-5, maxiter=1000, M=None, callback=None,
             if inner_res < tol*inner_res_0:
                 break
 
-        if exit_flag:
-            break
-
         # -- GMRES terminated: eval solution
         dx = ws[0]*y[0]
         for w, yc in zip(ws[1:], y[1:]):
@@ -204,8 +186,7 @@ def lgmres(A, b, x0=None, tol=1e-5, maxiter=1000, M=None, callback=None,
 
         # -- apply step
         x += dx
-
-    if total_iter == maxiter or exit_flag:
+    else:
         # didn't converge ...
         return postprocess(x), maxiter
 
