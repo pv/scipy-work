@@ -1,3 +1,6 @@
+# Copyright (C) 2009, Pauli Virtanen <pav@iki.fi>
+# Distributed under the same license as Scipy.
+
 import numpy as np
 import scipy.lib.blas as blas
 from iterative import set_docstring
@@ -118,16 +121,51 @@ def lgmres(A, b, x0=None, tol=1e-5, maxiter=1000, M=None, callback=None,
 
         for j in xrange(1, 1 + inner_m + len(outer_v)):
             # -- Arnoldi process:
+            #
+            #    Build an orthonormal basis V and matrices W and H such that
+            #        A W = H V
+            #    Columns of V, W, and H are stored in `vs`, `ws` and `vs`.
+            #
+            #    The first column of V is always the residual vector, `vs0`;
+            #    V has *one more column* than the other matrices.
+            #
+            #    The other columns in V are built by feeding in, one
+            #    by one, some vectors `z` and orthonormalizing them
+            #    against the basis so far. The trick in LGMRES is to
+            #    feed in first some augmentation vectors, before
+            #    starting to construct the Krylov basis on `v0`.
+            #
+            #    Note especially that while `vs0` is always the first
+            #    column in V, there is no reason why it should also be
+            #    the first column in W. (In fact, below `vs0` comes in
+            #    W only after the augmentation vectors.)
+            #
+            #    The rest of the algorithm then goes as in GMRES, one
+            #    solves a minimization problem in the smaller subspace
+            #    spanned by W (range) and V (image).
+            #
+            #    XXX: Below, I'm lazy and use `lstsq` to solve the
+            #    small least squares problem. Performance-wise, this
+            #    is in practice acceptable, but it could be nice to do
+            #    it on the fly with Givens etc.
+            #
 
             #     ++ evaluate
+            v_new = None
             if j < len(outer_v) + 1:
-                z = outer_v[j-1]
+                z, v_new = outer_v[j-1]
             elif j == len(outer_v) + 1:
                 z = vs0
             else:
                 z = vs[-1]
 
-            v_new = psolve(matvec(z))
+            if v_new is None:
+                v_new = psolve(matvec(z))
+            else:
+                # Note: v_new is modified in-place below. Must make a
+                # copy to ensure that the outer_v vectors are not
+                # clobbered.
+                v_new = v_new.copy()
 
             #     ++ orthogonalize
             hcur = []
@@ -157,8 +195,8 @@ def lgmres(A, b, x0=None, tol=1e-5, maxiter=1000, M=None, callback=None,
                 continue
 
             # -- GMRES optimization problem
-            hess  = np.zeros((j+1, j), complex)
-            e1    = np.zeros((j+1,), complex)
+            hess  = np.zeros((j+1, j), x.dtype)
+            e1    = np.zeros((j+1,), x.dtype)
             e1[0] = inner_res_0
             for q in xrange(j):
                 hess[:(q+2),q] = hs[q]
@@ -176,15 +214,19 @@ def lgmres(A, b, x0=None, tol=1e-5, maxiter=1000, M=None, callback=None,
             dx = axpy(w, dx, dx.shape[0], yc) # dx += w*yc
 
         # -- Store LGMRES augmentation vectors
-
-        # XXX: Could store the previous (A x) products here...
+        q = np.dot(hess, y)
+        ax = vs[0]*q[0]
+        for v, qc in zip(vs[1:], q[1:]):
+            ax = axpy(v, ax, ax.shape[0], qc)
 
         nx = norm2(dx)
-        outer_v.append(dx / nx)
+        outer_v.append((dx/nx, ax/nx))
+
+        # -- Retain only a finite number of augmentation vectors
         while len(outer_v) > outer_k:
             del outer_v[0]
 
-        # -- apply step
+        # -- Apply step
         x += dx
     else:
         # didn't converge ...
