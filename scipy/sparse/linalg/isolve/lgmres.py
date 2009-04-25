@@ -119,6 +119,12 @@ def lgmres(A, b, x0=None, tol=1e-5, maxiter=1000, M=None, callback=None,
         # -- inner LGMRES iteration
         vs0 = -psolve(r_outer)
         inner_res_0 = norm2(vs0)
+
+        if inner_res_0 == 0:
+            rnorm = norm2(r_outer)
+            raise RuntimeError("Preconditioner returned a zero vector; "
+                               "|v| ~ %.1g, |M v| = 0" % rnorm)
+
         vs0 = scal(1.0/inner_res_0, vs0)
         hs = []
         vs = [vs0]
