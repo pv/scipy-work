@@ -23,7 +23,7 @@ def norm2(q):
     return nrm2(q)
 
 def lgmres(A, b, x0=None, tol=1e-5, maxiter=1000, M=None, callback=None,
-           inner_m=20, outer_k=3, outer_v=None):
+           inner_m=20, outer_k=3, outer_v=None, store_outer_Av=True):
     """
     Solve a matrix equation using the LGMRES algorithm.
 
@@ -59,6 +59,9 @@ def lgmres(A, b, x0=None, tol=1e-5, maxiter=1000, M=None, callback=None,
         List containing vectors carried between inner GMRES iterations.
         This parameter is modified in place by `lgmres`, and can be used
         to pass "guess" vectors when solving nearly similar problems.
+    store_outer_Av : bool, optional
+        Whether LGMRES should store also A*v in addition to vectors `v`
+        in the `outer_v` list. Default is True.
 
     Returns
     -------
@@ -77,6 +80,9 @@ def lgmres(A, b, x0=None, tol=1e-5, maxiter=1000, M=None, callback=None,
     """
     from scipy.linalg.basic import lstsq
     A,M,x,b,postprocess = make_system(A,M,x0,b)
+
+    if not np.isfinite(b).all():
+        raise ValueError("RHS must contain only finite numbers")
 
     matvec = A.matvec
     psolve = M.matvec
@@ -214,13 +220,15 @@ def lgmres(A, b, x0=None, tol=1e-5, maxiter=1000, M=None, callback=None,
             dx = axpy(w, dx, dx.shape[0], yc) # dx += w*yc
 
         # -- Store LGMRES augmentation vectors
-        q = np.dot(hess, y)
-        ax = vs[0]*q[0]
-        for v, qc in zip(vs[1:], q[1:]):
-            ax = axpy(v, ax, ax.shape[0], qc)
-
         nx = norm2(dx)
-        outer_v.append((dx/nx, ax/nx))
+        if store_outer_Av:
+            q = np.dot(hess, y)
+            ax = vs[0]*q[0]
+            for v, qc in zip(vs[1:], q[1:]):
+                ax = axpy(v, ax, ax.shape[0], qc)
+            outer_v.append((dx/nx, ax/nx))
+        else:
+            outer_v.append((dx/nx, None))
 
         # -- Retain only a finite number of augmentation vectors
         while len(outer_v) > outer_k:
