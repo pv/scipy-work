@@ -9,17 +9,8 @@ from utils import make_system
 __all__ = ['lgmres']
 
 def norm2(q):
-    q = np.asarray(q).ravel()
-    if np.iscomplexobj(q):
-        try:
-            nrm2 = blas.fblas.dznrm2
-        except AttributeError:
-            nrm2 = blas.cblas.dznrm2
-    else:
-        try:
-            nrm2 = blas.fblas.dnrm2
-        except AttributeError:
-            nrm2 = blas.cblas.dnrm2
+    q = np.asarray(q)
+    nrm2, = blas.get_blas_funcs(['nrm2'], [q])
     return nrm2(q)
 
 def lgmres(A, b, x0=None, tol=1e-5, maxiter=1000, M=None, callback=None,
@@ -104,13 +95,8 @@ def lgmres(A, b, x0=None, tol=1e-5, maxiter=1000, M=None, callback=None,
         if axpy is None:
             if np.iscomplexobj(r_outer) and not np.iscomplexobj(x):
                 x = x.astype(r_outer.dtype)
-
-            try:
-                axpy, dotc, scal = blas.get_blas_funcs(
-                    ['axpy','dotc','scal'], (x, r_outer))
-            except AttributeError:
-                axpy, dotc, scal = blas.get_blas_funcs(
-                    ['axpy','dot','scal'], (x, r_outer))
+            axpy, dotc, scal = blas.get_blas_funcs(['axpy', 'dotc', 'scal'],
+                                                   (x, r_outer))
 
         # -- check stopping condition
         if norm2(r_outer) < tol * norm2(f_outer):
