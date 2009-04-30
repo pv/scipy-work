@@ -27,7 +27,8 @@ def lgmres(A, b, x0=None, tol=1e-5, maxiter=1000, M=None, callback=None,
     x0  : {array, matrix}
         Starting guess for the solution.
     tol : float
-        Relative tolerance to achieve before terminating.
+        Tolerance to achieve. The algorithm terminates when either the relative
+        or the absolute residual is below `tol`.
     maxiter : integer
         Maximum number of iterations.  Iteration will stop after maxiter
         steps even if the specified tolerance has not been achieved.
@@ -83,9 +84,12 @@ def lgmres(A, b, x0=None, tol=1e-5, maxiter=1000, M=None, callback=None,
 
     axpy, dotc, scal = None, None, None
 
+    b_norm = norm2(b)
+    if b_norm == 0:
+        b_norm = 1
+
     for k_outer in xrange(maxiter):
-        f_outer = matvec(x)
-        r_outer = f_outer - b
+        r_outer = matvec(x) - b
 
         # -- callback
         if callback is not None:
@@ -99,7 +103,8 @@ def lgmres(A, b, x0=None, tol=1e-5, maxiter=1000, M=None, callback=None,
                                                    (x, r_outer))
 
         # -- check stopping condition
-        if norm2(r_outer) < tol * norm2(f_outer):
+        r_norm = norm2(r_outer)
+        if r_norm < tol * b_norm or r_norm < tol:
             break
 
         # -- inner LGMRES iteration
@@ -203,7 +208,7 @@ def lgmres(A, b, x0=None, tol=1e-5, maxiter=1000, M=None, callback=None,
             inner_res = norm2(np.dot(hess, y) - e1)
 
             # -- check for termination
-            if inner_res < tol*inner_res_0:
+            if inner_res < tol * inner_res_0:
                 break
 
         # -- GMRES terminated: eval solution
