@@ -14,7 +14,7 @@ def norm2(q):
     return nrm2(q)
 
 def lgmres(A, b, x0=None, tol=1e-5, maxiter=1000, M=None, callback=None,
-           inner_m=20, outer_k=3, outer_v=None, store_outer_Av=True):
+           inner_m=30, outer_k=6, outer_v=None, store_outer_Av=True):
     """
     Solve a matrix equation using the LGMRES algorithm.
 
