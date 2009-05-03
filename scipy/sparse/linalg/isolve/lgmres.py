@@ -194,7 +194,7 @@ def lgmres(A, b, x0=None, tol=1e-5, maxiter=1000, M=None, callback=None,
 
             # XXX: Ugly: should implement the GMRES iteration properly,
             #      with Givens rotations and not using lstsq
-            if not bailout and j % 5 != 0 and j < inner_m + len(outer_v) - 1:
+            if not bailout and j % 5 != 1 and j < inner_m + len(outer_v) - 1:
                 continue
 
             # -- GMRES optimization problem
