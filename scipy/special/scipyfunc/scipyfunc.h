@@ -6,43 +6,25 @@
 #include <math.h>
 #include <stdlib.h>
 
+#include "c99_compat.h"
+
 /*
  * Floating-point precision constants
  */
 
-/*
- * XXX: fix these!
- */
+float EPSILONF;
+float MAXNUMF;
+float MAXLOGF;
 
-#ifndef NAN
-#define NAN  NPY_NAN
-#endif
-#define NANF NPY_NANF
-#define NANL NPY_NANL
+double EPSILON;
+double MAXNUM;
+double MAXLOG;
 
-#ifndef INFINITY
-#define INFINITY NPY_INFINITY
-#endif
-#define INFINITYF NPY_INFINITYF
-#define INFINITYL NPY_INFINITYL
+npy_longdouble EPSILONL;
+npy_longdouble MAXNUML;
+npy_longdouble MAXLOGL;
 
-#ifndef PZERO
-#define PZERO NPY_PZERO
-#endif
-#define PZEROF NPY_PZEROF
-#define PZEROL NPY_PZEROL
-
-#define EPSILON  2.2204460492503131e-16
-#define EPSILONF 1.1920929e-07F
-#define EPSILONL 1e-19L
-
-#define MAXNUM  1.7976931348623157e+308
-#define MAXNUMF 3.4028235e+38F
-#define MAXNUML 1.189731495357231765e+4932L
-
-#define MAXLOG  7.08396418532264106224E2
-#define MAXLOGF 1e1F
-#define MAXLOGL 7.08396418532264106224E2L
+void scf_init();
 
 /*
  * Mathematical constants
@@ -51,10 +33,6 @@
 #define EULER  0.577215664901532860606512090082402
 #define EULERF 0.577215664901532860606512090082402F
 #define EULERL 0.577215664901532860606512090082402L
-
-#define PI NPY_PI
-#define PIF NPY_PIf
-#define PIL NPY_PIl
 
 /*
  * Error handling

@@ -1,0 +1,75 @@
+/*
+ * Machine-specific constants.
+ *
+ * float scf_eps()
+ * double scf_eps()
+ * longdouble scf_eps()
+ *
+ * float scf_maxnum()
+ * double scf_maxnum()
+ * longdouble scf_maxnum()
+ *
+ * float scf_maxlog()
+ * double scf_maxlog()
+ * longdouble scf_maxlog()
+ *
+ *
+ * IEEE-compliant arithmetic is assumed.
+ */
+
+#include <numpy/npy_math.h>
+
+static int initialized = 0;
+
+/**begin repeat
+ * #real = float,double,npy_longdouble#
+ * #c = f,,l#
+ * #C = F,,L#
+ */
+
+@real@ EPSILON@C@;
+@real@ MAXNUM@C@;
+@real@ MAXLOG@C@;
+
+static void initialize@c@()
+{
+    @real@ a;
+    
+    if (initialized) {
+        return;
+    }
+
+    /* XXX: this is not correct ! */
+
+    /* Eps */
+    a = 1.0@C@;
+    while (a + 1.0@C@ != 1.0@C@) {
+        EPSILON@C@ = a;
+        a /= 2.0@C@;
+    }
+
+    /* Maxnum */
+    a = 1.0@C@;
+    while (a*2.0@C@ != a) {
+        MAXNUM@C@ = a;
+        a *= 2.0@C@;
+    }
+
+    /* Maxlog */
+    MAXLOG@C@ = npy_log@c@(MAXNUM@C@);
+}
+
+/**end repeat**/
+
+void scf_init()
+{
+    initializef();
+    initialize();
+    initializel();
+}
+
+/*
+ * Local Variables:
+ * mode:c
+ * End:
+ */
