@@ -111,7 +111,7 @@ static @real@ scf_is_odd@c@(@real@ x);
             @real@ zgh, hp;
 
             zgh = (z + @lanczos@_g@c@() - 0.5@C@);
-            if (log@c@(zgh) * z / 2 > scf_maxnum@c@) {
+            if (log@c@(zgh) * z / 2 > scf_maxlog@c@) {
                 scf_error("scf_gamma@c@", OVERFLOW, "%g", (double)z);
                 return INFINITY@C@;
             }
