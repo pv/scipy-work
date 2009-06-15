@@ -98,7 +98,7 @@
  *                 too small by 1 or 2 units in the last digit of 
  *                 the significand.
  */
-void initialize@c@()
+static void initialize@c@()
 {
     /*
      * Note: this algorithm assumes that floating point numbers do not have
