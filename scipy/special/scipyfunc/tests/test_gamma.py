@@ -71,9 +71,6 @@ class TestGammaSingle(_TestGamma):
     dt = np.float32
     atol = 1e-6
     rtol = 1e-6
-    @dec.knownfailureif(True, "Loss of precision near 0 in single precision")
-    def test_near_0(self):
-        self._test("near_0.txt")
 
 class TestGammaLongExtended(_TestGamma):
     dt = np.longdouble

@@ -62,7 +62,7 @@
  * #real = float,double,npy_longdouble#
  * #c = f,,l#
  * #C = F,,L#
- * #lanczos = lanczos6m24, lanczos13m53, lanczos24m113#
+ * #lanczos = lanczos6, lanczos13m53, lanczos24m113#
  */
 
 static @real@ scf_sinpx@c@(@real@ x);
@@ -106,7 +106,7 @@ static @real@ scf_is_odd@c@(@real@ x);
         result *= factorials@c@[(int)(trunc@c@(z) - 1)];
     } else {
         result *= @lanczos@_sum@c@(z);
-        if(z * log@c@(z) > scf_maxlog@c@) {
+        if(z * log@c@(z) > scf_maxlog@c@ * 0.95) {
             /* we're going to overflow unless this is done with care: */
             @real@ zgh, hp;
 
