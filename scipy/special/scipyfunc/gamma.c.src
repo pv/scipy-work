@@ -81,7 +81,7 @@ static @real@ scf_is_odd@c@(@real@ x);
         if(z <= -20)
         {
             result = scf_gamma@c@(-z) * scf_sinpx@c@(z);
-            if ((fabs@c@(result) < 1) && (MAXNUM@C@ * fabs@c@(result) < PI@C@)) {
+            if ((fabs@c@(result) < 1) && (scf_maxnum@c@ * fabs@c@(result) < PI@C@)) {
                 scf_error("scf_gamma@c@", OVERFLOW, "%g", (double)z);
                 return INFINITY@C@;
             }
@@ -106,19 +106,19 @@ static @real@ scf_is_odd@c@(@real@ x);
         result *= factorials@c@[(int)(trunc@c@(z) - 1)];
     } else {
         result *= @lanczos@_sum@c@(z);
-        if(z * log@c@(z) > MAXLOG@C@) {
+        if(z * log@c@(z) > scf_maxlog@c@) {
             /* we're going to overflow unless this is done with care: */
             @real@ zgh, hp;
 
             zgh = (z + @lanczos@_g@c@() - 0.5@C@);
-            if (log@c@(zgh) * z / 2 > MAXNUM@C@) {
+            if (log@c@(zgh) * z / 2 > scf_maxnum@c@) {
                 scf_error("scf_gamma@c@", OVERFLOW, "%g", (double)z);
                 return INFINITY@C@;
             }
 
             hp = pow@c@(zgh, (z / 2) - 0.25@C@);
             result *= hp / exp@c@(zgh);
-            if (MAXNUM@C@ / hp < result) {
+            if (scf_maxnum@c@ / hp < result) {
                 scf_error("scf_gamma@c@", OVERFLOW, "%g", (double)z);
                 return INFINITY@C@;
             }

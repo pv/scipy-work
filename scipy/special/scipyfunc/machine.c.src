@@ -1,25 +1,23 @@
 /*
  * Machine-specific constants.
  *
- * float scf_eps()
- * double scf_eps()
- * longdouble scf_eps()
+ * extern float scf_epsf
+ * extern double scf_eps
+ * extern longdouble scf_epsl
  *
- * float scf_maxnum()
- * double scf_maxnum()
- * longdouble scf_maxnum()
+ * extern float scf_maxnumf
+ * extern double scf_maxnum
+ * extern longdouble scf_maxnuml
  *
- * float scf_maxlog()
- * double scf_maxlog()
- * longdouble scf_maxlog()
+ * extern float scf_maxlogf
+ * extern double scf_maxlog
+ * extern longdouble scf_maxlogl
  *
- *
- * IEEE-compliant arithmetic is assumed.
  */
 
+#include <Python.h>
+#include <stdio.h>
 #include <numpy/npy_math.h>
-
-static int initialized = 0;
 
 /**begin repeat
  * #real = float,double,npy_longdouble#
@@ -27,36 +25,300 @@ static int initialized = 0;
  * #C = F,,L#
  */
 
-@real@ EPSILON@C@;
-@real@ MAXNUM@C@;
-@real@ MAXLOG@C@;
+@real@ scf_eps@c@;
+@real@ scf_maxnum@c@;
+@real@ scf_maxlog@c@;
 
-static void initialize@c@()
+/**
+ * This subroutine is intended to determine the parameters
+ * of the floating-point arithmetic system specified below.  The
+ * determination of the first three uses an extension of an algorithm
+ * due to M. Malcolm, CACM 15 (1972), pp. 949-951, incorporating some,
+ * but not all, of the improvements suggested by M. Gentleman and S.
+ * Marovich, CACM 17 (1974), pp. 276-277.  An earlier version of this
+ * program was published in the book Software Manual for the
+ * Elementary Functions by W. J. Cody and W. Waite, Prentice-Hall,
+ * Englewood Cliffs, NJ, 1980.  The present version is documented in 
+ * W. J. Cody, "MACHAR: A subroutine to dynamically determine machine
+ * parameters," TOMS 14, December, 1988.
+ *
+ *       IBETA   - the radix for the floating-point representation 
+ *       IT      - the number of base IBETA digits in the floating-point 
+ *                 significand 
+ *       IRND    - 0 if floating-point addition chops 
+ *                 1 if floating-point addition rounds, but not in the 
+ *                   IEEE style 
+ *                 2 if floating-point addition rounds in the IEEE style 
+ *                 3 if floating-point addition chops, and there is 
+ *                   partial underflow 
+ *                 4 if floating-point addition rounds, but not in the 
+ *                   IEEE style, and there is partial underflow 
+ *                 5 if floating-point addition rounds in the IEEE style, 
+ *                   and there is partial underflow 
+ *       NGRD    - the number of guard digits for multiplication with 
+ *                 truncating arithmetic.  It is 
+ *                 0 if floating-point arithmetic rounds, or if it 
+ *                   truncates and only  IT  base  IBETA digits 
+ *                   participate in the post-normalization shift of the 
+ *                   floating-point significand in multiplication; 
+ *                 1 if floating-point arithmetic truncates and more 
+ *                   than  IT  base  IBETA  digits participate in the 
+ *                   post-normalization shift of the floating-point 
+ *                   significand in multiplication. 
+ *       MACHEP  - the largest negative integer such that 
+ *                 1.0+FLOAT(IBETA)**MACHEP .NE. 1.0, except that 
+ *                 MACHEP is bounded below by  -(IT+3) 
+ *       NEGEPS  - the largest negative integer such that 
+ *                 1.0-FLOAT(IBETA)**NEGEPS .NE. 1.0, except that 
+ *                 NEGEPS is bounded below by  -(IT+3) 
+ *       IEXP    - the number of bits (decimal places if IBETA = 10) 
+ *                 reserved for the representation of the exponent 
+ *                 (including the bias or sign) of a floating-point 
+ *                 number 
+ *       MINEXP  - the largest in magnitude negative integer such that 
+ *                 FLOAT(IBETA)**MINEXP is positive and normalized 
+ *       MAXEXP  - the smallest positive power of  BETA  that overflows 
+ *       EPS     - the smallest positive floating-point number such 
+ *                 that  1.0+EPS .NE. 1.0. In particular, if either 
+ *                 IBETA = 2  or  IRND = 0, EPS = FLOAT(IBETA)**MACHEP. 
+ *                 Otherwise,  EPS = (FLOAT(IBETA)**MACHEP)/2 
+ *       EPSNEG  - A small positive floating-point number such that 
+ *                 1.0-EPSNEG .NE. 1.0. In particular, if IBETA = 2 
+ *                 or  IRND = 0, EPSNEG = FLOAT(IBETA)**NEGEPS. 
+ *                 Otherwise,  EPSNEG = (IBETA**NEGEPS)/2.  Because 
+ *                 NEGEPS is bounded below by -(IT+3), EPSNEG may not 
+ *                 be the smallest number that can alter 1.0 by 
+ *                 subtraction. 
+ *       XMIN    - the smallest non-vanishing normalized floating-point 
+ *                 power of the radix, i.e.,  XMIN = FLOAT(IBETA)**MINEXP 
+ *       XMAX    - the largest finite floating-point number.  In 
+ *                 particular  XMAX = (1.0-EPSNEG)*FLOAT(IBETA)**MAXEXP 
+ *                 Note - on some machines  XMAX  will be only the 
+ *                 second, or perhaps third, largest number, being 
+ *                 too small by 1 or 2 units in the last digit of 
+ *                 the significand.
+ */
+void initialize@c@()
 {
-    @real@ a;
+    /*
+     * Note: this algorithm assumes that floating point numbers do not have
+     *       "extra precision" granted by optimizations or by keeping them
+     *       in FPU. Hence, use `volatile`.
+     */
+    volatile @real@ a, b, beta, betain, betah, eps, epsneg, one, t, temp, tempa,
+        temp1, two, xmax, xmin, y, z, zero;
+    int ibeta, it, machep, irnd, iexp, maxexp, minexp, i, j, k, iz, mx,
+        itemp, nxres, negep, ngrd;
+
+    one = 1.0@C@;
+    two = one + one;
+    zero = one - one;
+
+    /* Determine IBETA, BETA ala Malcolm. */
+    a = one;
+    do {
+        a += a;
+        temp = a + one;
+        temp1 = temp - a;
+    } while (temp1 - one == zero);
+
+    b = one;
+    do {
+        b += b;
+        temp = a + b;
+        itemp = (int) (temp - a);
+    } while (itemp == 0);
+
+    ibeta = itemp;
+    beta = (@real@)ibeta;
+
+    /* Determine IT, IRND. */
+    it = 0;
+    b = one;
+    do {
+        ++it;
+        b *= beta;
+        temp = b + one;
+        temp1 = temp - b;
+    } while (temp1 - one == zero);
+
+    irnd = 0;
+    betah = beta / two;
+    temp = a + betah;
+    if (temp - a != zero) {
+        irnd = 1;
+    }
+    tempa = a + beta;
+    temp = tempa + betah;
+    if (irnd == 0 && temp - tempa != zero) {
+        irnd = 2;
+    }
     
-    if (initialized) {
-        return;
+    /* Determine NEGEP, EPSNEG. */
+    negep = it + 3;
+    betain = one / beta;
+    a = one;
+    for (i = 1; i <= negep; ++i) {
+        a *= betain;
+    }
+    b = a;
+    do {
+        temp = one - a;
+        if (temp - one != zero) {
+            break;
+        }
+        a *= beta;
+        --negep;
+    } while (1);
+    negep = -negep;
+    epsneg = a;
+    
+    /* Determine MACHEP, EPS. */
+    machep = -it - 3;
+    a = b;
+    do {
+        temp = one + a;
+        if (temp - one != zero) {
+            break;
+        }
+        a *= beta;
+        ++machep;
+    } while (1); 
+    eps = a;
+
+    /* Determine NGRD. */
+    ngrd = 0;
+    temp = one + eps;
+    if (irnd == 0 && temp * one - one != zero) {
+        ngrd = 1;
     }
 
-    /* XXX: this is not correct ! */
+    /* Determine IEXP, MINEXP, XMIN. */
 
-    /* Eps */
-    a = 1.0@C@;
-    while (a + 1.0@C@ != 1.0@C@) {
-        EPSILON@C@ = a;
-        a /= 2.0@C@;
+    /*  Loop to determine largest I and K = 2**I such that
+     *         (1/BETA) ** (2**(I))
+     *  does not underflow. 
+     *  Exit from loop is signaled by an underflow.
+     */
+    i = 0;
+    k = 1;
+    z = betain;
+    t = one + eps;
+    nxres = 0;
+    do {
+        y = z;
+        z = y * y;
+
+        /*  Check for underflow here. */
+        a = z * one;
+        temp = z * t;
+        if (a + a == zero || fabs@c@(z) >= y) {
+            break;
+        }
+        temp1 = temp * betain;
+        if (temp1 * beta == z) {
+            break;
+        }
+        ++i;
+        k += k;
+    } while (1);
+
+    if (ibeta == 10) {
+        /* This segment is for decimal machines only. */
+        iexp = 2;
+        iz = ibeta;
+        while (k < iz) {
+            iz *= ibeta;
+            ++iexp;
+        }
+        mx = iz + iz - 1;
+    } else {
+        iexp = i + 1;
+        mx = k + k;
     }
 
-    /* Maxnum */
-    a = 1.0@C@;
-    while (a*2.0@C@ != a) {
-        MAXNUM@C@ = a;
-        a *= 2.0@C@;
+    /* Loop to determine MINEXP, XMIN.
+     * Exit from loop is signaled by an underflow.
+     */
+    do {
+        xmin = y;
+        y *= betain;
+
+        /*  Check for underflow here. */
+        a = y * one;
+        temp = y * t;
+        if (a + a == zero || fabs@c@(y) >= xmin) {
+            break;
+        }
+        ++k;
+        temp1 = temp * betain;
+        if (temp1 * beta != y || temp == y) {
+            continue;
+        } else {
+            nxres = 3;
+            xmin = y;
+            break;
+        }
+    } while (1);
+    minexp = -k;
+
+    /*  Determine MAXEXP, XMAX. */
+
+    if (mx > k + k - 3 || ibeta == 10) {
+        /* noop */
+    } else {
+        mx += mx;
+        ++(iexp);
+    }
+    maxexp = mx + minexp;
+    
+    /* Adjust IRND to reflect partial underflow. */
+    irnd += nxres;
+    
+    /* Adjust for IEEE-style machines. */
+    if (irnd >= 2) {
+        maxexp += -2;
+    }
+    
+    /*
+     *  Adjust for machines with implicit leading bit in binary
+     *  significand, and machines with radix point at extreme
+     *  right of significand.
+     */
+    i = maxexp + minexp;
+    if (ibeta == 2 && i == 0) {
+        --(maxexp);
+    }
+    if (i > 20) {
+        --(maxexp);
+    }
+    if (a != y) {
+        maxexp += -2;
+    }
+    xmax = one - epsneg;
+    if (xmax * one != xmax) {
+        xmax = one - beta * epsneg;
+    }
+    xmax /= beta * beta * beta * xmin;
+    i = maxexp + minexp + 3;
+    if (i <= 0) {
+        /* noop */
+    } else {
+        for (j = 1; j <= i; ++j) {
+            if (ibeta == 2) {
+                xmax += xmax;
+            }
+            if (ibeta != 2) {
+                xmax *= beta;
+            }
+        }
     }
 
-    /* Maxlog */
-    MAXLOG@C@ = npy_log@c@(MAXNUM@C@);
+    /* Done ! */
+
+    scf_eps@c@ = eps;
+    scf_maxnum@c@ = xmax;
+    scf_maxlog@c@ = log@c@(xmax);
 }
 
 /**end repeat**/

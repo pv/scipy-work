@@ -12,17 +12,17 @@
  * Floating-point precision constants
  */
 
-float EPSILONF;
-float MAXNUMF;
-float MAXLOGF;
+extern float scf_epsf;
+extern float scf_maxnumf;
+extern float scf_maxlogf;
 
-double EPSILON;
-double MAXNUM;
-double MAXLOG;
+extern double scf_eps;
+extern double scf_maxnum;
+extern double scf_maxlog;
 
-npy_longdouble EPSILONL;
-npy_longdouble MAXNUML;
-npy_longdouble MAXLOGL;
+extern npy_longdouble scf_epsl;
+extern npy_longdouble scf_maxnuml;
+extern npy_longdouble scf_maxlogl;
 
 void scf_init();
 

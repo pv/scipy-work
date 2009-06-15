@@ -163,6 +163,9 @@ PyMODINIT_FUNC initscipyfunc(void)
     /* Load the scipyfunc ufuncs into the namespace */
     scipyfunc_init_ufuncs(d);
 
+    /* Initialize the library */
+    scf_init();
+
     /* Set error/warning handler */
     scf_error_set_handler(scipyfuncmodule_error_handler);
 

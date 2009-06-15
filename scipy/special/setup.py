@@ -59,7 +59,8 @@ def configuration(parent_package='',top_path=None):
                                   join('scipyfunc','*.c')],
                          depends=[join('scipyfunc','*.h')],
                          f2py_options=['--no-wrap-functions'],
-                         define_macros=[])
+                         define_macros=[],
+                         extra_info=get_npymath_info())
     config.add_include_dirs(join(os.path.dirname(__file__), 'scipyfunc'))
 
     config.add_data_dir('tests')

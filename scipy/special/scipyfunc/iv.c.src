@@ -169,7 +169,7 @@ static @real@ iv_asymptotic@c@(@real@ v, @real@ x)
 	term *= -factor;
 	sum += term;
 	++k;
-    } while (fabs@c@(term) > EPSILON@C@ * fabs@c@(sum));
+    } while (fabs@c@(term) > scf_eps@c@ * fabs@c@(sum));
     return sum * prefactor;
 }
 
@@ -277,7 +277,7 @@ void ikv_asymptotic_uniform@c@(@real@ v, @real@ x,
         k_sum += (n % 2 == 0) ? term : -term;
 
 	/* Check convergence */
-	if (fabs@c@(term) < EPSILON@C@) {
+	if (fabs@c@(term) < scf_eps@c@) {
 	    break;
         }
 
@@ -289,7 +289,7 @@ void ikv_asymptotic_uniform@c@(@real@ v, @real@ x,
 	scf_error("ikv_asymptotic_uniform", TLOSS,
                   "(%g, %g) %d", (double)v, (double)x, n);
     }
-    if (fabs@c@(term) > 1e2*EPSILON@C@*fabs@c@(i_sum)) {
+    if (fabs@c@(term) > 1e2*scf_eps@c@*fabs@c@(i_sum)) {
 	/* Some precision lost */
 	scf_error("ikv_asymptotic_uniform", PLOSS,
                   "(%g, %g) %d", (double)v, (double)x, n);
@@ -350,9 +350,9 @@ static int temme_ik_series@c@(@real@ v, @real@ x, @real@ *K, @real@ *K1)
     a = log@c@(x / 2);
     b = exp@c@(v * a);
     sigma = -a * v;
-    c = fabs@c@(v) < EPSILON@C@ ? 1 : sin@c@(PI@C@ * v) / (v * PI@C@);
-    d = fabs@c@(sigma) < EPSILON@C@ ? 1 : sinh@c@(sigma) / sigma;
-    gamma1 = fabs@c@(v) < EPSILON@C@ ? -EULER@C@ : (0.5@C@ / v) * (gp - gm) * c;
+    c = fabs@c@(v) < scf_eps@c@ ? 1 : sin@c@(PI@C@ * v) / (v * PI@C@);
+    d = fabs@c@(sigma) < scf_eps@c@ ? 1 : sinh@c@(sigma) / sigma;
+    gamma1 = fabs@c@(v) < scf_eps@c@ ? -EULER@C@ : (0.5@C@ / v) * (gp - gm) * c;
     gamma2 = (2 + gp + gm) * c / 2;
 
     /* initial values */
@@ -365,7 +365,7 @@ static int temme_ik_series@c@(@real@ v, @real@ x, @real@ *K, @real@ *K1)
     sum1 = coef * h;
 
     /* series summation */
-    tolerance = EPSILON@C@;
+    tolerance = scf_eps@c@;
     for (k = 1; k < MAXITER; k++) {
 	f = (k * f + p + q) / (k * k - v * v);
 	p /= k - v;
@@ -406,8 +406,8 @@ static int CF1_ik@c@(@real@ v, @real@ x, @real@ *fv)
      * modified Lentz's method, see
      * Lentz, Applied Optics, vol 15, 668 (1976)
      */
-    tolerance = 2 * EPSILON@C@;
-    tiny = 1 / sqrt@c@(MAXNUM@C@);
+    tolerance = 2 * scf_eps@c@;
+    tiny = 1 / sqrt@c@(scf_maxnum@c@);
     C = f = tiny;		/* b0 = 0, replace with tiny */
     D = 0;
     for (k = 1; k < MAXITER; k++) {
@@ -460,7 +460,7 @@ static int CF2_ik@c@(@real@ v, @real@ x, @real@ *Kv, @real@ *Kv1)
      * Steed's algorithm, see Thompson and Barnett,
      * Journal of Computational Physics, vol 64, 490 (1986)
      */
-    tolerance = EPSILON@C@;
+    tolerance = scf_eps@c@;
     a = v * v - 0.25f;
     b = 2 * (x + 1);		/* b1 */
     D = 1 / b;			/* D1 = 1 / b1 */
@@ -589,7 +589,7 @@ void ikv_temme@c@(@real@ v, @real@ x, @real@ *I, @real@ *K)
 	lim *= lim;
 	lim *= lim;
 	lim /= 24;
-	if ((lim < EPSILON@C@ * 10) && (x > 100)) {
+	if ((lim < scf_eps@c@ * 10) && (x > 100)) {
 	    /*
              * x is huge compared to v, CF1 may be very slow 
 	     * to converge so use asymptotic expansion for large
