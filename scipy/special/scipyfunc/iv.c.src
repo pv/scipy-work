@@ -342,7 +342,7 @@ static int temme_ik_series@c@(@real@ v, @real@ x, @real@ *K, @real@ *K1)
      * |x| > 2, the larger the |x|, the slower the convergence
      */
     BOOST_ASSERT(fabs@c@(x) <= 2);
-    BOOST_ASSERT(fabs@c@(v) <= 0.5f);
+    BOOST_ASSERT(fabs@c@(v) <= 0.5@C@);
 
     @real@ gp = scf_gamma@c@(v + 1) - 1;
     @real@ gm = scf_gamma@c@(-v + 1) - 1;
@@ -461,7 +461,7 @@ static int CF2_ik@c@(@real@ v, @real@ x, @real@ *Kv, @real@ *Kv1)
      * Journal of Computational Physics, vol 64, 490 (1986)
      */
     tolerance = scf_eps@c@;
-    a = v * v - 0.25f;
+    a = v * v - 0.25@C@;
     b = 2 * (x + 1);		/* b1 */
     D = 1 / b;			/* D1 = 1 / b1 */
     f = delta = D;		/* f1 = delta1 = D1, coincidence */
@@ -497,7 +497,7 @@ static int CF2_ik@c@(@real@ v, @real@ x, @real@ *Kv, @real@ *Kv1)
     }
 
     *Kv = sqrt@c@(PI@C@ / (2 * x)) * exp@c@(-x) / S;
-    *Kv1 = *Kv * (0.5f + v + x + (v * v - 0.25f) * f) / x;
+    *Kv1 = *Kv * (0.5@C@ + v + x + (v * v - 0.25@C@) * f) / x;
 
     return 0;
 }
