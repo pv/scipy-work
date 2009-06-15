@@ -140,12 +140,12 @@ static struct PyMethodDef methods[] = {
     {NULL,		NULL, 0}		/* sentinel */
 };
 
-PyMODINIT_FUNC initscipyfunc(void)
+PyMODINIT_FUNC init_scipyfunc(void)
 {
     PyObject *m, *d, *s;
 
     /* Create the module and add the functions */
-    m = Py_InitModule("scipyfunc", methods);
+    m = Py_InitModule("_scipyfunc", methods);
 
     /* Import the ufunc objects */
     import_array();
