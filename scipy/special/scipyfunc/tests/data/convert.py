@@ -177,6 +177,7 @@ def dump_datasets(filename):
 
 if __name__ == '__main__':
     for filename in DATA_FILES:
+        filename = os.path.join("/Users/david/src/dsp/scipy/boost/", filename)
         print "================= %s ===============" % filename
         dump_datasets(filename)
 
