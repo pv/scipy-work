@@ -1,0 +1,20 @@
+# vim ft=python
+from numpy.distutils.misc_util import get_numpy_include_dirs
+
+from numscons import GetNumpyEnvironment
+from numscons import CheckF77Clib
+
+env = GetNumpyEnvironment(ARGUMENTS)
+
+env.AppendUnique(CPPPATH = env["PYEXTCPPPATH"]) 
+env.AppendUnique(CPPPATH = get_numpy_include_dirs())
+src = env.FromCTemplate("gamma.c.src")
+src += env.FromCTemplate("iv.c.src")
+src += env.FromCTemplate("tools.c.src")
+env.FromCTemplate("gamma_lanczos.h.src")
+src.extend(["error.c"])
+lib = env.DistutilsStaticExtLibrary("scfuncs", source=src)
+
+env.AppendUnique(LIBPATH = ['.'])
+
+env.NumpyPythonExtension('scipyfunc',  source="_scipyfuncmodule.c", LIBS=lib)
