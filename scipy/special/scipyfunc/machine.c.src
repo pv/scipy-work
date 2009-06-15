@@ -318,7 +318,7 @@ static void initialize@c@()
 
     scf_eps@c@ = eps;
     scf_maxnum@c@ = xmax;
-    scf_maxlog@c@ = log@c@(xmax);
+    scf_maxlog@c@ = log@c@(beta) * maxexp;
 }
 
 /**end repeat**/
