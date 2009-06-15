@@ -53,17 +53,10 @@ def configuration(parent_package='',top_path=None):
                          define_macros=[],
                          libraries=['sc_specfun'])
 
-    # Extension scipyfunc
-    config.add_extension('scipyfunc',
-                         sources=[join('scipyfunc','*.src'),
-                                  join('scipyfunc','*.c')],
-                         depends=[join('scipyfunc','*.h')],
-                         f2py_options=['--no-wrap-functions'],
-                         define_macros=[],
-                         extra_info=get_npymath_info())
-    config.add_include_dirs(join(os.path.dirname(__file__), 'scipyfunc'))
-
     config.add_data_dir('tests')
+
+    # Scipyfunc
+    config.add_subpackage('scipyfunc')
 
     return config
 

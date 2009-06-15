@@ -3,8 +3,8 @@ from os.path import join, dirname
 import numpy as np
 from numpy.testing import *
 
-from scipy.special.scipyfunc.scipyfunc import gamma
-from scipy.special.scipyfunc.tests.common import parse_txt_data, \
+from scipy.special.scipyfunc import gamma
+from scipy.special.scipyfunc.testing import parse_txt_data, \
     assert_tol_equal, nulps_array
 
 datadir = join(dirname(__file__), "data")
