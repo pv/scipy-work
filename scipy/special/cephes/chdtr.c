@@ -35,7 +35,7 @@
  *	y = chdtr( v, x ) = igam( v/2.0, x/2.0 ).
  *
  *
- * The arguments must both be positive.
+ * The argument v must be positive.
  *
  *
  *
@@ -46,7 +46,7 @@
  * ERROR MESSAGES:
  *
  *   message         condition      value returned
- * chdtr domain   x < 0 or v < 1        0.0
+ * chdtr domain        v < 0            nan
  */
 /*							chdtrc()
  *
@@ -85,7 +85,7 @@
  *	y = chdtr( v, x ) = igamc( v/2.0, x/2.0 ).
  *
  *
- * The arguments must both be positive.
+ * The argument v must be positive.
  *
  *
  *
@@ -96,7 +96,7 @@
  * ERROR MESSAGES:
  *
  *   message         condition      value returned
- * chdtrc domain  x < 0 or v < 1        0.0
+ * chdtrc domain       v < 0            nan
  */
 /*							chdtri()
  *
@@ -134,13 +134,18 @@
  * ERROR MESSAGES:
  *
  *   message         condition      value returned
- * chdtri domain   y < 0 or y > 1        0.0
- *                     v < 1
+ * chdtri domain   y < 0 or y > 1        nan
+ *                     v < 0
  *
  */
 
 /*								chdtr() */
 
+/*
+ * Modifications:
+ *
+ * 2009-09-22: make v >= 0, x in R, be the valid domain
+ */
 
 /*
 Cephes Math Library Release 2.0:  April, 1987
@@ -164,7 +169,7 @@ double chdtr(df,x)
 double df, x;
 {
 
-if( (x < 0.0))  /* || (df < 1.0) ) */
+if( (x < 0.0))
 	{
 	mtherr( "chdtr", DOMAIN );
 	return(NPY_NAN);
@@ -179,7 +184,7 @@ double df, y;
 {
 double x;
 
-if( (y < 0.0) || (y > 1.0)) /* || (df < 1.0) ) */
+if( (y < 0.0) || (y > 1.0))
 	{
 	mtherr( "chdtri", DOMAIN );
 	return(NPY_NAN);
