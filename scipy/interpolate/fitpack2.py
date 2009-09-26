@@ -128,7 +128,10 @@ class UnivariateSpline(object):
             if ier==1:
                 self._set_class(LSQUnivariateSpline)
             message = _curfit_messages.get(ier,'ier=%s' % (ier))
-            warnings.warn(message)
+            if ier < -2:
+                warnings.warn(message)
+            else:
+                raise RuntimeError(message)
 
     def _set_class(self, cls):
         self._spline_class = cls
