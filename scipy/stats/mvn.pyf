@@ -3,7 +3,7 @@
 
 python module mvn ! in 
     interface  ! in :mvn
-        subroutine mvnun(d,n,lower,upper,means,covar,maxpts,abseps,releps,value,inform) ! in :mvn:mvndst.f
+        subroutine mvnun(d,n,lower,upper,means,covar,maxpts,abseps,releps,value,inform,stdev,rho,nlower,nupper,infin) ! in :mvn:mvndst.f
             integer intent(hide) :: d=shape(means,0)
             integer intent(hide) :: n=shape(means,1)
             double precision dimension(d) :: lower
@@ -14,6 +14,8 @@ python module mvn ! in
             double precision intent(optional) :: abseps=1e-6
             double precision intent(optional) :: releps=1e-6
             double precision intent(out) :: value
+            double precision intent(cache) :: nlower(d), nupper(d), stdev(d), rho(d*(d-1)/2)
+            integer intent(cache) :: infin(d)
             integer intent(out) :: inform
         end subroutine mvnun
 

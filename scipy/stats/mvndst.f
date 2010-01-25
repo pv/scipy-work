@@ -22,7 +22,8 @@
 *          Email : alangenz@wsu.edu
 *
       SUBROUTINE mvnun(d, n, lower, upper, means, covar, maxpts, 
-     &                   abseps, releps, value, inform)
+     &                   abseps, releps, value, inform,
+     &                   stdev, rho, nlower, nupper, infin)
 *  Parameters
 *
 *   d       integer, dimensionality of the data
@@ -38,6 +39,11 @@
 *   inform  integer intent(out), 
 *               if inform == 0: error < eps
 *               elif inform == 1: error > eps, all maxpts used
+*   stdev   double, work array of size (d)
+*   rho     double, work array of size (d*(d-1)/2)
+*   nlower  double, work array of size (d)
+*   nupper  double, work array of size (d)
+*   infin   integer, work array of size (d)
       integer n, d, infin(d), maxpts, inform, tmpinf
       double precision lower(d), upper(d), releps, abseps,
      &                 error, value, stdev(d), rho(d*(d-1)/2), 
