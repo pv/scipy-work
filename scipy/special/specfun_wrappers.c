@@ -36,6 +36,7 @@ extern void F_FUNC(e1xb,E1XB)(double*,double*);
 extern void F_FUNC(e1z,E1Z)(Py_complex*,Py_complex*);
 extern void F_FUNC(eix,EIX)(double*,double*);
 extern void F_FUNC(cerror,CERROR)(Py_complex*,Py_complex*);
+extern void F_FUNC(cerror2,CERROR2)(Py_complex*,Py_complex*);
 extern void F_FUNC(stvh0,STVH0)(double*,double*);
 extern void F_FUNC(stvh1,STVH1)(double*,double*);
 extern void F_FUNC(stvhv,STVHV)(double*,double*,double*);
@@ -214,7 +215,7 @@ Py_complex cexpi_wrap(Py_complex z) {
 Py_complex cerf_wrap(Py_complex z) {
   Py_complex outz;
   
-  F_FUNC(cerror,CERROR)(&z, &outz);
+  F_FUNC(cerror2,CERROR2)(&z, &outz);
   return outz;
 }
 
