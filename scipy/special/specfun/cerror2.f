@@ -61,7 +61,6 @@ c
             d = 1d0 / d
             dw = c*d
             w = w*dw
-            write(*,*) k, cdabs(dw-1)
             if (cdabs(dw - 1) < 1d-15) goto 15
  10      continue
  15      w = 1d0 - cdexp(-z1*z1)/w/dsqrt(pi)
@@ -79,7 +78,6 @@ c
             d = 1d0 / d
             dw = c*d
             w = w*dw
-            write(*,*) k, cdabs(dw-1)
             if (cdabs(dw - 1) < 1d-15) goto 25
  20      continue
  25      w = 2*z1*cdexp(-z1*z1)/w/sqrt(pi)
