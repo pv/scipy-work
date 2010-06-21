@@ -25,7 +25,7 @@ c
       pi = 3.14159265358979323846264d0
 
       z1 = z
-      if (dble(z) < 0) then
+      if (dble(z) .lt. 0) then
 c        Inversion symmetry
          z1 = -z1
       end if
@@ -47,24 +47,24 @@ c              3    +   5   +   7    +
 c
 c     otherwise.
 c
-      if (abs(z) .gt. 2*pi .or. dble(z) .gt. 2d0) then
-         w = z1
-         c = w
-         d = 0d0
-         b = z
-         do 10 k = 1, 120
-            a = k / 2d0
-            d = b + a * d
-            if (d == 0) d = 1d-30
-            c = b + a / c
-            if (c == 0) c = 1d-30
-            d = 1d0 / d
-            dw = c*d
-            w = w*dw
-            if (cdabs(dw - 1) < 1d-15) goto 15
+      if (abs(z) .gt. 5.8d0) then
+C     
+C          Asymptotic series; maximum K must be at most ~ R^2.
+C
+C          The maximum accuracy obtainable from this expansion is roughly
+C
+C          ~ Gamma(2R**2 + 2) / (
+C                   (2 R**2)**(R**2 + 1/2) Gamma(R**2 + 3/2) 2**(R**2 + 1/2))
+C
+         w = 1.0d0/z1              
+         b = w
+         do 10 k = 1, 32
+            b = -b*(k-0.5d0)/(z1*z1)
+            w = w + b
+            if (cdabs(b/w).lt.1.0d-15) go to 15
  10      continue
- 15      w = 1d0 - cdexp(-z1*z1)/w/dsqrt(pi)
-       else
+ 15      w = 1.0d0 - cdexp(-z*z)*w/dsqrt(pi)
+      else
          w = 1d0
          c = w
          d = 0d0
@@ -78,6 +78,7 @@ c
             d = 1d0 / d
             dw = c*d
             w = w*dw
+            write(*,*) k, cdabs(dw-1)
             if (cdabs(dw - 1) < 1d-15) goto 25
  20      continue
  25      w = 2*z1*cdexp(-z1*z1)/w/sqrt(pi)
