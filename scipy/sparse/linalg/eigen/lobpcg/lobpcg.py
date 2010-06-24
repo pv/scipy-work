@@ -508,6 +508,10 @@ def lobpcg( A, X,
 
         blockVectorP, blockVectorAP, blockVectorBP = pp, app, bpp
 
+    if failureFlag:
+        raise RuntimeError("LOBPCG did not converge in %d iterations"
+                           % iterationNumber)
+
     aux = blockVectorBX * _lambda[np.newaxis,:]
     blockVectorR = blockVectorAX - aux
 
