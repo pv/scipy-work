@@ -4,6 +4,7 @@ from os.path import join
 
 def configuration(parent_package='',top_path=None):
     from numpy.distutils.misc_util import Configuration
+    from numpy.distutils.system_info import get_info
 
     config = Configuration('interpolate', parent_package, top_path)
 
@@ -11,8 +12,11 @@ def configuration(parent_package='',top_path=None):
                        sources=[join('fitpack', '*.f')],
                       )
 
+
+    lapack = dict(get_info('lapack_opt'))
     config.add_extension('interpnd',
-                         sources=['interpnd.c'])
+                         sources=['interpnd.c'],
+                         **lapack)
 
     config.add_extension('_fitpack',
                          sources=['src/_fitpackmodule.c'],

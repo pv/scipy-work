@@ -2,16 +2,36 @@
 # vim:syntax=python
 from os.path import join as pjoin
 
-from numscons import GetNumpyEnvironment, CheckF77Clib, CheckF77Mangling
+from numscons import GetNumpyEnvironment, CheckF77Clib, CheckF77Mangling, \
+     CheckF77LAPACK
+from numscons import write_info
 
 env = GetNumpyEnvironment(ARGUMENTS)
 env.Tool('f2py')
 
-config = env.NumpyConfigure(custom_tests = {'CheckF77Clib' : CheckF77Clib, 'CheckF77Mangling': CheckF77Mangling})
+#=======================
+# Starting Configuration
+#=======================
+config = env.NumpyConfigure(custom_tests = {
+    'CheckF77Clib' : CheckF77Clib, 'CheckF77Mangling': CheckF77Mangling,
+    'CheckLAPACK' : CheckF77LAPACK})
 if not config.CheckF77Clib():
     raise Exception("Could not check F77 runtime, needed for interpolate")
 config.CheckF77Mangling()
+
+st = config.CheckLAPACK()
+if not st:
+    has_lapack = 0
+else:
+    has_lapack = 1
+
 config.Finish()
+write_info(env)
+
+
+#==========
+#  Build
+#==========
 
 # Build fitpack
 src = [pjoin("fitpack", s) for s in ["bispev.f", "bispeu.f", "clocur.f",

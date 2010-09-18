@@ -93,6 +93,71 @@ class TestEstimateGradients2DGlobal(object):
             assert_allclose(dz, np.array(grad)[None,:] + 0*dz,
                             rtol=1e-5, atol=1e-5, err_msg="item %d" % j)
 
+class TestEstimateSmoothing2DGlobal(object):
+    def test_simple(self):
+        points = np.array([(0.0,   0.0),
+                           (0.0,   1.0),
+                           (1.0,   1.0),
+                           (1.0,   0.0),
+                           ])
+        values = np.array([0.0, 3.0, 1.0, 1.0])
+
+        tri = qhull.Delaunay(points)
+
+        # 1   2
+        # +---+
+        # |\  |
+        # | \ |
+        # |  \|
+        # +---+
+        # 0   3
+        assert_equal(tri.vertices, [[3, 1, 2], [3, 1, 0]])
+
+        #
+        # Compute result in the limit where smoothness dominates
+        #
+
+        qtol = 1e-3
+
+        z = interpnd.estimate_smoothing_2d_global(tri, values, tol=1e-6,
+                                                  maxiter=100000,
+                                                  L=1/qtol)
+        v = z[:,0]
+        dx = z[:,1]
+        dy = z[:,2]
+
+        # Must be equivalent to a hyperplane least squares fit
+        coef = np.c_[points[:,0], points[:,1], np.ones_like(points[:,1])]
+        sol, res, rank, s = np.linalg.lstsq(coef, values)
+
+        print dx, sol[0]
+        print dy, sol[1]
+        print v, np.dot(coef, sol)
+
+        assert_allclose(dx, sol[0], rtol=2e-2, atol=2e-2)
+        assert_allclose(dy, sol[1], rtol=2e-2, atol=2e-2)
+        #assert_allclose(v, np.dot(coef, sol), rtol=2e-2, atol=2e-2)
+
+        # Gradients must match along edges
+        assert_allclose(dx[0], dx[3], rtol=qtol, atol=qtol)
+        assert_allclose(dx[1], dx[2], rtol=qtol, atol=qtol)
+        assert_allclose(dy[0], dy[1], rtol=qtol, atol=qtol)
+        assert_allclose(dy[3], dy[2], rtol=qtol, atol=qtol)
+        assert_allclose(dx[1] - dy[1], dx[3] - dy[3], rtol=qtol, atol=qtol)
+
+        #
+        # Compute result in the limit where point values dominate
+        #
+
+        z00 = interpnd.estimate_gradients_2d_global(tri, values)
+        z0 = interpnd.estimate_smoothing_2d_global(tri, values, tol=1e-4,
+                                                   L=1e-4)
+
+        # Must coincide with the gradient estimation
+        assert_allclose(z0[:,0], values, rtol=1e-3, atol=1e-3)
+        assert_allclose(z0[:,1:], z00, rtol=1e-3, atol=1e-3)
+
+
 class TestCloughTocher2DInterpolator(object):
 
     def _check_accuracy(self, func, x=None, tol=1e-6, **kw):

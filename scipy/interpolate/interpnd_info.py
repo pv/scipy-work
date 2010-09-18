@@ -34,3 +34,22 @@ def _estimate_gradients_2d_global():
     print B
     print "solution"
     print A.inv() * B
+
+    syms = [f1, f2, df1, df2]
+
+    print intwpp2.subs(df1, f2 - f1).subs(df2, f1 - f2).expand()
+
+    AX = Matrix([[intwpp2.coeff(a*b) / (1 if a is b else 2)
+                  for b in syms]
+                 for a in syms])
+
+    BX = Matrix([[intwpp2.coeff(a).subs(f1, 0).subs(f2, 0).subs(df1, 0).subs(df2, 0)]
+                 for a in syms]) / 2
+
+    print "AX"
+    print AX
+    print "BX"
+    print BX
+
+if __name__ == "__main__":
+    _estimate_gradients_2d_global()
