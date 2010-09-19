@@ -191,9 +191,12 @@ class LinearNDInterpolator(NDInterpolatorBase):
 
     """
 
-    def __init__(self, points, values, fill_value=np.nan):
+    def __init__(self, points, values, fill_value=np.nan, triangulation=None):
         NDInterpolatorBase.__init__(self, points, values, fill_value=fill_value)
-        self.tri = qhull.Delaunay(points)
+        if triangulation is not None:
+            self.tri = triangulation
+        else:
+            self.tri = qhull.Delaunay(points)
 
 % for DTYPE, CDTYPE in zip(["double", "complex"], ["double", "double complex"]):
     @cython.boundscheck(False)
@@ -1073,7 +1076,7 @@ cdef ${CDTYPE} _clough_tocher_2d_single_${DTYPE}(qhull.DelaunayInfo_t *d,
 
 class CloughTocher2DInterpolator(NDInterpolatorBase):
     """
-    CloughTocher2DInterpolator(points, values, tol=1e-6)
+    CloughTocher2DInterpolator(points, values, fill_value=np.nan, tol=1e-6, maxiter=400, gradients=None, triangulation=None)
 
     Piecewise cubic, C1 smooth, curvature-minimizing interpolant in 2D. 
 
