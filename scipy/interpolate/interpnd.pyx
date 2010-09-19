@@ -450,6 +450,41 @@ cdef int _estimate_gradients_2d_global(qhull.DelaunayInfo_t *d, double *data,
     return 0
 
 def estimate_gradients_2d_global(tri, y, maxiter=400, tol=1e-6):
+    """
+    Estimate gradients of a function at the vertices of a 2d triangulation.
+
+    Parameters
+    ----------
+    tri : input
+        Triangulation in 2D
+    y : input
+        Function values at the vertices
+    maxiter : input
+        Maximum number of Gauss-Seidel iterations
+    tol : input
+        Absolute / relative stop tolerance
+
+    Returns
+    -------
+    grad : ndarray of float, shape (npoints, 2)
+        Estimated gradients
+
+    Notes
+    -----
+    This routine uses a re-implementation of the global approximate
+    curvature minimization algorithm described in [Nielson83] and [Renka84].
+
+    References
+    ----------
+    .. [Nielson83] G. Nielson,
+       ''A method for interpolating scattered data based upon a minimum norm
+       network''.
+       Math. Comp., 40, 253 (1983).
+    .. [Renka84] R. J. Renka and A. K. Cline.
+       ''A Triangle-based C1 interpolation method.'',
+       Rocky Mountain J. Math., 14, 223 (1984).
+
+    """
     cdef np.ndarray[np.double_t, ndim=2] data
     cdef np.ndarray[np.double_t, ndim=3] grad
     cdef qhull.DelaunayInfo_t *info
@@ -513,6 +548,8 @@ def _smoothing_nd_matrix(tri, scale=None, weights=None):
     """
     Construct smoother matrix A in CSR format
 
+    See docstring of `estimate_smoothing_nd_global` for details.
+
     """
     cdef int ipoint, ndata, idata, ndim, ndim1, jpoint2, ipoint2, k, k0
     cdef np.ndarray[np.double_t, ndim=1] data
@@ -520,7 +557,8 @@ def _smoothing_nd_matrix(tri, scale=None, weights=None):
     cdef np.ndarray[np.double_t, ndim=1] Lrad
     cdef qhull.RidgeIter2D_t it
     cdef double f1, f2, df1, df2, ex, ey, L, L3
-    cdef double ee[17]
+    cdef double ee[128]
+    cdef double scalar_weight = 1.0
     cdef qhull.DelaunayInfo_t *d
 
     ndim = tri.ndim
@@ -535,10 +573,13 @@ def _smoothing_nd_matrix(tri, scale=None, weights=None):
     Lrad = Lrad_arr
 
     if weights is not None:
-        weights = np.asanyarray(weights)
-        if weights.shape != (tri.npoints,):
-            raise ValueError("'weights' has a wrong shape")
-        weights = np.ascontiguousarray(weights).astype(np.double)
+        if np.isscalar(weights):
+            scalar_weight = float(weights)
+        else:
+            weights = np.asanyarray(weights)
+            if weights.shape != (tri.npoints,):
+                raise ValueError("'weights' has a wrong shape")
+            weights = np.ascontiguousarray(weights).astype(np.double)
 
     idata = 0
     ndata = tri.npoints*(2*ndim1) + 1
@@ -625,7 +666,7 @@ def _smoothing_nd_matrix(tri, scale=None, weights=None):
             if k0 == -1:
                 # fill in the weight terms
                 if weights is None:
-                    data[idata] = 1.0
+                    data[idata] = scalar_weight
                 else:
                     data[idata] = weights[ipoint]
                 indices[idata] = ndim1*ipoint + 0
@@ -713,6 +754,49 @@ def _smoothing_nd_matrix(tri, scale=None, weights=None):
     return A, Lrad_arr
 
 def estimate_smoothing_nd_global(tri, values, scale=None, weights=None):
+    r"""
+    Smooth N-dimensional data and estimate its gradients.
+
+    The smoothing is done by minimizing the functional::
+
+        Z[data] = ||approximate curvature of fitted surface||^2
+                  + sum_{V in vertices} weight || f(V) - f_0(V) ||^2
+
+    where the surface curvature is approximated with a minimum norm
+    network [Nielson83]_.
+
+    Parameters
+    ----------
+    tri : Delaunay
+        Triangulation in 2D
+    values : ndarray of shape (npoints, ...)
+        Function values at the vertices
+    scale : float or ndim-array of floats, optional
+        Scaling of dimensions. If an array, specifies the scaling separately
+        in each dimension.
+
+        If the data weights are 1.0 (the default), this parameter has
+        roughly the meaning of a shortest length scale to preserve in
+        smoothing.
+    weights : float, optional
+        Weighing of the value at each data point.  These should
+        typically be in the range [0, 1], zero meaning that the data
+        point is completely neglected, and 1.0 that it has a standard
+        weight vs. the curvature term.
+
+    Returns
+    -------
+    z : ndarray of float, shape (npoints, ndim+1)
+        Estimated values ``z[:,0]`` and gradients ``z[:,1:]``.
+
+    References
+    ----------
+    .. [Nielson83] G. Nielson,
+       ''A method for interpolating scattered data based upon a minimum norm
+       network''.
+       Math. Comp., 40, 253 (1983).
+
+    """
     cdef qhull.DelaunayInfo_t *info
     cdef double *weights_ptr = NULL
 
