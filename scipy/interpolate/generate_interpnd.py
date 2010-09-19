@@ -12,6 +12,11 @@ f = open('interpnd.pyx', 'r')
 template = f.read()
 f.close()
 
+
+if sys.argv[1:] == ['dump']:
+    print Template(template).render()
+    sys.exit(0)
+
 tmp_dir = tempfile.mkdtemp()
 try:
     # Run templating engine
