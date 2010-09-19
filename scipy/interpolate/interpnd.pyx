@@ -504,32 +504,38 @@ def estimate_gradients_2d_global(tri, y, maxiter=400, tol=1e-6):
 
 
 #------------------------------------------------------------------------------
-# Gradient estimation and smoothing in 2D
+# Gradient estimation and smoothing in N-d
 #------------------------------------------------------------------------------
 
 @cython.cdivision(True)
 @cython.boundscheck(False)
-def _smoothing_2d_matrix(tri, scale=None, weights=None):
+def _smoothing_nd_matrix(tri, scale=None, weights=None):
     """
     Construct smoother matrix A in CSR format
 
     """
-    cdef int ipoint, ndata, idata
+    cdef int ipoint, ndata, idata, ndim, ndim1, k, k0
     cdef np.ndarray[np.double_t, ndim=1] data
     cdef np.ndarray[np.npy_int, ndim=1] indptr, indices
+    cdef np.ndarray[np.double_t, ndim=1] Lrad
     cdef qhull.RidgeIter2D_t it
-    cdef double Lrad[2]
     cdef double f1, f2, df1, df2, ex, ey, L, L3
+    cdef double ee[17]
     cdef qhull.DelaunayInfo_t *d
 
+    ndim = tri.ndim
+    ndim1 = ndim + 1
+
+    if ndim != 2:
+        raise ValueError("Only 2-D data supported at the moment")
+
     if scale is None:
-        Lrad[0] = tri.points[:,0].ptp() / sqrt(tri.npoints)
-        Lrad[1] = tri.points[:,0].ptp() / sqrt(tri.npoints)
+        Lrad_arr = tri.points[:,0].ptp(axis=0) / sqrt(tri.npoints)
+        Lrad = Lrad_arr
     else:
-        q = np.empty((2,), float)
-        q[...] = scale
-        Lrad[0] = q[0]
-        Lrad[1] = q[1]
+        Lrad_arr = np.empty((ndim,), float)
+        Lrad_arr[...] = scale
+    Lrad = Lrad_arr
 
     if weights is not None:
         weights = np.asanyarray(weights)
@@ -538,10 +544,10 @@ def _smoothing_2d_matrix(tri, scale=None, weights=None):
         weights = np.ascontiguousarray(weights).astype(np.double)
 
     idata = 0
-    ndata = tri.npoints*16
+    ndata = tri.npoints*(2*ndim1) + 1
     data_arr = np.zeros((ndata,), dtype=float)
     indices_arr = np.zeros((ndata,), dtype=np.intc)
-    indptr_arr = np.zeros((3*tri.npoints+1,), dtype=np.intc)
+    indptr_arr = np.zeros((ndim1*tri.npoints+1,), dtype=np.intc)
 
     d = qhull._get_delaunay_info(tri, 0, 1)
 
@@ -572,6 +578,10 @@ def _smoothing_2d_matrix(tri, scale=None, weights=None):
     #
     # where f1, f2 are values at the vertices, and df1 and df2 are
     # derivatives along the edge (away from the vertices).
+    #
+    # Note that this procedure generalizes to N dimensions in a
+    # straightforward fashion! We can minimize a similar norm network
+    # functional in any dimensionality.
     #
     # As a consequence, one finds
     #
@@ -612,143 +622,106 @@ def _smoothing_2d_matrix(tri, scale=None, weights=None):
     indptr = indptr_arr
 
     for ipoint in xrange(d.npoints):
-% for CYCLE in [0, 1, 2]:
-        indptr[3*ipoint + ${CYCLE}] = idata
+        for k0 in xrange(-1, ndim):
+            indptr[ndim1*ipoint + k0+1] = idata
 
-% if CYCLE == 0:
-        # fill in the weight terms
-        if weights is None:
-            data[idata] = 1.0
-        else:
-            data[idata] = weights[ipoint]
-        indices[idata] = 3*ipoint + 0
-        idata += 1
-% endif
+            if k0 == -1:
+                # fill in the weight terms
+                if weights is None:
+                    data[idata] = 1.0
+                else:
+                    data[idata] = weights[ipoint]
+                indices[idata] = ndim1*ipoint + 0
+                idata += 1
 
-        # walk over neighbours of given point
-        qhull._RidgeIter2D_init(&it, d, ipoint)
+            # walk over neighbours of given point
 
-        while it.index != -1:
-            # edge
-            ex = (d.points[2*it.vertex2 +0] - d.points[2*it.vertex + 0])/Lrad[0]
-            ey = (d.points[2*it.vertex2 +1] - d.points[2*it.vertex + 1])/Lrad[1]
-            L = sqrt(ex**2 + ey**2)
-            L3 = L*L*L
+            # XXX: this is the only point specific to 2-D in this routine
+            #      -- the N-d ridge iterator needs to be implemented,
+            #      or we could perhaps just pull the raw data out from Qhull
+            qhull._RidgeIter2D_init(&it, d, ipoint)
 
-            # allocate space if needed
+            while it.index != -1:
+                # edge
+                L = 0
+                for k in xrange(ndim):
+                    ee[k] = (d.points[ndim*it.vertex2 + k]
+                             - d.points[ndim*it.vertex + k]) / Lrad[k]
+                    L += ee[k]**2
+                L = sqrt(L)
+                L3 = L*L*L
 
-            if idata + 6 >= ndata:
-                data = None
-                indices = None
-                ndata = ndata*2 + 1
-                data_arr.resize(ndata)
-                indices_arr.resize(ndata)
-                data = data_arr
-                indices = indices_arr
+                # allocate space if needed
 
-            # fill in terms
+                if idata + 2*ndim1 + 1 >= ndata:
+                    data = None
+                    indices = None
+                    ndata += 2*ndim + 1
+                    ndata *= 2
+                    data_arr.resize(ndata)
+                    indices_arr.resize(ndata)
+                    data = data_arr
+                    indices = indices_arr
 
-            # df1 =  ex*dF_x(1) + ey*dF_y(1)
-            # df2 = -ex*dF_x(2) - ey*dF_y(2)
+                # fill in terms
 
-% if CYCLE == 0:
-            # [[f1]] *  (12*(f1 - f2) + 6*(df1 - df2))/L3
+                # df1 =  ex*dF_x(1) + ey*dF_y(1)
+                # df2 = -ex*dF_x(2) - ey*dF_y(2)
 
-            data[idata] = 12.0 / L3
-            indices[idata] = it.vertex*3 + 0
-            idata += 1
+                if k0 == -1:
+                    # [[f1]] *  (12*(f1 - f2) + 6*(df1 - df2))/L3
 
-            data[idata] = -12.0 / L3
-            indices[idata] = it.vertex2*3 + 0
-            idata += 1
+                    data[idata] = 12.0 / L3
+                    indices[idata] = it.vertex*ndim1 + 0
+                    idata += 1
 
-            data[idata] = 6.0 * ex / L3
-            indices[idata] = it.vertex*3 + 1
-            idata += 1
+                    data[idata] = -12.0 / L3
+                    indices[idata] = it.vertex2*ndim1 + 0
+                    idata += 1
 
-            data[idata] = 6.0 * ey / L3
-            indices[idata] = it.vertex*3 + 2
-            idata += 1
+                    for k in range(ndim):
+                        data[idata] = 6.0 * ee[k] / L3
+                        indices[idata] = it.vertex*ndim1 + (k + 1)
+                        idata += 1
 
-            data[idata] = -6.0 * (-ex) / L3
-            indices[idata] = it.vertex2*3 + 1
-            idata += 1
+                    for k in range(ndim):
+                        data[idata] = -6.0 * (-ee[k]) / L3
+                        indices[idata] = it.vertex2*ndim1 + (k + 1)
+                        idata += 1
+                else:
+                    # [[dF_{k0}]] * e_k0 * (6*(f1 - f2)  + 4*df1 - 2*df2)*ex/L3
 
-            data[idata] = -6.0 * (-ey) / L3
-            indices[idata] = it.vertex2*3 + 2
-            idata += 1
+                    data[idata] = 6.0 * ee[k0] / L3
+                    indices[idata] = it.vertex*ndim1 + 0
+                    idata += 1
 
-% elif CYCLE == 1:
-            # [[dF_x]] * ex * (6*(f1 - f2)  + 4*df1 - 2*df2)*ex/L3
+                    data[idata] = -6.0 * ee[k0] / L3
+                    indices[idata] = it.vertex2*ndim1 + 0
+                    idata += 1
 
-            data[idata] = 6.0 * ex / L3
-            indices[idata] = it.vertex*3 + 0
-            idata += 1
+                    for k in xrange(ndim):
+                        data[idata] = 4.0 * ee[k] * ee[k0] / L3
+                        indices[idata] = it.vertex*ndim1 + (k + 1)
+                        idata += 1
 
-            data[idata] = -6.0 * ex / L3
-            indices[idata] = it.vertex2*3 + 0
-            idata += 1
+                    for k in xrange(ndim):
+                        data[idata] = -2.0 * (-ee[k]) * ee[k0] / L3
+                        indices[idata] = it.vertex2*ndim1 + (k + 1)
+                        idata += 1
 
-            data[idata] = 4.0 * ex * ex / L3
-            indices[idata] = it.vertex*3 + 1
-            idata += 1
+                # next edge
+                qhull._RidgeIter2D_next(&it)
 
-            data[idata] = 4.0 * ey * ex / L3
-            indices[idata] = it.vertex*3 + 2
-            idata += 1
-
-            data[idata] = -2.0 * (-ex) * ex / L3
-            indices[idata] = it.vertex2*3 + 1
-            idata += 1
-
-            data[idata] = -2.0 * (-ey) * ex / L3
-            indices[idata] = it.vertex2*3 + 2
-            idata += 1
-
-% elif CYCLE == 2:
-
-            # [[dF_y]] * ey * (6*(f1 - f2)  + 4*df1 - 2*df2)*ey/L3
-
-            data[idata] = 6.0 * ey / L3
-            indices[idata] = it.vertex*3 + 0
-            idata += 1
-
-            data[idata] = -6.0 * ey / L3
-            indices[idata] = it.vertex2*3 + 0
-            idata += 1
-
-            data[idata] = 4.0 * ex * ey / L3
-            indices[idata] = it.vertex*3 + 1
-            idata += 1
-
-            data[idata] = 4.0 * ey * ey / L3
-            indices[idata] = it.vertex*3 + 2
-            idata += 1
-
-            data[idata] = -2.0 * (-ex) * ey / L3
-            indices[idata] = it.vertex2*3 + 1
-            idata += 1
-
-            data[idata] = -2.0 * (-ey) * ey / L3
-            indices[idata] = it.vertex2*3 + 2
-            idata += 1
-% endif
-
-            # next edge
-            qhull._RidgeIter2D_next(&it)
-% endfor
-
-    indptr[3*d.npoints] = idata
+    indptr[ndim1*d.npoints] = idata
 
     free(d)
 
     from scipy.sparse import csr_matrix
     A =  csr_matrix((data_arr, indices_arr, indptr_arr),
-                    shape=(3*tri.npoints, 3*tri.npoints))
-    Lval = (Lrad[0], Lrad[1])
-    return A, Lval
+                    shape=(ndim1*tri.npoints, ndim1*tri.npoints))
+    return A, Lrad_arr
 
-def estimate_smoothing_2d_global(tri, values, scale=None, weights=None):
+def estimate_smoothing_nd_global(tri, values, scale=None, weights=None):
     cdef qhull.DelaunayInfo_t *info
     cdef double *weights_ptr = NULL
 
@@ -761,21 +734,25 @@ def estimate_smoothing_2d_global(tri, values, scale=None, weights=None):
 
     # -- Process
 
-    rhs = np.zeros((tri.npoints, 3) + values.shape[1:], dtype=values.dtype)
+    ndim = tri.ndim
+    ndim1 = ndim + 1
+
+    rhs = np.zeros((tri.npoints, ndim1) + values.shape[1:], dtype=values.dtype)
     rhs[:,0] = values
 
     if weights is not None:
         rhs[:,0] *= weights
 
-    A, L = _smoothing_2d_matrix(tri, scale, weights)
+    A, L = _smoothing_nd_matrix(tri, scale, weights)
     A.sum_duplicates()
 
     from scipy.sparse.linalg import spsolve
-    z = spsolve(A, rhs.reshape(3*tri.npoints, -1))
-    z[1::3] /= L[0]
-    z[2::3] /= L[1]
+    z = spsolve(A, rhs.reshape(ndim1*tri.npoints, -1))
 
-    return z.reshape((tri.npoints, 3) + values.shape[1:])
+    for k in xrange(1, ndim1):
+        z[k::ndim1] /= L[k-1]
+
+    return z.reshape((tri.npoints, ndim1) + values.shape[1:])
 
 
 #------------------------------------------------------------------------------

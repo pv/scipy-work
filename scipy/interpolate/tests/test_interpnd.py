@@ -1,6 +1,6 @@
 import numpy as np
 from numpy.testing import assert_equal, assert_allclose, assert_almost_equal, \
-        run_module_suite
+        run_module_suite, dec
 
 import scipy.interpolate.interpnd as interpnd
 import scipy.spatial.qhull as qhull
@@ -93,30 +93,51 @@ class TestEstimateGradients2DGlobal(object):
             assert_allclose(dz, np.array(grad)[None,:] + 0*dz,
                             rtol=1e-5, atol=1e-5, err_msg="item %d" % j)
 
-class TestEstimateSmoothing2DGlobal(object):
-    def test_simple(self):
+class TestEstimateSmoothingNDGlobal(object):
+    def test_simple_2d(self):
         points = np.array([(0.0,   0.0),
                            (0.0,   1.0),
                            (1.0,   1.0),
                            (1.0,   0.0),
                            ])
         values = np.array([0.0, 3.0, 1.0, 1.0])
-        self._check_dataset(points, values)
+        self._check_dataset_2d(points, values)
 
-    def test_random(self):
+    def test_random_2d(self):
         np.random.seed(1234)
         points = np.random.randn(30, 2)
         values = np.random.randn(30)
-        self._check_dataset(points, values)
+        self._check_dataset_2d(points, values)
+
+    @dec.skipif(True, ">2-d data not supported yet")
+    def test_random_3d(self):
+        np.random.seed(1234)
+        points = np.random.randn(30, 3)
+        values = np.random.randn(30)
+        self._check_dataset_nd(points, values)
+
+    @dec.skipif(True, ">2-d data not supported yet")
+    def test_random_4d(self):
+        np.random.seed(1234)
+        points = np.random.randn(30, 4)
+        values = np.random.randn(30)
+        self._check_dataset_nd(points, values)
+
+    @dec.skipif(True, ">2-d data not supported yet")
+    def test_random_5d(self):
+        np.random.seed(1234)
+        points = np.random.randn(30, 5)
+        values = np.random.randn(30)
+        self._check_dataset_nd(points, values)
     
-    def _check_dataset(self, points, values, qtol=1e-4):
+    def _check_dataset_2d(self, points, values, qtol=1e-4):
         tri = qhull.Delaunay(points)
 
         #
         # 1) Compute result in the limit where smoothness dominates
         #
 
-        z = interpnd.estimate_smoothing_2d_global(tri, values,
+        z = interpnd.estimate_smoothing_nd_global(tri, values,
                                                   scale=qtol**(-1./3))
         v = z[:,0]
         dx = z[:,1]
@@ -135,13 +156,31 @@ class TestEstimateSmoothing2DGlobal(object):
         #
 
         z00 = interpnd.estimate_gradients_2d_global(tri, values)
-        z0 = interpnd.estimate_smoothing_2d_global(tri, values, scale=1e-4)
+        z0 = interpnd.estimate_smoothing_nd_global(tri, values, scale=1e-4)
 
         # Must coincide with the gradient estimation
         assert_allclose(z0[:,0], values, rtol=1e-3, atol=1e-3)
         assert_allclose(z0[:,1:], z00, rtol=1e-3, atol=1e-3)
 
+    
+    def _check_dataset_nd(self, points, values, qtol=1e-4):
+        tri = qhull.Delaunay(points)
 
+        #
+        # 1) Compute result in the limit where smoothness dominates
+        #
+
+        z = interpnd.estimate_smoothing_nd_global(tri, values,
+                                                  scale=qtol**(-1./3))
+
+        # Must be equivalent to a hyperplane least squares fit
+        coef = np.c_[points, np.ones_like(points[:,1])]
+        sol, res, rank, s = np.linalg.lstsq(coef, values)
+
+        for k in xrange(tri.ndim):
+            assert_allclose(z[:,k+1], sol[k], rtol=qtol, atol=qtol,
+                            err_msg=str(k))
+        assert_allclose(z[:,0], np.dot(coef, sol), rtol=qtol, atol=qtol)
 
 class TestCloughTocher2DInterpolator(object):
 
