@@ -508,61 +508,15 @@ def estimate_gradients_2d_global(tri, y, maxiter=400, tol=1e-6):
 #------------------------------------------------------------------------------
 
 @cython.cdivision(True)
-cdef int _estimate_smoothing_2d_global(qhull.DelaunayInfo_t *d, double *data,
-                                       int maxiter, double tol,
-                                       double *y,
-                                       double Lrad) nogil:
+cdef int _estimate_smoothing_2d_residual(qhull.DelaunayInfo_t *d,
+                                         double *y, double *z,
+                                         double *Lrad, double *weight) nogil:
     """
-    Estimate gradients of a function at the vertices of a 2d triangulation.
-
-    Parameters
-    ----------
-    info : input
-        Triangulation in 2D
-    data : input
-        Function values at the vertices
-    maxiter : input
-        Maximum number of Gauss-Seidel iterations
-    tol : input
-        Absolute / relative stop tolerance
-    y : output, shape (npoints, 3)
-        Values and derivatives [F, F_x, F_y] at the vertices
-
-    Returns
-    -------
-    num_iterations
-        Number of iterations if converged, 0 if maxiter reached
-        without convergence, -1 if a singularity was encountered.
-
-    Notes
-    -----
-    This routine uses a re-implementation of the global approximate
-    curvature minimization algorithm described in [Nielson83] and [Renka84].
-
-    References
-    ----------
-    .. [Nielson83] G. Nielson,
-       ''A method for interpolating scattered data based upon a minimum norm
-       network''.
-       Math. Comp., 40, 253 (1983).
-    .. [Renka84] R. J. Renka and A. K. Cline.
-       ''A Triangle-based C1 interpolation method.'',
-       Rocky Mountain J. Math., 14, 223 (1984).
-
+    Evaluate smoother matrix product   A' z
     """
-    cdef double X[3*3]
-    cdef double Y[3]
-    cdef int ipoint, iiter, k, n, nrhs, info, nedge
-    cdef int ipiv[3]
+    cdef int ipoint
     cdef qhull.RidgeIter2D_t it
-    cdef double f1, f2, df2, ex, ey, L, L3, det, err, change
-    cdef double weight = 1.0/Lrad
-
-    # initialize
-    for ipoint in xrange(d.npoints):
-        y[3*ipoint + 0] = data[ipoint]
-        y[3*ipoint + 1] = 0
-        y[3*ipoint + 2] = 0
+    cdef double f1, f2, df1, df2, ex, ey, L, L3
 
     #
     # Main point:
@@ -572,13 +526,6 @@ cdef int _estimate_smoothing_2d_global(qhull.DelaunayInfo_t *d, double *data,
     # where W'' is the second derivative of the Clough-Tocher
     # interpolant to the direction of the edge E in triangle T, W_V
     # its value at the vertex V, and f_V the data at the vertex.
-    #
-    # The minimization is done iteratively: for each vertex V,
-    # the sum
-    #
-    #    Z_V = c |W_V - f_V|^2 + sum_{E connected to V} int_E |W''|^2
-    #
-    # is minimized separately, using existing values at other V.
     #
     # Since the interpolant can be written as
     #
@@ -603,11 +550,11 @@ cdef int _estimate_smoothing_2d_global(qhull.DelaunayInfo_t *d, double *data,
     #
     #     L^3 int_{E} |W''|^2 = y^T A y
     #
-    #     c |f_V - W_V|^2 = y^T A2 y + 2 B2 y + C2
+    #     c |f_V - W_V|^2 = y^T A2 y - 2 B2 y + C2
     #
     # with
     #
-    #     y   = [f1, f2, df1, df2]
+    #     y   = [f1, f2, df1, df2] = [f1, f2, E^T dF1, -E^T dF2]
     #
     #     A   = [ 12, -12,  6, -6;
     #            -12,  12, -6,  6;
@@ -621,192 +568,181 @@ cdef int _estimate_smoothing_2d_global(qhull.DelaunayInfo_t *d, double *data,
     #             0, 0, 0, 0;
     #             0, 0, 0, 0 ]
     #
-    #     B2  = [ -c W_V, 0, 0, 0 ]
+    #     B2  = [ c W_V, 0, 0, 0 ]
     #
     # Where C2 is not needed for minimization, and *all* information
-    # about the interpolant is contained in the matrix *A*. In the
-    # block Gauss-Seidel step we only want to solve for the quantity
+    # about the interpolant is contained in the matrix *A*.
     #
-    #    z   = [f1, F_x(V_1), F_y(V_1)]
+    # The optimization problem is clearly solved by
     #
-    # so we substitute
+    #    [\sum_E A_E + \sum_V A2] z = \sum_V B2
     #
-    #    y   = R z + Q
-    #
-    #    R   = [1,   0,   0;
-    #           0,   0,   0;
-    #           0, E_x, E_y;
-    #           0,   0,   0 ]
-    #
-    #    Q   = [0, f2, 0, df2]
-    #
-    # and get
-    #
-    #     Z_V = z^T [A2' + \sum_E R_E^T A R_E/L_E^3] z
-    #         + 2   [B2' + \sum_E 2 Q^T A R_E/L_E^3] z
-    #         + const
-    #
-    #         = z^T X z - 2 Y z + const.
-    #
-    # which is easily minimized:
-    #
-    #     z_* = X^{-1} Y
-    #
-    # Moreover,
-    #
-    #     X   = [ c, 0, 0;] + \sum_E [    12,     6 E_x,     6 E_y;
-    #           [ 0, 0, 0;]            6 E_x, 4 E_x E_x, 4 E_y E_x;
-    #           [ 0, 0, 0;]            6 E_y, 4 E_x E_y, 4 E_y E_y; ] / L_E^3
-    #
-    #     Y   = [c W_V, 0, 0] + \sum_E [12 f2 + 6 df2,
-    #                                   (6 f2 + 2 df2) E_x,
-    #                                   (6 f2 + 2 df2) E_y ] / L_E^3
+    # This routine evaluates the left-hand side product, so that the
+    # global problem can be solved by an iterative method.
     #
 
-    # Gauss-Seidel
-    for iiter in xrange(maxiter):
-        err = 0
-        for ipoint in xrange(d.npoints):
-            for k in xrange(3*3):
-                X[k] = 0
-            for k in xrange(3):
-                Y[k] = 0
+    for ipoint in xrange(d.npoints):
+        z[ipoint*3 + 0] = 0
+        z[ipoint*3 + 1] = 0
+        z[ipoint*3 + 2] = 0
 
-            # walk over neighbours of given point
-            qhull._RidgeIter2D_init(&it, d, ipoint)
-            nedge = 0
+        # walk over neighbours of given point
+        qhull._RidgeIter2D_init(&it, d, ipoint)
 
-            while it.index != -1:
-                nedge += 1
+        while it.index != -1:
+            # edge
+            ex = (d.points[2*it.vertex2 +0] - d.points[2*it.vertex + 0])/Lrad[0]
+            ey = (d.points[2*it.vertex2 +1] - d.points[2*it.vertex + 1])/Lrad[1]
+            L = sqrt(ex**2 + ey**2)
+            L3 = L*L*L
 
-                # edge
-                ex = d.points[2*it.vertex2 + 0] - d.points[2*it.vertex + 0]
-                ey = d.points[2*it.vertex2 + 1] - d.points[2*it.vertex + 1]
-                L = sqrt(ex**2 + ey**2)
-                L3 = L*L*L
+            # data at vertices
+            f1 = y[3*it.vertex + 0]
+            f2 = y[3*it.vertex2 + 0]
 
-                # data at vertices
-                f2 = y[3*it.vertex2 + 0]
+            # scaled gradient projections on the edge
+            df1 = +ex*y[it.vertex*3 + 1] + ey*y[it.vertex*3 + 2]
+            df2 = -ex*y[it.vertex2*3 + 1] - ey*y[it.vertex2*3 + 2]
 
-                # scaled gradient projections on the edge
-                df1 = +ex*y[it.vertex*3 + 1] + ey*y[it.vertex*3 + 2]
-                df2 = -ex*y[it.vertex2*3 + 1] - ey*y[it.vertex2*3 + 2]
+            # edge sum
+            z[ipoint*3 + 0] += (12*(f1 - f2) + 6*(df1 - df2))/L3
+            z[ipoint*3 + 1] += (6*(f1 - f2)  + 4*df1 - 2*df2)*ex/L3
+            z[ipoint*3 + 2] += (6*(f1 - f2)  + 4*df1 - 2*df2)*ey/L3
 
-                # edge sum
-                X[0] += 12/L3
-                X[1] += 6*ex/L3
-                X[2] += 6*ey/L3
+            # next edge
+            qhull._RidgeIter2D_next(&it)
 
-                X[4] += 4*ex*ex / L3
-                X[5] += 4*ey*ex / L3
+        # fill in the weight terms
+        if weight == NULL:
+            z[ipoint*3 + 0] += y[3*ipoint + 0]
+        else:
+            z[ipoint*3 + 0] += weight[ipoint] * y[3*ipoint + 0]
 
-                X[8] += 4*ey*ey / L3
-
-                Y[0] += (12*f2 + 6*df2) / L3
-                Y[1] += (6*f2 + 2*df2) * ex / L3
-                Y[2] += (6*f2 + 2*df2) * ey / L3
-
-                # next edge
-                qhull._RidgeIter2D_next(&it)
-
-            # fill in the weight terms
-            X[0] += nedge * weight
-            Y[0] += nedge * weight * data[ipoint]
-
-            # the matrix is symmetric
-            X[3] = X[1]
-            X[6] = X[2]
-            X[7] = X[5]
-
-            # solve
-            n = 3
-            nrhs = 1
-            info = 0
-            dgesv_(&n, &nrhs, X, &n, ipiv, Y, &n, &info)
-
-            if info != 0:
-                # singularity encountered
-                return -1
-
-            change = max(fabs(y[it.vertex*3 + 0] - Y[0]),
-                         fabs(y[it.vertex*3 + 1] - Y[1]),
-                         fabs(y[it.vertex*3 + 2] - Y[2]))
-
-            y[it.vertex*3 + 0] = Y[0]
-            y[it.vertex*3 + 1] = Y[1]
-            y[it.vertex*3 + 2] = Y[2]
-
-            # relative/absolute error
-            change /= max(1.0, max(fabs(Y[0]), fabs(Y[1]), fabs(Y[2])))
-            err = max(err, change)
-
-        if err < tol:
-            return iiter + 1
-
-    # Didn't converge before maxiter
     return 0
 
-def estimate_smoothing_2d_global(tri, y, maxiter=2000, tol=1e-6, L=None):
-    cdef np.ndarray[np.double_t, ndim=2] data
-    cdef np.ndarray[np.double_t, ndim=3] grad
+def estimate_smoothing_2d_residual(tri, y, L):
+    cdef np.ndarray[np.double_t, ndim=2] yy
+    cdef np.ndarray[np.double_t, ndim=2] zz
     cdef qhull.DelaunayInfo_t *info
     cdef int k, ret, nvalues
-    cdef double Lrad
+    cdef double Lrad[2]
 
     y = np.asanyarray(y)
 
-    if y.shape[0] != tri.npoints:
+    if y.shape != (tri.npoints, 3) :
+        raise ValueError("'y' has a wrong shape")
+
+    Lrad[0] = float(L)
+    Lrad[1] = float(L)
+
+    y = np.ascontiguousarray(y).astype(np.double)
+    z = np.empty(y.shape)
+
+    yy = y
+    zz = z
+
+    info = qhull._get_delaunay_info(tri, 0, 1)
+    nvalues = yy.shape[0]
+
+    with nogil:
+        _estimate_smoothing_2d_residual(
+            info,
+            <double*>yy.data,
+            <double*>zz.data,
+            Lrad, NULL)
+
+    free(info)
+    return z
+
+
+from scipy.sparse.linalg import cg, LinearOperator
+
+def estimate_smoothing_2d_global(tri, values, tol=1e-6, maxiter=1000,
+                                 L=None, weights=None):
+    cdef qhull.DelaunayInfo_t *info
+    cdef double Lrad[2]
+    cdef double *weights_ptr = NULL
+
+    values = np.asanyarray(values)
+
+    # -- Parse arguments
+
+    if values.shape != (tri.npoints,):
         raise ValueError("'y' has a wrong number of items")
 
-    if np.issubdtype(y.dtype, np.complexfloating):
-        rg = estimate_smoothing_2d_global(tri, y.real, maxiter=maxiter, tol=tol,
-                                          L=L)
-        ig = estimate_smoothing_2d_global(tri, y.imag, maxiter=maxiter, tol=tol,
-                                          L=L)
+    if np.issubdtype(values.dtype, np.complexfloating):
+        rg = estimate_smoothing_2d_global(tri, values.real, maxiter=maxiter,
+                                          tol=tol, L=L, weights=weights)
+        ig = estimate_smoothing_2d_global(tri, values.imag, maxiter=maxiter,
+                                          tol=tol, L=L, weights=weights)
         r = np.zeros(rg.shape, dtype=complex)
         r.real = rg
         r.imag = ig
         return r
 
-    if L is not None:
-        Lrad = float(L)
+    if L is None:
+        Lrad[0] = tri.points[:,0].ptp() / sqrt(tri.points.size)
+        Lrad[1] = tri.points[:,0].ptp() / sqrt(tri.points.size)
     else:
-        Lrad = abs(tri.points.ptp(axis=0)).max() / 20.
+        q = np.empty((2,), float)
+        q[...] = L
+        Lrad[0] = q[0]
+        Lrad[1] = q[1]
 
-    y_shape = y.shape
+    if weights is not None:
+        weights = np.asanyarray(weights)
+        if weights.shape != (tri.npoints,):
+            raise ValueError("'weights' has a wrong shape")
+        weights = np.ascontiguousarray(weights).astype(np.double)
 
-    if y.ndim == 1:
-        y = y[:,None]
+    # -- Process
 
-    y = y.reshape(tri.npoints, -1).T
-    y = np.ascontiguousarray(y).astype(np.double)
-    yi = np.empty((y.shape[0], y.shape[1], 3))
+    rhs = np.zeros((tri.npoints, 3), float)
+    rhs[:,0] = values
 
-    data = y
-    grad = yi
+    z = np.zeros((3*tri.npoints,), float)
+
+    if weights is not None:
+        rhs[:,0] *= weights
 
     info = qhull._get_delaunay_info(tri, 0, 1)
-    nvalues = data.shape[0]
 
-    for k in xrange(nvalues):
+    def matvec(y):
+        cdef np.ndarray[np.double_t, ndim=1] yy, zz, ww
+
+        yy = y
+        zz = z
+
+        if weights is not None:
+            ww = weights
+            weights_ptr = <double*>ww.data
+        else:
+            weights_ptr = NULL
+
         with nogil:
-            ret = _estimate_smoothing_2d_global(
+            _estimate_smoothing_2d_residual(
                 info,
-                <double*>data.data + info.npoints*k,
-                maxiter,
-                tol,
-                <double*>grad.data + 3*info.npoints*k,
-                Lrad)
+                <double*>yy.data,
+                <double*>zz.data,
+                Lrad, weights_ptr)
 
-        if ret == 0:
-            msg = ("Smoothing did not converge "
-                   "to tolerance %s; the results may be inaccurate.") % tol
-            warnings.warn(msg, GradientEstimationWarning)
-        elif ret < 0:
-            raise RuntimeError("Smoothing encountered a singularity")
+        return z.ravel()
 
-    free(info)
-    return yi.transpose(1, 0, 2).reshape(y_shape + (3,))
+    linop = LinearOperator(matvec=matvec, shape=(3*tri.npoints, 3*tri.npoints),
+                           dtype=float)
+
+    try:
+        sol, ret = cg(linop, rhs.ravel(), maxiter=maxiter, tol=tol)
+        sol = sol.reshape(rhs.shape)
+        sol[:,1] /= Lrad[0]
+        sol[:,2] /= Lrad[1]
+    finally:
+        free(info)
+
+    if ret != 0:
+        raise RuntimeError("Smoothing CG iteration did not converge")
+
+    return sol
 
 
 #------------------------------------------------------------------------------
