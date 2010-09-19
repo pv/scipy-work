@@ -211,7 +211,7 @@ class LinearNDInterpolator(NDInterpolatorBase):
         start = 0
         fill_value = self.fill_value
 
-        info = qhull._get_delaunay_info(self.tri, 1, 0)
+        info = qhull._get_delaunay_info(self.tri, 1, 0, 0)
 
         out = np.zeros((xi.shape[0], self.values.shape[1]), dtype=np.${DTYPE})
         nvalues = out.shape[1]
@@ -480,7 +480,7 @@ def estimate_gradients_2d_global(tri, y, maxiter=400, tol=1e-6):
     data = y
     grad = yi
 
-    info = qhull._get_delaunay_info(tri, 0, 1)
+    info = qhull._get_delaunay_info(tri, 0, 1, 0)
     nvalues = data.shape[0]
 
     for k in xrange(nvalues):
@@ -514,7 +514,7 @@ def _smoothing_nd_matrix(tri, scale=None, weights=None):
     Construct smoother matrix A in CSR format
 
     """
-    cdef int ipoint, ndata, idata, ndim, ndim1, k, k0
+    cdef int ipoint, ndata, idata, ndim, ndim1, jpoint2, ipoint2, k, k0
     cdef np.ndarray[np.double_t, ndim=1] data
     cdef np.ndarray[np.npy_int, ndim=1] indptr, indices
     cdef np.ndarray[np.double_t, ndim=1] Lrad
@@ -525,9 +525,6 @@ def _smoothing_nd_matrix(tri, scale=None, weights=None):
 
     ndim = tri.ndim
     ndim1 = ndim + 1
-
-    if ndim != 2:
-        raise ValueError("Only 2-D data supported at the moment")
 
     if scale is None:
         Lrad_arr = tri.points[:,0].ptp(axis=0) / sqrt(tri.npoints)
@@ -549,7 +546,7 @@ def _smoothing_nd_matrix(tri, scale=None, weights=None):
     indices_arr = np.zeros((ndata,), dtype=np.intc)
     indptr_arr = np.zeros((ndim1*tri.npoints+1,), dtype=np.intc)
 
-    d = qhull._get_delaunay_info(tri, 0, 1)
+    d = qhull._get_delaunay_info(tri, 0, 0, 1)
 
     #
     # Main point:
@@ -635,18 +632,15 @@ def _smoothing_nd_matrix(tri, scale=None, weights=None):
                 idata += 1
 
             # walk over neighbours of given point
+            for jpoint2 in xrange(d.vertex_neighbors_indices[ipoint],
+                                  d.vertex_neighbors_indices[ipoint+1]):
+                ipoint2 = d.vertex_neighbors_indptr[jpoint2]
 
-            # XXX: this is the only point specific to 2-D in this routine
-            #      -- the N-d ridge iterator needs to be implemented,
-            #      or we could perhaps just pull the raw data out from Qhull
-            qhull._RidgeIter2D_init(&it, d, ipoint)
-
-            while it.index != -1:
                 # edge
                 L = 0
                 for k in xrange(ndim):
-                    ee[k] = (d.points[ndim*it.vertex2 + k]
-                             - d.points[ndim*it.vertex + k]) / Lrad[k]
+                    ee[k] = (d.points[ndim*ipoint2 + k]
+                             - d.points[ndim*ipoint + k]) / Lrad[k]
                     L += ee[k]**2
                 L = sqrt(L)
                 L3 = L*L*L
@@ -672,45 +666,42 @@ def _smoothing_nd_matrix(tri, scale=None, weights=None):
                     # [[f1]] *  (12*(f1 - f2) + 6*(df1 - df2))/L3
 
                     data[idata] = 12.0 / L3
-                    indices[idata] = it.vertex*ndim1 + 0
+                    indices[idata] = ipoint*ndim1 + 0
                     idata += 1
 
                     data[idata] = -12.0 / L3
-                    indices[idata] = it.vertex2*ndim1 + 0
+                    indices[idata] = ipoint2*ndim1 + 0
                     idata += 1
 
                     for k in range(ndim):
                         data[idata] = 6.0 * ee[k] / L3
-                        indices[idata] = it.vertex*ndim1 + (k + 1)
+                        indices[idata] = ipoint*ndim1 + (k + 1)
                         idata += 1
 
                     for k in range(ndim):
                         data[idata] = -6.0 * (-ee[k]) / L3
-                        indices[idata] = it.vertex2*ndim1 + (k + 1)
+                        indices[idata] = ipoint2*ndim1 + (k + 1)
                         idata += 1
                 else:
                     # [[dF_{k0}]] * e_k0 * (6*(f1 - f2)  + 4*df1 - 2*df2)*ex/L3
 
                     data[idata] = 6.0 * ee[k0] / L3
-                    indices[idata] = it.vertex*ndim1 + 0
+                    indices[idata] = ipoint*ndim1 + 0
                     idata += 1
 
                     data[idata] = -6.0 * ee[k0] / L3
-                    indices[idata] = it.vertex2*ndim1 + 0
+                    indices[idata] = ipoint2*ndim1 + 0
                     idata += 1
 
                     for k in xrange(ndim):
                         data[idata] = 4.0 * ee[k] * ee[k0] / L3
-                        indices[idata] = it.vertex*ndim1 + (k + 1)
+                        indices[idata] = ipoint*ndim1 + (k + 1)
                         idata += 1
 
                     for k in xrange(ndim):
                         data[idata] = -2.0 * (-ee[k]) * ee[k0] / L3
-                        indices[idata] = it.vertex2*ndim1 + (k + 1)
+                        indices[idata] = ipoint2*ndim1 + (k + 1)
                         idata += 1
-
-                # next edge
-                qhull._RidgeIter2D_next(&it)
 
     indptr[ndim1*d.npoints] = idata
 
@@ -1093,7 +1084,7 @@ class CloughTocher2DInterpolator(NDInterpolatorBase):
         start = 0
         fill_value = self.fill_value
 
-        info = qhull._get_delaunay_info(self.tri, 1, 1)
+        info = qhull._get_delaunay_info(self.tri, 1, 1, 0)
 
         out = np.zeros((xi.shape[0], self.values.shape[1]), dtype=np.${DTYPE})
         nvalues = out.shape[1]

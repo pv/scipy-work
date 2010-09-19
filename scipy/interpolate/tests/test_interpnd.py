@@ -109,21 +109,18 @@ class TestEstimateSmoothingNDGlobal(object):
         values = np.random.randn(30)
         self._check_dataset_2d(points, values)
 
-    @dec.skipif(True, ">2-d data not supported yet")
     def test_random_3d(self):
         np.random.seed(1234)
         points = np.random.randn(30, 3)
         values = np.random.randn(30)
         self._check_dataset_nd(points, values)
 
-    @dec.skipif(True, ">2-d data not supported yet")
     def test_random_4d(self):
         np.random.seed(1234)
         points = np.random.randn(30, 4)
         values = np.random.randn(30)
         self._check_dataset_nd(points, values)
 
-    @dec.skipif(True, ">2-d data not supported yet")
     def test_random_5d(self):
         np.random.seed(1234)
         points = np.random.randn(30, 5)
