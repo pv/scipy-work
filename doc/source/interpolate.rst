@@ -40,9 +40,11 @@ Data given on a regular grid:
 
    interp2d
 
+.. seealso:: scipy.ndimage.map_coordinates
 
-1-D Splines
-===========
+
+1-D smoothing and interpolation
+===============================
 
 .. autosummary::
    :toctree: generated/
@@ -81,11 +83,8 @@ Low-level interface to FITPACK functions:
    bisplrep
    bisplev
 
-
-2-D Splines
-===========
-
-.. seealso:: scipy.ndimage.map_coordinates
+2-D smoothing and interpolation
+===============================
 
 .. autosummary::
    :toctree: generated/
@@ -101,6 +100,15 @@ Low-level interface to FITPACK functions:
 
    bisplrep
    bisplev
+
+N-D smoothing and interpolation
+===============================
+
+.. autosummary::
+   :toctree: generated/
+
+   NDSmoother
+
 
 Additional tools
 ================
