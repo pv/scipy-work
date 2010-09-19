@@ -321,7 +321,7 @@ class NDSmoother(NDInterpolatorBase):
 
         z = estimate_smoothing_nd_global(self.tri, self.values,
                                          scale=scale_c, weights=weights)
-        self.values = z[:,0]
+        self.values = z[:,0].reshape(values.shape)
         self.grad = z[:,1:]
 
         if method == 'nearest':
