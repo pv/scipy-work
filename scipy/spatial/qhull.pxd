@@ -31,9 +31,12 @@ ctypedef struct DelaunayInfo_t:
     double paraboloid_shift
     double *max_bound
     double *min_bound
+    int *vertex_neighbors_indices
+    int *vertex_neighbors_indptr
 
 cdef DelaunayInfo_t *_get_delaunay_info(obj, int compute_transform,
-                                        int compute_vertex_to_simplex)
+                                        int compute_vertex_to_simplex,
+                                        int compute_vertex_neighbors)
 
 #
 # N-D geometry
@@ -72,7 +75,9 @@ cdef int _find_simplex(DelaunayInfo_t *d, double *c, double *x, int *start,
                        double eps) nogil
 
 #
-# Walking ridges connected to a vertex
+# Walking ridges connected to a vertex (2-d)
+#
+# In N-d, use the vertex_neighbors stuff
 #
 
 ctypedef struct RidgeIter2D_t:
