@@ -12,7 +12,7 @@ from interpnd import LinearNDInterpolator, NDInterpolatorBase, \
 from scipy.spatial import cKDTree, Delaunay
 
 __all__ = ['griddata', 'NearestNDInterpolator', 'LinearNDInterpolator',
-           'CloughTocher2DInterpolator', 'NDSmoother', 'smoothdata']
+           'CloughTocher2DInterpolator', 'NDSmoother']
 
 #------------------------------------------------------------------------------
 # Nearest-neighbour interpolation
@@ -255,7 +255,7 @@ class NDSmoother(NDInterpolatorBase):
     >>> data = signal + noise
 
     We would like to smooth the noise away to recover the signal.
-    This can be done with `smoothdata`:
+    This can be done with `NDSmoother`:
 
     >>> from scipy.interpolate import NDSmoother
     >>> smoothed = NDSmoother(points, data, scale=0.1)
