@@ -27,7 +27,7 @@ from numpy import atleast_1d, eye, mgrid, argmin, zeros, shape, \
      squeeze, vectorize, asarray, absolute, sqrt, Inf, asfarray, isinf
 from linesearch import \
      line_search_BFGS, line_search_wolfe1, line_search_wolfe2, \
-     line_search_wolfe2 as line_search
+     DomainError, line_search_wolfe2 as line_search
 
 # These have been copied from Numeric's MLab.py
 # I don't think they made the transition to scipy_core
@@ -391,6 +391,41 @@ def fmin_bfgs(f, x0, fprime=None, args=(), gtol=1e-5, norm=Inf,
               epsilon=_epsilon, maxiter=None, full_output=0, disp=1,
               retall=0, callback=None):
     """Minimize a function using the BFGS algorithm.
+    
+    The objective function f is required to be defined - i.e have finite values -
+    and continuosly differentiambe either everywhere or in an open convex set. 
+    In the latter case it must return inf in all points outside this set.
+    
+    The gradient fprime, when provided, must be defined wherever f is and return 
+    None otherwise.  
+    
+    Convergence to a local minimizer is guaranteed - up to numerical issues - 
+    when the set:
+    
+        { x: f(x) <= f(x0) }
+        
+    is closed and bounded.
+    
+    Example:
+    
+    >>> import numpy as np
+    >>> import scipy.optimize as opt
+    >>> def f(x):
+    ...     if x <= 0: return np.Inf
+    ...     return 100.0*x - np.log(x)
+    ... 
+    >>> def df(x):
+    ...     if x <= 0: return None
+    ...     return 100.0 - 1.0/x
+    ... 
+    >>> opt.fmin_bfgs(f,1.0,fprime=df)
+    Optimization terminated successfully.
+            Current function value: 5.605170
+            Iterations: 7
+            Function evaluations: 31
+            Gradient evaluations: 11
+    array([ 0.01])
+
 
     Parameters
     ----------
@@ -478,9 +513,13 @@ def fmin_bfgs(f, x0, fprime=None, args=(), gtol=1e-5, norm=Inf,
     gnorm = vecnorm(gfk,ord=norm)
     while (gnorm > gtol) and (k < maxiter):
         pk = -numpy.dot(Hk,gfk)
-        alpha_k, fc, gc, old_fval2, old_old_fval2, gfkp1 = \
-           line_search_wolfe1(f,myfprime,xk,pk,gfk,
-                              old_fval,old_old_fval)
+        try:
+            alpha_k, fc, gc, old_fval2, old_old_fval2, gfkp1 = \
+                line_search_wolfe1(f,myfprime,xk,pk,gfk,
+                                   old_fval,old_old_fval)
+        except DomainError:
+            alpha_k = None
+            
         if alpha_k is not None:
             old_fval = old_fval2
             old_old_fval = old_old_fval2
