@@ -800,9 +800,6 @@ def estimate_smoothing_nd_global(tri, values, scale=None, weights=None):
        Math. Comp., 40, 253 (1983).
 
     """
-    cdef qhull.DelaunayInfo_t *info
-    cdef double *weights_ptr = NULL
-
     values = np.asanyarray(values)
 
     # -- Parse arguments
@@ -819,7 +816,12 @@ def estimate_smoothing_nd_global(tri, values, scale=None, weights=None):
     rhs[:,0] = values
 
     if weights is not None:
-        rhs[:,0] *= weights
+        weights = np.ascontiguousarray(weights).ravel().astype(np.double)
+        sl = (slice(None, None, None),) + (None,)*len(values.shape[1:])
+        try:
+            rhs[:,0] *= weights[sl]
+        except ValueError:
+            raise ValueError("Weights array has the wrong shape")
 
     A, L = _smoothing_nd_matrix(tri, scale, weights)
     A.sum_duplicates()
