@@ -56,7 +56,7 @@ class TestLineSearch(object):
         p = -np.sin(10*s)
         dp = -10*np.cos(10*s)
         return p, dp
-        
+
     def _barrier_scalar_func_1(self, s):
         self.fcount += 1
         if s >= 1.0:
@@ -64,7 +64,7 @@ class TestLineSearch(object):
         p = -100.0*s - np.log(1.0 - s)
         dp = -100.0 + 1.0/(1.0 - s)
         return p, dp
-        
+
     def _barrier_scalar_func_2(self, s):
         self.fcount += 1
         if s >= 1.0:
@@ -100,7 +100,7 @@ class TestLineSearch(object):
         def bind_index(func, idx):
             # Remember Python's closure semantics!
             return lambda *a, **kw: func(*a, **kw)[idx]
-        
+
         for name in sorted(dir(self)):
             if name.startswith('_scalar_func_'):
                 value = getattr(self, name)
@@ -124,7 +124,7 @@ class TestLineSearch(object):
         for name, phi, derphi in self.scalar_funcs:
             for old_phi0 in np.random.randn(3):
                 yield name, phi, derphi, old_phi0
-                
+
     def barrier_scalar_iter(self):
         for name, phi, derphi in self.barrier_scalar_funcs:
             for old_phi0 in np.random.randn(3):
@@ -166,6 +166,7 @@ class TestLineSearch(object):
             if derphi1 is not None:
                 assert_equal(derphi1, derphi(s), name)
             assert_wolfe(s, phi, derphi, err_msg="%s %g" % (name, old_phi0))
+
         for name, phi, derphi, old_phi0 in self.barrier_scalar_iter():
             s, phi1, phi0, derphi1 = ls.scalar_search_wolfe2(
                 phi, derphi, phi(0), old_phi0, derphi(0))

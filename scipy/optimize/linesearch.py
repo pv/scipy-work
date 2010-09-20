@@ -71,16 +71,16 @@ def line_search_wolfe1(f, fprime, xk, pk, gfk=None,
     def phi(s):
         fc[0] += 1
         fx = f(xk + s*pk, *args)
-        if fx is None or fx is np.Inf:
-            raise DomainError('function evaluation\
-            outside its domain of definition')
+        if fx is None or fx == np.inf:
+            raise DomainError('function evaluation outside its domain '
+                              'of definition')
         return fx
 
     def derphi(s):
         gval[0] = fprime(xk + s*pk, *newargs)
-        if gval[0] is None or any(gval[0] == np.Inf):
-            raise DomainError('function derivative\
-            evaluation outside its domain of definition')
+        if gval[0] is None or any(gval[0] == np.inf):
+            raise DomainError('function derivative evaluation outside its '
+                              'domain of definition')
         if gradient:
             gc[0] += 1
         else:
@@ -345,7 +345,7 @@ def scalar_search_wolfe2(phi, derphi=None, phi0=None,
     while 1:         # bracketing phase
         if alpha1 == 0:
             break
-        if phi_a1 is np.Inf:
+        if phi_a1 == np.inf:
             alpha_star, phi_star, derphi_star = \
                         _barrier_zoom(alpha0, alpha1, phi_a0,
                               derphi_a0, phi, derphi,
@@ -437,8 +437,8 @@ def _quadmin(a,fa,fpa,b,fb):
     if (B <= 0): return None
     xmin = a  - C / (2.0*B)
     return xmin
-    
-    
+
+
 def _zoom(a_lo, a_hi, phi_lo, phi_hi, derphi_lo,
           phi, derphi, phi0, derphi0, c1, c2):
     """
@@ -519,7 +519,7 @@ def _linlogmin(a,fpa,b):
     """
     Finds the minimizer for a linear-logarithmic function that has
     derivative fpa at a and tends to infinity approaching b.
-    
+
     If no minimizer can be found return None
     """
     # f(x) = C*x - log(b - x)
@@ -536,7 +536,7 @@ def _quadlogmin(a,fa,fpa,b,fb,c):
     Finds the minimizer for a quadratic-logarithmic function that goes
     through the points (a,fa), (b,fb) with derivative at a of fpa and
     tends to infinity approaching c.
-    
+
     If no minimizer can be found return None
     """
     # f(x) = B*(x-a)^2 + C*(x-a) + D - log(c-x)
@@ -558,14 +558,14 @@ def _quadlogmin(a,fa,fpa,b,fb,c):
     H = 2*B
     G = 0.5*C - B*(a+c)
     # the correct expression for F would be:
-    #   F = H*a*c - C*c - 1 
+    #   F = H*a*c - C*c - 1
     # but for some reason the wrong one works better.
     F = H*a*c - c - 1
     radical = G*G - H*F
-    if radical < 0:  
+    if radical < 0:
         # f is strictly increasing
         return None
-    # check which of the two stationary points is a local minimum    
+    # check which of the two stationary points is a local minimum
     #   f''(x) > 0 iff  H*(c-x)**2 > -1.
     radical = np.sqrt(radical)
     xmin1 = (G + radical) / H
@@ -573,41 +573,41 @@ def _quadlogmin(a,fa,fpa,b,fb,c):
     if dxmin1 != 0 and H*dxmin1*dxmin1 > -1:
         return xmin1
     xmin2 = (G - radical) / H
-    dxmin2 = c-xmin2 
+    dxmin2 = c-xmin2
     if dxmin2 != 0 and H*dxmin2*dxmin2 > -1:
         return xmin2
     return None
-  
-  
+
+
 def _barrier_zoom(a_lo, a_inf, phi_lo, derphi_lo,
           phi, derphi, phi0, derphi0, c1, c2):
     """
     Finds a step that satisfies strong Wolfe conditions when a barrier like
-    behavior is detected - i.e phi(a_inf) = Inf.
-    
-    The following conditions are supposed to be satisfied: 
-    
+    behavior is detected - i.e phi(a_inf) = inf.
+
+    The following conditions are supposed to be satisfied:
+
        1) a_inf > a_lo
-        
+
        2) derphi_lo < 0
-       
-       3) the set of alpha s.t phi(alpha) < Inf is an open interval.
-       
+
+       3) the set of alpha s.t phi(alpha) < inf is an open interval.
+
     Conditions 1 and 2 are guaranteed by the bracketing phase, condition 3
     must be taken care of by the user.
     """
-    
+
     a_hi = None
     phi_hi = None
     maxiter = 20
     i = 0
     delta_ll = 0.1
     delta_ql = 0.2
-    
+
     while 1:
         # interpolation phase to compute a new candidate point
         a_j = None
-        
+
         if a_hi is not None:
             # quadratic-logarithmic interpolation
             ql_chk = delta_ql*(a_hi - a_lo)
@@ -626,13 +626,13 @@ def _barrier_zoom(a_lo, a_inf, phi_lo, derphi_lo,
             # perform linear-logarithmic interpolation.
             ll_chk = delta_ll*(a_inf - a_lo)
             a_j = _linlogmin(a_lo,derphi_lo,a_inf)
-            
+
             if (a_j is None) or (a_j> a_inf-ll_chk) or (a_j < a_lo+ll_chk):
                 # interpolation failed, use bisection  
                 a_j = 0.5*(a_inf + a_lo)
-            
+
         phi_aj = phi(a_j)
-        if (phi_aj == np.Inf):
+        if (phi_aj == np.inf):
             a_inf = a_j
         else:
             if (phi_aj > phi0 + c1*a_j*derphi0) or (phi_aj >= phi_lo):
@@ -653,7 +653,7 @@ def _barrier_zoom(a_lo, a_inf, phi_lo, derphi_lo,
                 a_lo = a_j
                 phi_lo = phi_aj
                 derphi_lo = derphi_aj
-                
+
         i += 1
         if (i > maxiter):
             a_star = a_j
