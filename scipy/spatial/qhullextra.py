@@ -7,9 +7,13 @@ def addpoint(tri, x):
 
     Returns
     -------
-    new_neighbors : list of int
+    neighbors : list of int
         Simplices whose each vertex the new point is connected to
         via ridges.
+
+    hull_ridges : list of (ifacet, iridge)
+        Ridges connecting the neighbors to each other.  The ridges
+        connecting the neighbors to the new point are not included.
 
     Notes
     -----
@@ -38,26 +42,37 @@ def addpoint(tri, x):
 
     horizon = []
     new_neighbors = []
+    hull_ridges = []
     seen = {}
 
     start = int(tri.find_simplex(x))
     assert start != -1
     seen[start] = True
-    horizon.append(start)
+    horizon.append((start, None))
 
     while horizon:
-        facet = horizon.pop(0)
+        facet, ridge = horizon.pop(0)
+        seen[facet] = True
         if facet == -1:
+            if ridge:
+                hull_ridges.append(ridge)
             continue
         dist = tri.plane_distance(x)[facet]
         if dist >= 0:
             new_neighbors.append(facet)
-            for neighbor in tri.neighbors[facet]:
+            for iridge, neighbor in enumerate(tri.neighbors[facet]):
                 if neighbor not in seen:
-                    seen[neighbor] = True
-                    horizon.append(neighbor)
+                    horizon.append((neighbor, (facet, iridge)))
+        else:
+            if ridge:
+                hull_ridges.append(ridge)
 
-    return new_neighbors
+    return new_neighbors, hull_ridges
+
+def getridge(vertices, isimplex, iridge):
+    v = range(vertices.shape[1])
+    v.remove(iridge)
+    return vertices[isimplex,v].tolist()
 
 def test_add(pts, x):
     pts2 = pts + [x]
@@ -72,13 +87,17 @@ def test_add(pts, x):
 
     expected = set((tri2.vertices == len(pts)).any(axis=1).nonzero()[0])
 
-    print get_vert(tri2, expected)
-    print get_vert(tri, addpoint(tri, x)) + [len(pts)]
+    neigh, ridges = addpoint(tri, x)
 
+    ridges = [getridge(tri.vertices, facet, iridge) for facet, iridge in ridges]
+
+    print get_vert(tri2, expected)
+    print get_vert(tri, neigh) + [len(pts)]
+    print ridges
 
 
 def test():
-    pts = np.random.randn(40, 3).tolist()
-    #pts = [[0.0, 0.0], [0.5, 0.5], [1.0, 1.0], [0.0, 1.0]]
+    #pts = np.random.randn(40, 3).tolist()
+    pts = [[0.0, 0.0], [0.5, 0.5], [1.0, 1.0], [0.0, 1.0]]
     test_add(pts,
-             (0.25, 0.25, 0.25))
+             (0.5, 0.75))
