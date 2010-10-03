@@ -138,6 +138,55 @@ def test_voronoi_centers_simple():
     centers = voronoi_centers(tri)
     np.testing.assert_equal(centers, [(0, 0.5), (0.5, 1)])
 
+def voronoi_volume(tri, ivertex):
+    """
+    Compute the volume of the Voronoi cell of a given vertex.
+
+    """
+
+    ind, iptr = tri.vertex_simplex
+
+    simplices = iptr[ind[ivertex]:ind[ivertex+1]]
+    centers = voronoi_centers(tri)[simplices]
+    x0 = tri.points[ivertex]
+
+    ndim_factorial = 1
+    for j in xrange(tri.ndim):
+        ndim_factorial *= (j+1)
+
+    # Iterate over simplices forming the Voronoi polytope, i.e.,
+    #
+    # All sets of `ndim` voronoi centers that reside in mutually
+    # neighboring simplices.
+    #
+    ix = range(tri.ndim)
+    total_volume = 0
+    while ix[0] <= len(simplices) - tri.ndim:
+        # check neighbor status
+        is_neighbor = 1
+        for j in xrange(1, tri.ndim):
+            is_neighbor = 0
+            for k in xrange(tri.ndim+1):
+                if tri.neighbors[ix[j],k] == ix[0]:
+                    is_neighbor = 1
+                    break
+            if not is_neighbor:
+                break
+
+        if is_neighbor:
+            volume = abs(np.linalg.det(centers[ix,:] - x0)) / ndim_factorial
+            total_volume += volume
+
+        # go to next simplex candidate
+        for j in xrange(tri.ndim-1, -1, -1):
+            ix[j] += 1
+            if ix[j] >= len(simplices):
+                ix[j] = ix[j-1] + 1
+            else:
+                break
+
+    return total_volume
+
 def test():
     #pts = np.random.randn(40, 3).tolist()
     pts = [[0.0, 0.0], [0.5, 0.5], [1.0, 1.0], [0.0, 1.0]]
