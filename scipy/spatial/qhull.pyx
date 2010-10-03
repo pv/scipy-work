@@ -486,7 +486,7 @@ cdef void _RidgeIter2D_init(RidgeIter2D_t *it, DelaunayInfo_t *d,
     start = 0
     it.info = d
     it.vertex = vertex
-    it.triangle = d.vertex_to_simplex[vertex]
+    it.triangle = d.vertex_simplex_indptr[d.vertex_simplex_indices[vertex]]
     it.start_triangle = it.triangle
     it.restart = 0
 
@@ -899,13 +899,14 @@ class Delaunay(object):
         For simplex ``i``, ``transform[i,:ndim,:ndim]`` contains
         inverse of the matrix ``T``, and ``transform[i,ndim,:]``
         contains the vector ``r``.
-    vertex_to_simplex : ndarray of int, shape (npoints,)
-        Lookup array, from a vertex, to some simplex which it is a part of.
     convex_hull : ndarray of int, shape (nfaces, ndim)
         Vertices of facets forming the convex hull of the point set.
         The array contains the indices of the points belonging to
         the (N-1)-dimensional facets that form the convex hull
         of the triangulation.
+    vertex_simplex : tuple of two ndarrays of int; (indices, indptr)
+        Neighboring simplices of vertices. The indices of neighboring
+        simplices of vertex `k` are ``indptr[indices[k]:indices[k+1]]``.
     vertex_neighbors : tuple of two ndarrays of int; (indices, indptr)
         Neighboring vertices of vertices. The indices of neighboring
         vertices of vertex `k` are ``indptr[indices[k]:indices[k+1]]``.
@@ -938,7 +939,7 @@ class Delaunay(object):
         self.min_bound = self.points.min(axis=0)
         self.max_bound = self.points.max(axis=0)
         self._transform = None
-        self._vertex_to_simplex = None
+        self._vertex_simplex = None
         self._vertex_neighbors = None
 
     @property
@@ -1037,33 +1038,64 @@ class Delaunay(object):
 
     @property
     @cython.boundscheck(False)
-    def vertex_to_simplex(self):
+    def vertex_simplex(self):
         """
-        Lookup array, from a vertex, to some simplex which it is a part of.
+        Neighboring simplices of vertices.
 
-        :type: ndarray of int, shape (npoints,)
+        Tuple of two ndarrays of int: (indices, indptr).The indices of
+        neighboring simplices of vertex `k` are
+        ``indptr[indices[k]:indices[k+1]]``.
+
         """
-        cdef int isimplex, k, ivertex, nsimplex, ndim
+        cdef int i, j, is_neighbor, ndata, idata
+        cdef int nsimplex, npoints, ndim
+        cdef np.ndarray[np.npy_int, ndim=1] indices, indptr
         cdef np.ndarray[np.npy_int, ndim=2] vertices
-        cdef np.ndarray[np.npy_int, ndim=1] arr
 
-        if self._vertex_to_simplex is None:
-            self._vertex_to_simplex = np.empty((self.npoints,), dtype=np.intc)
-            self._vertex_to_simplex.fill(-1)
-
-            arr = self._vertex_to_simplex
-            vertices = self.vertices
-
-            nsimplex = self.nsimplex
+        if self._vertex_simplex is None:
             ndim = self.ndim
+            npoints = self.npoints
+            nsimplex = self.nsimplex
 
-            for isimplex in xrange(nsimplex):
-                for k in xrange(ndim+1):
-                    ivertex = vertices[isimplex, k]
-                    if arr[ivertex] == -1:
-                        arr[ivertex] = isimplex
+            ndata = (ndim+1)*npoints
+            indices_arr = np.empty((npoints+1,), dtype=np.intc)
+            indptr_arr = np.empty((ndata,), dtype=np.intc)
 
-        return self._vertex_to_simplex
+            idata = 0
+            vertices = self.vertices
+            indices = indices_arr
+            indptr = indptr_arr
+
+            # Brute-force algorithm
+
+            for i in xrange(npoints):
+                indices[i] = idata
+                for j in xrange(nsimplex):
+                    is_neighbor = 0
+                    for k in xrange(ndim+1):
+                        if i == vertices[j, k]:
+                            is_neighbor = 1
+                            break
+
+                    if is_neighbor:
+                        if idata + 1 >= ndata:
+                            # make space
+                            ndata = 2*ndata + 1
+                            indptr = None
+                            indptr_arr.resize(ndata)
+                            indptr = indptr_arr
+
+                        indptr[idata] = j
+                        idata += 1
+
+            indices[npoints] = idata
+
+            indptr = None
+            indptr_arr.resize(idata)
+
+            self._vertex_simplex = (indices_arr, indptr_arr)
+
+        return self._vertex_simplex
 
     @property
     @cython.boundscheck(False)
@@ -1258,17 +1290,18 @@ def tsearch(tri, xi):
 
 cdef DelaunayInfo_t *_get_delaunay_info(obj,
                                         int compute_transform,
-                                        int compute_vertex_to_simplex,
+                                        int compute_vertex_simplex,
                                         int compute_vertex_neighbors):
     cdef DelaunayInfo_t *info
     cdef np.ndarray[np.double_t, ndim=3] transform
-    cdef np.ndarray[np.npy_int, ndim=1] vertex_to_simplex
     cdef np.ndarray[np.double_t, ndim=2] points = obj.points
     cdef np.ndarray[np.npy_int, ndim=2] vertices = obj.vertices
     cdef np.ndarray[np.npy_int, ndim=2] neighbors = obj.neighbors
     cdef np.ndarray[np.double_t, ndim=2] equations = obj.equations
     cdef np.ndarray[np.double_t, ndim=1] min_bound = obj.min_bound
     cdef np.ndarray[np.double_t, ndim=1] max_bound = obj.max_bound
+    cdef np.ndarray[np.npy_int, ndim=1] vs_indices
+    cdef np.ndarray[np.npy_int, ndim=1] vs_indptr
     cdef np.ndarray[np.npy_int, ndim=1] vn_indices
     cdef np.ndarray[np.npy_int, ndim=1] vn_indptr
 
@@ -1282,16 +1315,21 @@ cdef DelaunayInfo_t *_get_delaunay_info(obj,
     info.equations = <double*>equations.data
     info.paraboloid_scale = obj.paraboloid_scale
     info.paraboloid_shift = obj.paraboloid_shift
+
     if compute_transform:
         transform = obj.transform
         info.transform = <double*>transform.data
     else:
         info.transform = NULL
-    if compute_vertex_to_simplex:
-        vertex_to_simplex = obj.vertex_to_simplex
-        info.vertex_to_simplex = <int*>vertex_to_simplex.data
+
+    if compute_vertex_simplex:
+        vs_indices, vs_indptr = obj.vertex_simplex
+        info.vertex_simplex_indices = <int*>vs_indices.data
+        info.vertex_simplex_indptr = <int*>vs_indptr.data
     else:
-        info.vertex_to_simplex = NULL
+        info.vertex_simplex_indices = NULL
+        info.vertex_simplex_indptr = NULL
+
     if compute_vertex_neighbors:
         vn_indices, vn_indptr = obj.vertex_neighbors
         info.vertex_neighbors_indices = <int*>vn_indices.data
@@ -1299,6 +1337,7 @@ cdef DelaunayInfo_t *_get_delaunay_info(obj,
     else:
         info.vertex_neighbors_indices = NULL
         info.vertex_neighbors_indptr = NULL
+
     info.min_bound = <double*>min_bound.data
     info.max_bound = <double*>max_bound.data
 

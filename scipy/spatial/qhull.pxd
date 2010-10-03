@@ -26,16 +26,17 @@ ctypedef struct DelaunayInfo_t:
     int *neighbors
     double *equations
     double *transform
-    int *vertex_to_simplex
     double paraboloid_scale
     double paraboloid_shift
     double *max_bound
     double *min_bound
     int *vertex_neighbors_indices
     int *vertex_neighbors_indptr
+    int *vertex_simplex_indices
+    int *vertex_simplex_indptr
 
 cdef DelaunayInfo_t *_get_delaunay_info(obj, int compute_transform,
-                                        int compute_vertex_to_simplex,
+                                        int compute_vertex_simplex,
                                         int compute_vertex_neighbors)
 
 #

@@ -80,7 +80,7 @@ class TestUtilities(object):
     def test_vertex_neighbors(self):
         points = np.array([(0,0), (0,1), (1,1), (1,0)], dtype=np.double)
 
-        # NB: assume triangles (0, 1, 3) and (1, 2, 3)
+        # NB: assume triangles (1, 2, 3) and (0, 1, 3)
         #
         #  1----2
         #  | \  |
@@ -91,11 +91,19 @@ class TestUtilities(object):
         ind, iptr = tri.vertex_neighbors
         def neighbors(k):
             return iptr[ind[k]:ind[k+1]]
+        ind_s, iptr_s = tri.vertex_simplex
+        def simplices(k):
+            return iptr_s[ind_s[k]:ind_s[k+1]]
 
         assert_sorted_equal(neighbors(0), [1, 3])
         assert_sorted_equal(neighbors(1), [0, 2, 3])
         assert_sorted_equal(neighbors(2), [1, 3])
         assert_sorted_equal(neighbors(3), [0, 1, 2])
+
+        assert_sorted_equal(simplices(0), [1])
+        assert_sorted_equal(simplices(1), [0, 1])
+        assert_sorted_equal(simplices(2), [0])
+        assert_sorted_equal(simplices(3), [0, 1])
 
     def test_vertex_neighbors_complicated(self):
         points = np.array([(0,0), (0,1), (1,1), (1,0),
@@ -105,6 +113,9 @@ class TestUtilities(object):
         ind, iptr = tri.vertex_neighbors
         def neighbors(k):
             return iptr[ind[k]:ind[k+1]]
+        ind_s, iptr_s = tri.vertex_simplex
+        def simplices(k):
+            return iptr_s[ind_s[k]:ind_s[k+1]]
 
 
         #  1                       2
@@ -129,6 +140,13 @@ class TestUtilities(object):
         assert_sorted_equal(neighbors(3), [0, 4, 5, 2])
         assert_sorted_equal(neighbors(4), [0, 1, 2, 5, 3])
         assert_sorted_equal(neighbors(5), [3, 4, 2])
+
+        assert_sorted_equal(simplices(0), [1, 2])
+        assert_sorted_equal(simplices(1), [0, 1])
+        assert_sorted_equal(simplices(2), [0, 3, 4])
+        assert_sorted_equal(simplices(3), [2, 3, 5])
+        assert_sorted_equal(simplices(4), [0, 1, 2, 4, 5])
+        assert_sorted_equal(simplices(5), [3, 4, 5])
 
 
 class TestRidgeIter2D(object):
