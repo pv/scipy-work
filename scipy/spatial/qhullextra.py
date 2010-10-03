@@ -91,10 +91,52 @@ def test_add(pts, x):
 
     ridges = [getridge(tri.vertices, facet, iridge) for facet, iridge in ridges]
 
-    print get_vert(tri2, expected)
-    print get_vert(tri, neigh) + [len(pts)]
+    v1 = get_vert(tri2, expected)
+    v2 = get_vert(tri, neigh) + [len(pts)]
+
+    np.testing.assert_equal(v1, v2)
     print ridges
 
+def voronoi_center(tri, isimplex):
+    """
+    Compute the Voronoi center of a given simplex.
+
+    Notes
+    -----
+    It can be found by solving::
+
+      [ 1  y[0,0] ... y[0,n-1] ] [ (x**2).sum()-c**2  ] = [ -(y[0,:]**2).sum() ]
+      [ .   .         .        ] [ -2 x[0]            ]   [ ...
+      [ .   .         .        ] [ ...                ]   [ ...
+      [ 1  y[n,0] ... y[n,n-1] ] [ -2 x[n-1]          ]   [ -(y[n,:]**2).sum() ]
+
+    """
+    ndim = tri.ndim
+
+    y = tri.points[tri.vertices[isimplex]]
+    y0 = y[0,:].copy()
+    y -= y0
+
+    lhs = np.zeros((ndim+1, ndim+1), float)
+    lhs[:,0] = 1
+    lhs[:,1:] = y
+
+    rhs = np.zeros((ndim+1,), float)
+    rhs[:] = -(y*y).sum(axis=1)
+
+    return y0 - .5*np.linalg.solve(lhs, rhs)[1:]
+
+def voronoi_centers(tri):
+    centers = np.zeros((tri.nsimplex, tri.ndim), float)
+    for isimplex in xrange(tri.nsimplex):
+        centers[isimplex,:] = voronoi_center(tri, isimplex)
+    return centers
+
+def test_voronoi_centers_simple():
+    pts = [[0.0, 0.0], [0.5, 0.5], [1.0, 1.0], [0.0, 1.0]]
+    tri = Delaunay(pts)
+    centers = voronoi_centers(tri)
+    np.testing.assert_equal(centers, [(0, 0.5), (0.5, 1)])
 
 def test():
     #pts = np.random.randn(40, 3).tolist()
