@@ -167,14 +167,14 @@ def voronoi_volume(tri, ivertex):
         for j in xrange(1, tri.ndim):
             is_neighbor = 0
             for k in xrange(tri.ndim+1):
-                if tri.neighbors[ix[j],k] == ix[0]:
+                if tri.neighbors[simplices[ix[j]],k] == simplices[ix[0]]:
                     is_neighbor = 1
                     break
             if not is_neighbor:
                 break
 
         if is_neighbor:
-            volume = abs(np.linalg.det(centers[ix,:] - x0)) / ndim_factorial
+            volume = abs(np.linalg.det(centers[simplices[ix],:] - x0)) / ndim_factorial
             total_volume += volume
 
         # go to next simplex candidate
