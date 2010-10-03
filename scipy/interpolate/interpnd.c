@@ -381,11 +381,14 @@ typedef struct {
   int *neighbors;
   double *equations;
   double *transform;
-  int *vertex_to_simplex;
   double paraboloid_scale;
   double paraboloid_shift;
   double *max_bound;
   double *min_bound;
+  int *vertex_neighbors_indices;
+  int *vertex_neighbors_indptr;
+  int *vertex_simplex_indices;
+  int *vertex_simplex_indptr;
 } __pyx_t_5scipy_7spatial_5qhull_DelaunayInfo_t;
 
 
@@ -761,7 +764,7 @@ static CYTHON_INLINE void __pyx_f_5numpy_set_array_base(PyArrayObject *, PyObjec
 static CYTHON_INLINE PyObject *__pyx_f_5numpy_get_array_base(PyArrayObject *); 
 
 
-static __pyx_t_5scipy_7spatial_5qhull_DelaunayInfo_t *(*__pyx_f_5scipy_7spatial_5qhull__get_delaunay_info)(PyObject *, int, int); 
+static __pyx_t_5scipy_7spatial_5qhull_DelaunayInfo_t *(*__pyx_f_5scipy_7spatial_5qhull__get_delaunay_info)(PyObject *, int, int, int); 
 static int (*__pyx_f_5scipy_7spatial_5qhull__barycentric_inside)(int, double *, double *, double *, double); 
 static void (*__pyx_f_5scipy_7spatial_5qhull__barycentric_coordinate_single)(int, double *, double *, double *, int); 
 static void (*__pyx_f_5scipy_7spatial_5qhull__barycentric_coordinates)(int, double *, double *, double *); 
@@ -2719,7 +2722,7 @@ static PyObject *__pyx_pf_8interpnd_20LinearNDInterpolator__evaluate_double(PyOb
   
   __pyx_t_4 = PyObject_GetAttr(__pyx_v_self, __pyx_n_s__tri); if (unlikely(!__pyx_t_4)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 208; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
   __Pyx_GOTREF(__pyx_t_4);
-  __pyx_v_info = __pyx_f_5scipy_7spatial_5qhull__get_delaunay_info(__pyx_t_4, 1, 0);
+  __pyx_v_info = __pyx_f_5scipy_7spatial_5qhull__get_delaunay_info(__pyx_t_4, 1, 0, 0);
   __Pyx_DECREF(__pyx_t_4); __pyx_t_4 = 0;
 
   
@@ -3182,7 +3185,7 @@ static PyObject *__pyx_pf_8interpnd_20LinearNDInterpolator__evaluate_complex(PyO
   
   __pyx_t_4 = PyObject_GetAttr(__pyx_v_self, __pyx_n_s__tri); if (unlikely(!__pyx_t_4)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 257; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
   __Pyx_GOTREF(__pyx_t_4);
-  __pyx_v_info = __pyx_f_5scipy_7spatial_5qhull__get_delaunay_info(__pyx_t_4, 1, 0);
+  __pyx_v_info = __pyx_f_5scipy_7spatial_5qhull__get_delaunay_info(__pyx_t_4, 1, 0, 0);
   __Pyx_DECREF(__pyx_t_4); __pyx_t_4 = 0;
 
   
@@ -4136,7 +4139,7 @@ static PyObject *__pyx_pf_8interpnd_estimate_gradients_2d_global(PyObject *__pyx
   __pyx_v_grad = ((PyArrayObject *)__pyx_v_yi);
 
   
-  __pyx_v_info = __pyx_f_5scipy_7spatial_5qhull__get_delaunay_info(__pyx_v_tri, 0, 1);
+  __pyx_v_info = __pyx_f_5scipy_7spatial_5qhull__get_delaunay_info(__pyx_v_tri, 0, 1, 0);
 
   
   __pyx_v_nvalues = (__pyx_v_data->dimensions[0]);
@@ -5322,7 +5325,7 @@ static PyObject *__pyx_pf_8interpnd_26CloughTocher2DInterpolator__evaluate_doubl
   
   __pyx_t_5 = PyObject_GetAttr(__pyx_v_self, __pyx_n_s__tri); if (unlikely(!__pyx_t_5)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 1074; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
   __Pyx_GOTREF(__pyx_t_5);
-  __pyx_v_info = __pyx_f_5scipy_7spatial_5qhull__get_delaunay_info(__pyx_t_5, 1, 1);
+  __pyx_v_info = __pyx_f_5scipy_7spatial_5qhull__get_delaunay_info(__pyx_t_5, 1, 0, 0);
   __Pyx_DECREF(__pyx_t_5); __pyx_t_5 = 0;
 
   
@@ -5851,7 +5854,7 @@ static PyObject *__pyx_pf_8interpnd_26CloughTocher2DInterpolator__evaluate_compl
   
   __pyx_t_5 = PyObject_GetAttr(__pyx_v_self, __pyx_n_s__tri); if (unlikely(!__pyx_t_5)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 1130; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
   __Pyx_GOTREF(__pyx_t_5);
-  __pyx_v_info = __pyx_f_5scipy_7spatial_5qhull__get_delaunay_info(__pyx_t_5, 1, 1);
+  __pyx_v_info = __pyx_f_5scipy_7spatial_5qhull__get_delaunay_info(__pyx_t_5, 1, 0, 0);
   __Pyx_DECREF(__pyx_t_5); __pyx_t_5 = 0;
 
   
@@ -7538,7 +7541,7 @@ PyMODINIT_FUNC PyInit_interpnd(void)
   __pyx_ptype_5numpy_ufunc = __Pyx_ImportType("numpy", "ufunc", sizeof(PyUFuncObject), 0); if (unlikely(!__pyx_ptype_5numpy_ufunc)) {__pyx_filename = __pyx_f[1]; __pyx_lineno = 849; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
   
   __pyx_t_1 = __Pyx_ImportModule("scipy.spatial.qhull"); if (!__pyx_t_1) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 1; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-  if (__Pyx_ImportFunction(__pyx_t_1, "_get_delaunay_info", (void (**)(void))&__pyx_f_5scipy_7spatial_5qhull__get_delaunay_info, "__pyx_t_5scipy_7spatial_5qhull_DelaunayInfo_t *(PyObject *, int, int)") < 0) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 1; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+  if (__Pyx_ImportFunction(__pyx_t_1, "_get_delaunay_info", (void (**)(void))&__pyx_f_5scipy_7spatial_5qhull__get_delaunay_info, "__pyx_t_5scipy_7spatial_5qhull_DelaunayInfo_t *(PyObject *, int, int, int)") < 0) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 1; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
   if (__Pyx_ImportFunction(__pyx_t_1, "_barycentric_inside", (void (**)(void))&__pyx_f_5scipy_7spatial_5qhull__barycentric_inside, "int (int, double *, double *, double *, double)") < 0) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 1; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
   if (__Pyx_ImportFunction(__pyx_t_1, "_barycentric_coordinate_single", (void (**)(void))&__pyx_f_5scipy_7spatial_5qhull__barycentric_coordinate_single, "void (int, double *, double *, double *, int)") < 0) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 1; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
   if (__Pyx_ImportFunction(__pyx_t_1, "_barycentric_coordinates", (void (**)(void))&__pyx_f_5scipy_7spatial_5qhull__barycentric_coordinates, "void (int, double *, double *, double *)") < 0) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 1; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
