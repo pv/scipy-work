@@ -3,6 +3,13 @@ from numpy.testing import assert_equal, assert_almost_equal, run_module_suite
 
 import scipy.spatial.qhull as qhull
 
+def assert_sorted_equal(a, b, *args, **kw):
+    a = np.asarray(a)
+    b = np.asarray(b)
+    a.sort()
+    b.sort()
+    assert_equal(a, b, *args, **kw)
+
 class TestUtilities(object):
     """
     Check that utility functions work.
@@ -69,6 +76,60 @@ class TestUtilities(object):
         # +---+
 
         assert_equal(tri.convex_hull, [[1, 2], [3, 2], [1, 0], [3, 0]])
+
+    def test_vertex_neighbors(self):
+        points = np.array([(0,0), (0,1), (1,1), (1,0)], dtype=np.double)
+
+        # NB: assume triangles (0, 1, 3) and (1, 2, 3)
+        #
+        #  1----2
+        #  | \  |
+        #  |  \ |
+        #  0----3
+
+        tri = qhull.Delaunay(points)
+        ind, iptr = tri.vertex_neighbors
+        def neighbors(k):
+            return iptr[ind[k]:ind[k+1]]
+
+        assert_sorted_equal(neighbors(0), [1, 3])
+        assert_sorted_equal(neighbors(1), [0, 2, 3])
+        assert_sorted_equal(neighbors(2), [1, 3])
+        assert_sorted_equal(neighbors(3), [0, 1, 2])
+
+    def test_vertex_neighbors_complicated(self):
+        points = np.array([(0,0), (0,1), (1,1), (1,0),
+                           (0.5, 0.5), (0.9, 0.5)], dtype=np.double)
+
+        tri = qhull.Delaunay(points)
+        ind, iptr = tri.vertex_neighbors
+        def neighbors(k):
+            return iptr[ind[k]:ind[k+1]]
+
+
+        #  1                       2
+        #  +-----------------------+
+        #  | \-                 /-||
+        #  |   \-      0      /-  /|
+        #  |     \-         /-   / |
+        #  |       \-     /-    |  |
+        #  |         \-4/-  4  5/  |
+        #  |   1       +-------+  3|
+        #  |         -/  \- 5   \  |
+        #  |      --/      \--   \ |
+        #  |   --/     2      \- | |
+        #  | -/                 \-\|
+        #  +-----------------------+
+        #  0                       3
+        #
+
+        assert_sorted_equal(neighbors(0), [1, 3, 4])
+        assert_sorted_equal(neighbors(1), [0, 2, 4])
+        assert_sorted_equal(neighbors(2), [1, 4, 5, 3])
+        assert_sorted_equal(neighbors(3), [0, 4, 5, 2])
+        assert_sorted_equal(neighbors(4), [0, 1, 2, 5, 3])
+        assert_sorted_equal(neighbors(5), [3, 4, 2])
+
 
 class TestRidgeIter2D(object):
 

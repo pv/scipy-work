@@ -600,7 +600,7 @@ cdef class RidgeIter2D(object):
         if delaunay.ndim != 2:
             raise ValueError("RidgeIter2D supports only 2-D")
         self.delaunay = delaunay
-        self.info = _get_delaunay_info(delaunay, 0, 1)
+        self.info = _get_delaunay_info(delaunay, 0, 1, 0)
         _RidgeIter2D_init(&self.it, self.info, ivertex)
 
     def __del__(self):
@@ -906,6 +906,9 @@ class Delaunay(object):
         The array contains the indices of the points belonging to
         the (N-1)-dimensional facets that form the convex hull
         of the triangulation.
+    vertex_neighbors : tuple of two ndarrays of int; (indices, indptr)
+        Neighboring vertices of vertices. The indices of neighboring
+        vertices of vertex `k` are ``indptr[indices[k]:indices[k+1]]``.
 
     Notes
     -----
@@ -936,6 +939,7 @@ class Delaunay(object):
         self.max_bound = self.points.max(axis=0)
         self._transform = None
         self._vertex_to_simplex = None
+        self._vertex_neighbors = None
 
     @property
     def transform(self):
@@ -961,6 +965,78 @@ class Delaunay(object):
         return self._transform
 
     @property
+    @cython.boundscheck(False)
+    def vertex_neighbors(self):
+        """
+        Neighboring vertices of vertices.
+
+        Tuple of two ndarrays of int: (indices, indptr).The indices of
+        neighboring vertices of vertex `k` are
+        ``indptr[indices[k]:indices[k+1]]``.
+
+        """
+        cdef int i, j, k, m, is_neighbor, is_missing, ndata, idata
+        cdef int nsimplex, npoints, ndim
+        cdef np.ndarray[np.npy_int, ndim=1] indices, indptr
+        cdef np.ndarray[np.npy_int, ndim=2] vertices
+
+        if self._vertex_neighbors is None:
+            ndim = self.ndim
+            npoints = self.npoints
+            nsimplex = self.nsimplex
+
+            ndata = (ndim+1)*npoints
+            indices_arr = np.empty((npoints+1,), dtype=np.intc)
+            indptr_arr = np.empty((ndata,), dtype=np.intc)
+
+            idata = 0
+            vertices = self.vertices
+            indices = indices_arr
+            indptr = indptr_arr
+
+            # Brute-force algorithm
+
+            for i in xrange(npoints):
+                indices[i] = idata
+                for j in xrange(nsimplex):
+                    is_neighbor = 0
+                    for k in xrange(ndim+1):
+                        if i == vertices[j, k]:
+                            is_neighbor = 1
+                            break
+
+                    if is_neighbor:
+                        if idata + ndim+1 >= ndata:
+                            # make space
+                            ndata += ndim+1
+                            ndata *= 2
+                            indptr = None
+                            indptr_arr.resize(ndata)
+                            indptr = indptr_arr
+
+                        for k in xrange(ndim+1):
+                            if vertices[j, k] == i:
+                                continue
+                            is_missing = 1
+                            for m in xrange(indices[i], idata):
+                                if indptr[m] == vertices[j, k]:
+                                    is_missing = 0
+                                    break
+                            if is_missing:
+                                indptr[idata] = vertices[j, k]
+                                idata += 1
+
+            indices[npoints] = idata
+
+            indptr = None
+            indptr_arr.resize(idata)
+
+            self._vertex_neighbors = (indices_arr, indptr_arr)
+
+        return self._vertex_neighbors
+
+    @property
+    @cython.boundscheck(False)
     def vertex_to_simplex(self):
         """
         Lookup array, from a vertex, to some simplex which it is a part of.
@@ -1090,7 +1166,7 @@ class Delaunay(object):
         eps = np.finfo(np.double).eps * 10
         out = np.zeros((xi.shape[0],), dtype=np.intc)
         out_ = out
-        info = _get_delaunay_info(self, 1, 0)
+        info = _get_delaunay_info(self, 1, 0, 0)
 
         if bruteforce:
             for k in xrange(x.shape[0]):
@@ -1130,7 +1206,7 @@ class Delaunay(object):
         xi = xi.reshape(np.prod(xi.shape[:-1]), xi.shape[-1])
         x = np.ascontiguousarray(xi.astype(np.double))
 
-        info = _get_delaunay_info(self, 0, 0)
+        info = _get_delaunay_info(self, 0, 0, 0)
 
         out = np.zeros((x.shape[0], info.nsimplex), dtype=np.double)
         out_ = out
@@ -1182,7 +1258,8 @@ def tsearch(tri, xi):
 
 cdef DelaunayInfo_t *_get_delaunay_info(obj,
                                         int compute_transform,
-                                        int compute_vertex_to_simplex):
+                                        int compute_vertex_to_simplex,
+                                        int compute_vertex_neighbors):
     cdef DelaunayInfo_t *info
     cdef np.ndarray[np.double_t, ndim=3] transform
     cdef np.ndarray[np.npy_int, ndim=1] vertex_to_simplex
@@ -1192,6 +1269,8 @@ cdef DelaunayInfo_t *_get_delaunay_info(obj,
     cdef np.ndarray[np.double_t, ndim=2] equations = obj.equations
     cdef np.ndarray[np.double_t, ndim=1] min_bound = obj.min_bound
     cdef np.ndarray[np.double_t, ndim=1] max_bound = obj.max_bound
+    cdef np.ndarray[np.npy_int, ndim=1] vn_indices
+    cdef np.ndarray[np.npy_int, ndim=1] vn_indptr
 
     info = <DelaunayInfo_t*>malloc(sizeof(DelaunayInfo_t))
     info.ndim = points.shape[1]
@@ -1213,6 +1292,13 @@ cdef DelaunayInfo_t *_get_delaunay_info(obj,
         info.vertex_to_simplex = <int*>vertex_to_simplex.data
     else:
         info.vertex_to_simplex = NULL
+    if compute_vertex_neighbors:
+        vn_indices, vn_indptr = obj.vertex_neighbors
+        info.vertex_neighbors_indices = <int*>vn_indices.data
+        info.vertex_neighbors_indptr = <int*>vn_indptr.data
+    else:
+        info.vertex_neighbors_indices = NULL
+        info.vertex_neighbors_indptr = NULL
     info.min_bound = <double*>min_bound.data
     info.max_bound = <double*>max_bound.data
 

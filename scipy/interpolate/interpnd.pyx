@@ -207,7 +207,7 @@ class LinearNDInterpolator(NDInterpolatorBase):
         start = 0
         fill_value = self.fill_value
 
-        info = qhull._get_delaunay_info(self.tri, 1, 0)
+        info = qhull._get_delaunay_info(self.tri, 1, 0, 0)
 
         out = np.zeros((xi.shape[0], self.values.shape[1]), dtype=np.${DTYPE})
         nvalues = out.shape[1]
@@ -472,7 +472,7 @@ def estimate_gradients_2d_global(tri, y, maxiter=400, tol=1e-6):
     data = y
     grad = yi
 
-    info = qhull._get_delaunay_info(tri, 0, 1)
+    info = qhull._get_delaunay_info(tri, 0, 1, 0)
     nvalues = data.shape[0]
 
     for k in xrange(nvalues):
@@ -823,7 +823,7 @@ class CloughTocher2DInterpolator(NDInterpolatorBase):
         start = 0
         fill_value = self.fill_value
 
-        info = qhull._get_delaunay_info(self.tri, 1, 1)
+        info = qhull._get_delaunay_info(self.tri, 1, 0, 0)
 
         out = np.zeros((xi.shape[0], self.values.shape[1]), dtype=np.${DTYPE})
         nvalues = out.shape[1]
