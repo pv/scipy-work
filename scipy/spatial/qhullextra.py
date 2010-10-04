@@ -1,3 +1,9 @@
+"""
+Prototypes for algorithms needed for natural neighbour interpolation
+
+"""
+
+
 import numpy as np
 from scipy.spatial import Delaunay
 
@@ -145,8 +151,10 @@ def voronoi_volume(tri, ivertex):
     """
 
     ind, iptr = tri.vertex_simplex
+    ind_v, iptr_v = tri.vertex_neighbors
 
     simplices = iptr[ind[ivertex]:ind[ivertex+1]]
+    neighbors = iptr_v[ind_v[ivertex]:ind_v[ivertex+1]]
     centers = voronoi_centers(tri)[simplices]
     x0 = tri.points[ivertex]
 
@@ -154,62 +162,60 @@ def voronoi_volume(tri, ivertex):
     for j in xrange(tri.ndim):
         ndim_factorial *= (j+1)
 
-    center_id = []
-    labels = ["x", "y", "z"]
-    for x in centers - x0:
-        sgn = np.sign(x[np.nonzero(x)])
-        if sgn > 0:
-            center_id.append("+%s" % labels[np.nonzero(x)[0][0]])
-        else:
-            center_id.append("-%s" % labels[np.nonzero(x)[0][0]])
-    center_id = np.array(center_id).ravel()
-    print center_id.ravel()
-
-    # Iterate over simplices forming the Voronoi polytope, i.e.,
     #
-    # All sets of `ndim` voronoi centers that reside in mutually
-    # neighboring simplices.
+    # Iterate over faces of the Voronoi polytope, i.e., over natural neighbors
     #
-    # This is true only in 2D, though!
-    #
-    ix = range(tri.ndim)
+    
+    v = ivertex
     total_volume = 0
-    while True:
-        
-        # check neighbor status
-        is_neighbor = 1
-        for i in xrange(1, tri.ndim):
-            is_neighbor = 0
-            for j in xrange(i):
-                for k in xrange(tri.ndim+1):
-                    if tri.neighbors[simplices[ix[j]],k] == simplices[ix[i]]:
-                        is_neighbor = 1
+    for v2 in neighbors:
+
+        #
+        # Find the Voronoi centers forming the face
+        #
+
+        simp_list = []
+        for s in simplices:
+            if v2 in tri.vertices[s]:
+                simp_list.append(s)
+
+        is_neighbor = 0
+
+        #
+        # Find simplices in the Voronoi cell face
+        #
+        # Note that the cell face is not necessarily simplical in
+        # degenerate cases!
+        #
+        # In the non-simplical cases we use the knowledge that the
+        # Voronoi centers are connected to each other by edges formed
+        # according to the neighborhood structure of the Delaunay
+        # triangulation.
+        #
+
+        if len(simp_list) == tri.ndim:
+            # simplical voronoi facet
+            faces = [simp_list]
+        else:
+            # non-simplical voronoi facet: split using a neighbor cycle
+            c0 = simp_list[0]
+            c1 = c0
+            cprev = c0
+            faces = []
+            while 1:
+                for n in tri.neighbors[c1]:
+                    if n in simp_list and n != cprev and n != c0:
+                        cprev = c1
+                        c1 = n
                         break
-                if is_neighbor:
+                else:
                     break
-            if not is_neighbor:
-                break
+                faces.append([c0, cprev, c1])
 
-        if is_neighbor:
+        # Compute volume of simplices
+        for ix in faces:
             volume = abs(np.linalg.det(centers[ix,:] - x0)) / ndim_factorial
-            if volume > 0:
-                print center_id[ix], ix
             total_volume += volume
-
-        #break
-
-        # go to next simplex candidate
-        for j in xrange(tri.ndim-1, -1, -1):
-            ix[j] += 1
-            if ix[j] > len(simplices) - (tri.ndim - j):
-                ix[j] = -1
-            else:
-                break
-        for j in xrange(1, tri.ndim):
-            if ix[j] <= ix[j-1]:
-                ix[j] = ix[j-1] + 1
-        if ix[0] == -1:
-            break
 
     return total_volume
 
@@ -217,7 +223,7 @@ def test_voronoi_volume_2d():
     pts = [[0.0, 0.0], [1.0, 0.0], [1.0, 1.0], [0.0, 1.0], [0.5, 0.5]]
     tri = Delaunay(pts)
     vol = voronoi_volume(tri, 4)
-    np.testing.assert_equal(vol, 0.5)
+    np.testing.assert_allclose(vol, 0.5)
     
 def test_voronoi_volume_3d():
     pts = [[0.0, 0.0, 0.0],
@@ -233,7 +239,7 @@ def test_voronoi_volume_3d():
     vol = voronoi_volume(tri, 8)
 
     expected_volume = 8 * 0.75**3 / 6
-    np.testing.assert_equal(vol, expected_volume)
+    np.testing.assert_allclose(vol, expected_volume)
 
 def test():
     #pts = np.random.randn(40, 3).tolist()
