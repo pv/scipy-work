@@ -15,10 +15,10 @@ def addpoint(tri, x):
     -------
     neighbors : list of int
         Simplices whose each vertex the new point is connected to
-        via ridges.
+        via faces.
 
-    hull_ridges : list of (ifacet, iridge)
-        Ridges connecting the neighbors to each other.  The ridges
+    hull_faces : list of (ifacet, iface)
+        Faces connecting the neighbors to each other.  The faces
         connecting the neighbors to the new point are not included.
 
     Notes
@@ -48,7 +48,7 @@ def addpoint(tri, x):
 
     horizon = []
     new_neighbors = []
-    hull_ridges = []
+    hull_faces = []
     seen = {}
 
     start = int(tri.find_simplex(x))
@@ -57,30 +57,30 @@ def addpoint(tri, x):
     horizon.append((start, None))
 
     while horizon:
-        facet, ridge = horizon.pop(0)
+        facet, face = horizon.pop(0)
         seen[facet] = True
         if facet == -1:
-            if ridge:
-                hull_ridges.append(ridge)
+            if face:
+                hull_faces.append(face)
             continue
         dist = tri.plane_distance(x)[facet]
         if dist >= 0:
             new_neighbors.append(facet)
-            for iridge, neighbor in enumerate(tri.neighbors[facet]):
+            for iface, neighbor in enumerate(tri.neighbors[facet]):
                 if neighbor not in seen:
-                    horizon.append((neighbor, (facet, iridge)))
+                    horizon.append((neighbor, (facet, iface)))
         else:
-            if ridge:
-                hull_ridges.append(ridge)
+            if face:
+                hull_faces.append(face)
 
-    return new_neighbors, hull_ridges
+    return new_neighbors, hull_faces
 
-def getridge(vertices, isimplex, iridge):
+def getface(vertices, isimplex, iface):
     v = range(vertices.shape[1])
-    v.remove(iridge)
+    v.remove(iface)
     return vertices[isimplex,v].tolist()
 
-def test_add(pts, x):
+def _test_add(pts, x):
     pts2 = pts + [x]
     tri = Delaunay(pts)
     tri2 = Delaunay(pts2)
@@ -93,15 +93,21 @@ def test_add(pts, x):
 
     expected = set((tri2.vertices == len(pts)).any(axis=1).nonzero()[0])
 
-    neigh, ridges = addpoint(tri, x)
+    neigh, faces = addpoint(tri, x)
 
-    ridges = [getridge(tri.vertices, facet, iridge) for facet, iridge in ridges]
+    faces = [getface(tri.vertices, facet, iface) for facet, iface in faces]
 
     v1 = get_vert(tri2, expected)
     v2 = get_vert(tri, neigh) + [len(pts)]
 
     np.testing.assert_equal(v1, v2)
-    print ridges
+
+def test_add():
+    pts = np.random.randn(40, 3).tolist()
+    _test_add(pts, (0.5, 0.25, 0.75))
+
+    pts = [[0.0, 0.0], [0.5, 0.5], [1.0, 1.0], [0.0, 1.0]]
+    _test_add(pts, (0.5, 0.75))
 
 def voronoi_center(tri, isimplex):
     """
@@ -241,8 +247,3 @@ def test_voronoi_volume_3d():
     expected_volume = 8 * 0.75**3 / 6
     np.testing.assert_allclose(vol, expected_volume)
 
-def test():
-    #pts = np.random.randn(40, 3).tolist()
-    pts = [[0.0, 0.0], [0.5, 0.5], [1.0, 1.0], [0.0, 1.0]]
-    test_add(pts,
-             (0.5, 0.75))
