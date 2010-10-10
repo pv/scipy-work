@@ -482,7 +482,7 @@ double *loss;                   /* estimates loss of significance */
     u = 1.0;
     k = 0.0;
     do {
-        if (fabs(h) < EPS) {
+        if (fabs(h + k) < EPS) {
             *loss = 1.0;
             return NPY_INFINITY;
         }
