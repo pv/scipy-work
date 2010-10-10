@@ -320,7 +320,7 @@ if( q > 33.0 )
 			{
 gamnan:
 			mtherr( "Gamma", OVERFLOW );
-			return (MAXNUM);
+			return (NPY_INFINITY);
 			}
 		i = p;
 		if( (i & 1) == 0 )
