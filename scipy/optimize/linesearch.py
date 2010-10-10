@@ -11,10 +11,7 @@ __all__ = ['line_search_wolfe1', 'line_search_wolfe2',
 #------------------------------------------------------------------------------
 
 class DomainError(Exception):
-    def __init__(self, value):
-        self.value = value
-    def __str__(self):
-        return repr(self.value)
+    pass
 
 
 def line_search_wolfe1(f, fprime, xk, pk, gfk=None,
@@ -345,7 +342,7 @@ def scalar_search_wolfe2(phi, derphi=None, phi0=None,
     while 1:         # bracketing phase
         if alpha1 == 0:
             break
-        if phi_a1 == np.inf:
+        if phi_a1 == np.inf or phi_a1 is None:
             alpha_star, phi_star, derphi_star = \
                         _barrier_zoom(alpha0, alpha1, phi_a0,
                               derphi_a0, phi, derphi,
@@ -632,7 +629,7 @@ def _barrier_zoom(a_lo, a_inf, phi_lo, derphi_lo,
                 a_j = 0.5*(a_inf + a_lo)
 
         phi_aj = phi(a_j)
-        if (phi_aj == np.inf):
+        if phi_aj == np.inf or phi_aj is None:
             a_inf = a_j
         else:
             if (phi_aj > phi0 + c1*a_j*derphi0) or (phi_aj >= phi_lo):

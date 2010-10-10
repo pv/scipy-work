@@ -370,11 +370,19 @@ def fmin(func, x0, args=(), xtol=1e-4, ftol=1e-4, maxiter=None, maxfun=None,
 
 def approx_fprime(xk,f,epsilon,*args):
     f0 = f(*((xk,)+args))
+    if f0 is None:
+        return None
     grad = numpy.zeros((len(xk),), float)
     ei = numpy.zeros((len(xk),), float)
     for k in range(len(xk)):
         ei[k] = epsilon
-        grad[k] = (f(*((xk+ei,)+args)) - f0)/epsilon
+        f1 = f(*((xk+ei,)+args))
+        if f1 is None:
+            ei[k] = -epsilon
+            f1 = f(*((xk+ei,)+args))
+            if f1 is None:
+                return None
+        grad[k] = (f1 - f0)/ei[k]
         ei[k] = 0.0
     return grad
 
