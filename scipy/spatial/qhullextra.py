@@ -161,7 +161,8 @@ def voronoi_volume(tri, ivertex):
 
     simplices = iptr[ind[ivertex]:ind[ivertex+1]]
     neighbors = iptr_v[ind_v[ivertex]:ind_v[ivertex+1]]
-    centers = voronoi_centers(tri)[simplices]
+    centers = voronoi_centers(tri)
+
     x0 = tri.points[ivertex]
 
     ndim_factorial = 1
@@ -171,7 +172,14 @@ def voronoi_volume(tri, ivertex):
     #
     # Iterate over faces of the Voronoi polytope, i.e., over natural neighbors
     #
-    
+    # The volume of the total Voronoi cell is::
+    #
+    #     V = \sum_k h_k S_k / ndim
+    #
+    # where the sum runs over the faces, h_k is the distance of the
+    # k-th face from the vertex, and S_k is the area of the k-th face.
+    #
+
     v = ivertex
     total_volume = 0
     for v2 in neighbors:
@@ -188,13 +196,23 @@ def voronoi_volume(tri, ivertex):
         is_neighbor = 0
 
         #
+        # Compute the area of the face.
+        #
+        # The Delaunay neighborhood structure restricted to the
+        # Voronoi face gives a triangulation of its convex hull.
+        # (Really!?!? Verify this!)
+        #
+        # This allows computing the area as a sum of the area of d-2
+        # simplices.
+        #
+
+        #
         # Find simplices in the Voronoi cell face
         #
-        # Note that the cell face is not necessarily simplical in
-        # degenerate cases!
+        # Note that the cell face is not necessarily simplical!
         #
         # In the non-simplical cases we use the knowledge that the
-        # Voronoi centers are connected to each other by edges formed
+        # Voronoi centers are connected to each other by ridges formed
         # according to the neighborhood structure of the Delaunay
         # triangulation.
         #
@@ -204,19 +222,21 @@ def voronoi_volume(tri, ivertex):
             faces = [simp_list]
         else:
             # non-simplical voronoi facet: split using a neighbor cycle
+            #
+            # XXX: this does not work in d > 3
+            #
             c0 = simp_list[0]
-            c1 = c0
-            cprev = c0
+            cs = [c0]*(tri.ndim-1)
             faces = []
             while 1:
-                for n in tri.neighbors[c1]:
-                    if n in simp_list and n != cprev and n != c0:
-                        cprev = c1
-                        c1 = n
+                for n in tri.neighbors[cs[-1]]:
+                    if n in simp_list and n not in cs and n != c0:
+                        cs.pop(0)
+                        cs.append(n)
                         break
                 else:
                     break
-                faces.append([c0, cprev, c1])
+                faces.append([c0] + cs)
 
         # Compute volume of simplices
         for ix in faces:
@@ -227,10 +247,14 @@ def voronoi_volume(tri, ivertex):
 
 def test_voronoi_volume_2d():
     pts = [[0.0, 0.0], [1.0, 0.0], [1.0, 1.0], [0.0, 1.0], [0.5, 0.5]]
+    pts = np.array(pts, dtype=float)
+    pts += 1e-4*np.random.randn(*pts.shape)
     tri = Delaunay(pts)
     vol = voronoi_volume(tri, 4)
-    np.testing.assert_allclose(vol, 0.5)
-    
+
+    expected_volume = 4 * 0.5**2 / 2
+    np.testing.assert_allclose(vol, expected_volume)
+
 def test_voronoi_volume_3d():
     pts = [[0.0, 0.0, 0.0],
            [0.0, 0.0, 1.0],
@@ -241,9 +265,38 @@ def test_voronoi_volume_3d():
            [1.0, 1.0, 0.0],
            [1.0, 1.0, 1.0],
            [0.5, 0.5, 0.5]]
+
+    pts = np.array(pts, dtype=float)
+    pts += 1e-4*np.random.randn(*pts.shape)
+
     tri = Delaunay(pts)
     vol = voronoi_volume(tri, 8)
 
     expected_volume = 8 * 0.75**3 / 6
     np.testing.assert_allclose(vol, expected_volume)
+
+def test_voronoi_volume_4d():
+    pts = []
+    for i in xrange(2):
+        for j in xrange(2):
+            for k in xrange(2):
+                for l in xrange(2):
+                    pts.append((i, j, k, l))
+    pts.append([0.5, 0.5, 0.5, 0.5])
+
+    tri = Delaunay(pts)
+    vol = voronoi_volume(tri, 16)
+
+    neigh2 = []
+    for j, s in enumerate(vol):
+        nn = []
+        for s2 in tri.neighbors[s]:
+            if s2 in vol:
+                nn.append(s2)
+        neigh2.append(nn)
+    neigh2 = np.asarray(neigh2)
+    print neigh2
+
+    #expected_volume = 16 * 1.0**4 / 24
+    #np.testing.assert_allclose(vol, expected_volume)
 
