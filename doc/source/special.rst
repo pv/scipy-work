@@ -358,6 +358,7 @@ Hypergeometric Functions
    :toctree: generated/
 
    hyp2f1
+   hyp2f1_regularized
    hyp1f1
    hyperu
    hyp0f1

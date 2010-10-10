@@ -74,6 +74,7 @@ extern double gdtr ( double a, double b, double x );
 extern double gdtrc ( double a, double b, double x );
 extern int gels ( double A[], double R[], int M, double EPS, double AUX[] );
 extern double hyp2f1 ( double a, double b, double c, double x );
+extern double hyp2f1_regularized ( double a, double b, double c, double x );
 extern double hyperg ( double a, double b, double x );
 extern double hyp2f0 ( double a, double b, double x, int type, double *err );
 extern double i0 ( double x );

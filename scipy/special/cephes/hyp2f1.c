@@ -7,8 +7,10 @@
  * SYNOPSIS:
  *
  * double a, b, c, x, y, hyp2f1();
+ * double a, b, c, x, y, hyp2f1_regularized();
  *
  * y = hyp2f1( a, b, c, x );
+ * y = hyp2f1_regularized( a, b, c, x );
  *
  *
  * DESCRIPTION:
@@ -22,6 +24,9 @@
  *   =  1 +   >   -----------------------------  x   .
  *            -         c(c+1)...(c+k) (k+1)!
  *          k = 0
+ *
+ *  hyp2f1_regularized( a, b, c, x )  =   F ( a, b; c; x ) / Gamma(c)
+ *                                       2 1
  *
  *  Cases addressed are
  *      Tests and escapes for negative integer a, b, or c
@@ -94,12 +99,30 @@
 
 extern double MACHEP;
 
-static double hyt2f1(double a, double b, double c, double x, double *loss);
-static double hys2f1(double a, double b, double c, double x, double *loss);
-static double hyp2f1ra(double a, double b, double c, double x, double* loss);
+static double hyt2f1(double a, double b, double c, double x, double *loss,
+                     int regularized);
+static double hys2f1(double a, double b, double c, double x, double *loss,
+                     int regularized);
+static double hyp2f1ra(double a, double b, double c, double x, double* loss,
+                       int regularized);
+static double hyp2f1_main(double a, double b, double c, double x,
+                          int regularized);
 
 double hyp2f1(a, b, c, x)
 double a, b, c, x;
+{
+    return hyp2f1_main(a, b, c, x, 0);
+}
+
+double hyp2f1_regularized(a, b, c, x)
+double a, b, c, x;
+{
+    return hyp2f1_main(a, b, c, x, 1);
+}
+
+static double hyp2f1_main(a, b, c, x, regularized)
+double a, b, c, x;
+int regularized;
 {
     double d, d1, d2, e;
     double p, q, r, s, y, ax;
@@ -116,14 +139,24 @@ double a, b, c, x;
     ib = round(b);
 
     if (x == 0.0) {
-        return 1.0;
+        if (!regularized) {
+            return 1.0;
+        }
+        else {
+            return 1.0/gamma(c);
+        }
     }
 
     d = c - a - b;
     id = round(d);
 
     if ((a == 0 || b == 0) && c != 0) {
-        return 1.0;
+        if (!regularized) {
+            return 1.0;
+        }
+        else {
+            return 1.0/gamma(c);
+        }
     }
 
     if (a <= 0 && fabs(a - ia) < EPS) { /* a is a negative integer */
@@ -135,7 +168,7 @@ double a, b, c, x;
     }
 
     if (d <= -1 && !(fabs(d-id) > EPS && s < 0) && !(neg_int_a || neg_int_b)) {
-        return pow(s, d) * hyp2f1(c - a, c - b, c, x);
+        return pow(s, d) * hyp2f1_main(c - a, c - b, c, x, regularized);
     }
     if (d <= 0 && x == 1)
         goto hypdiv;
@@ -144,10 +177,16 @@ double a, b, c, x;
         /* 2F1(a,b;b;x) = (1-x)**(-a) */
         if (fabs(b - c) < EPS) {        /* b = c */
             y = pow(s, -a);     /* s to the -a power */
+            if (regularized) {
+                y /= gamma(c);
+            }
             goto hypdon;
         }
         if (fabs(a - c) < EPS) {        /* a = c */
             y = pow(s, -b);     /* s to the -b power */
+            if (regularized) {
+                y /= gamma(c);
+            }
             goto hypdon;
         }
     }
@@ -162,7 +201,9 @@ double a, b, c, x;
                 goto hypok;
             if (neg_int_b && (ib > ic))
                 goto hypok;
-            goto hypdiv;
+            if (!regularized) {
+                goto hypdiv;
+            }
         }
     }
 
@@ -174,19 +215,24 @@ double a, b, c, x;
         /* This transform has a pole for b-a integer, and
          * may produce large cancellation errors for |1/x| close 1
          */
-        p = hyp2f1(a, 1 - c + a, 1 - b + a, 1.0 / x);
-        q = hyp2f1(b, 1 - c + b, 1 - a + b, 1.0 / x);
+        p = hyp2f1_main(a, 1 - c + a, 1 - b + a, 1.0 / x, 0);
+        q = hyp2f1_main(b, 1 - c + b, 1 - a + b, 1.0 / x, 0);
         p *= pow(-x, -a);
         q *= pow(-x, -b);
-        t1 = gamma(c);
+        if (!regularized) {
+            t1 = gamma(c);
+        }
+        else {
+            t1 = 1.0;
+        }
         s = t1 * gamma(b - a) / (gamma(b) * gamma(c - a));
         y = t1 * gamma(a - b) / (gamma(a) * gamma(c - b));
         return s * p + y * q;
     } else if (x < -1.0) {
         if (fabs(a) < fabs(b)) {
-            return pow(s, -a) * hyp2f1(a, c-b, c, x/(x-1));
+            return pow(s, -a) * hyp2f1_main(a, c-b, c, x/(x-1), regularized);
         } else {
-            return pow(s, -b) * hyp2f1(b, c-a, c, x/(x-1));
+            return pow(s, -b) * hyp2f1_main(b, c-a, c, x/(x-1), regularized);
         }
     }
 
@@ -218,7 +264,12 @@ double a, b, c, x;
             }
             if (d <= 0.0)
                 goto hypdiv;
-            y = gamma(c) * gamma(d) / (gamma(p) * gamma(r));
+            if (!regularized) {
+                y = gamma(c) * gamma(d) / (gamma(p) * gamma(r));
+            }
+            else { 
+                y = 1.0 * gamma(d) / (gamma(p) * gamma(r));
+            }
             goto hypdon;
         }
         if (d <= -1.0)
@@ -230,15 +281,15 @@ double a, b, c, x;
      */
     if (d < 0.0) {
         /* Try the power series first */
-        y = hyt2f1(a, b, c, x, &err);
+        y = hyt2f1(a, b, c, x, &err, regularized);
         if (err < ETHRESH)
             goto hypdon;
         /* Apply the recurrence if power series fails */
         err = 0.0;
         aid = 2 - id;
         e = c + aid;
-        d2 = hyp2f1(a, b, e, x);
-        d1 = hyp2f1(a, b, e + 1.0, x);
+        d2 = hyp2f1_main(a, b, e, x, regularized);
+        d1 = hyp2f1_main(a, b, e + 1.0, x, regularized);
         q = a + b + 1.0;
         for (i = 0; i < aid; i++) {
             r = e - 1.0;
@@ -256,7 +307,7 @@ double a, b, c, x;
         goto hypf;              /* negative integer c-a or c-b */
 
   hypok:
-    y = hyt2f1(a, b, c, x, &err);
+    y = hyt2f1(a, b, c, x, &err, regularized);
 
 
   hypdon:
@@ -270,7 +321,7 @@ double a, b, c, x;
  * AMS55 #15.3.3
  */
   hypf:
-    y = pow(s, d) * hys2f1(c - a, c - b, c, x, &err);
+    y = pow(s, d) * hys2f1(c - a, c - b, c, x, &err, regularized);
     goto hypdon;
 
 /* The alarm exit */
@@ -287,9 +338,10 @@ double a, b, c, x;
 /* Apply transformations for |x| near 1
  * then call the power series
  */
-static double hyt2f1(a, b, c, x, loss)
+static double hyt2f1(a, b, c, x, loss, regularized)
 double a, b, c, x;
 double *loss;
+int regularized;
 {
     double p, q, r, s, t, y, d, err, err1;
     double ax, id, d1, d2, e, y1;
@@ -312,10 +364,10 @@ double *loss;
     s = 1.0 - x;
     if (x < -0.5 && !(neg_int_a || neg_int_b)) {
         if (b > a)
-            y = pow(s, -a) * hys2f1(a, c - b, c, -x / s, &err);
+            y = pow(s, -a) * hys2f1(a, c - b, c, -x / s, &err, regularized);
 
         else
-            y = pow(s, -b) * hys2f1(c - a, b, c, -x / s, &err);
+            y = pow(s, -b) * hys2f1(c - a, b, c, -x / s, &err, regularized);
 
         goto done;
     }
@@ -327,13 +379,13 @@ double *loss;
         if (fabs(d - id) > EPS) {
             /* test for integer c-a-b */
             /* Try the power series first */
-            y = hys2f1(a, b, c, x, &err);
+            y = hys2f1(a, b, c, x, &err, regularized);
             if (err < ETHRESH)
                 goto done;
             /* If power series fails, then apply AMS55 #15.3.6 */
-            q = hys2f1(a, b, 1.0 - d, s, &err);
+            q = hys2f1(a, b, 1.0 - d, s, &err, 0);
             q *= gamma(d) / (gamma(c - a) * gamma(c - b));
-            r = pow(s, d) * hys2f1(c - a, c - b, d + 1.0, s, &err1);
+            r = pow(s, d) * hys2f1(c - a, c - b, d + 1.0, s, &err1, 0);
             r *= gamma(-d) / (gamma(a) * gamma(b));
             y = q + r;
 
@@ -343,7 +395,12 @@ double *loss;
                 r = q;
             err += err1 + (MACHEP * r) / y;
 
-            y *= gamma(c);
+            if (!regularized) {
+                y *= gamma(c);
+            }
+            else {
+                y *= 1.0;
+            }
             goto done;
         } else {
             /* Psi function expansion, AMS55 #15.3.10, #15.3.11, #15.3.12
@@ -386,7 +443,12 @@ double *loss;
 
 
             if (id == 0.0) {
-                y *= gamma(c) / (gamma(a) * gamma(b));
+                if (!regularized) {
+                    y *= gamma(c) / (gamma(a) * gamma(b));
+                }
+                else {
+                    y *= 1.0 / (gamma(a) * gamma(b));
+                }
                 goto psidon;
             }
 
@@ -405,7 +467,12 @@ double *loss;
                 y1 += p;
             }
           nosum:
-            p = gamma(c);
+            if (!regularized) {
+                p = gamma(c);
+            }
+            else {
+                p = 1.0;
+            }
             y1 *= gamma(e) * p / (gamma(a + d1) * gamma(b + d1));
 
             y *= p / (gamma(a + d2) * gamma(b + d2));
@@ -426,7 +493,7 @@ double *loss;
     }
 
 /* Use defining power series if no special cases */
-    y = hys2f1(a, b, c, x, &err);
+    y = hys2f1(a, b, c, x, &err, regularized);
 
   done:
     *loss = err;
@@ -437,15 +504,33 @@ double *loss;
 
 
 
-/* Defining power series expansion of Gauss hypergeometric function */
+/*
+ * Defining power series expansion of Gauss hypergeometric function
+ *
+ *           inf.
+ *            -   a(a+1)...(a+k) b(b+1)...(b+k)   k+1
+ *      1 +   >   -----------------------------  x   .
+ *            -         c(c+1)...(c+k) (k+1)!
+ *          k = 0
+ *
+ * In the regularized case, we rewrite the 1/Gamma(c) prefactor as
+ *
+ *
+ *     1/Gamma(c) = c*(c+1)*...*(c+j-1) / Gamma(c+j)
+ *
+ * where j is an integer such that c + j > 0.5. In the series expansion,
+ * we moreover cancel out the possibly divergent factor |c + k_0| <= 0.5
+ * that appears for c <= 0.5.
+ */
 
-static double hys2f1(a, b, c, x, loss)
+static double hys2f1(a, b, c, x, loss, regularized)
 double a, b, c, x;
 double *loss;                   /* estimates loss of significance */
+int regularized;
 {
     double f, g, h, k, m, s, u, umax, t;
-    int i;
-    int ia, ib, intflag = 0;
+    int i, j;
+    int ia, ib, ic, intflag = 0;
 
     if (fabs(b) > fabs(a)) {
         /* Ensure that |a| > |b| ... */
@@ -470,7 +555,7 @@ double *loss;                   /* estimates loss of significance */
          *
          * We try to reduce it with the recurrence relations
          */
-        return hyp2f1ra(a, b, c, x, loss);
+        return hyp2f1ra(a, b, c, x, loss, regularized);
     }
 
     i = 0;
@@ -482,12 +567,23 @@ double *loss;                   /* estimates loss of significance */
     u = 1.0;
     k = 0.0;
     do {
-        if (fabs(h + k) < EPS) {
-            *loss = 1.0;
-            return NPY_INFINITY;
-        }
         m = k + 1.0;
-        u = u * ((f + k) * (g + k) * x / ((h + k) * m));
+        u = u * ((f + k) * (g + k) * x / m);
+        if (!regularized) {
+            if (fabs(h + k) < EPS) {
+                *loss = 1.0;
+                return NPY_INFINITY;
+            }
+            u /= (h + k);
+        }
+        else {
+            if (fabs(h + k) > 0.5) {
+                u /= (h + k);
+            }
+            else {
+                s *= (h + k);
+            }
+        }
         s += u;
         k = fabs(u);            /* remember largest term summed */
         if (k > umax)
@@ -503,6 +599,15 @@ double *loss;                   /* estimates loss of significance */
     /* return estimated relative error */
     *loss = (MACHEP * umax) / fabs(s) + (MACHEP * i);
 
+    if (regularized) {
+        j = 1 + (int)round(m);
+        for (i = 0; i < j; ++i) {
+            if (fabs(c + i) > 0.5) {
+                s *= (c + i);
+            }
+        }
+        s /= gamma(c + j);
+    }
     return (s);
 }
 
@@ -517,7 +622,7 @@ double *loss;                   /* estimates loss of significance */
  * AMS55 #15.2.10
  */
 static double hyp2f1ra(double a, double b, double c, double x,
-                       double* loss)
+                       double* loss, int regularized)
 {
     double f2, f1, f0;
     int n, m, da;
@@ -538,8 +643,8 @@ static double hyp2f1ra(double a, double b, double c, double x,
     if (da < 0) {
         /* Recurse down */
         f2 = 0;
-        f1 = hys2f1(t, b, c, x, &err); *loss += err;
-        f0 = hys2f1(t-1, b, c, x, &err); *loss += err;
+        f1 = hys2f1(t, b, c, x, &err, regularized); *loss += err;
+        f0 = hys2f1(t-1, b, c, x, &err, regularized); *loss += err;
         t -= 1;
         for (n = 1; n < -da; ++n) {
             f2 = f1;
@@ -550,8 +655,8 @@ static double hyp2f1ra(double a, double b, double c, double x,
     } else {
         /* Recurse up */
         f2 = 0;
-        f1 = hys2f1(t, b, c, x, &err); *loss += err;
-        f0 = hys2f1(t+1, b, c, x, &err); *loss += err;
+        f1 = hys2f1(t, b, c, x, &err, regularized); *loss += err;
+        f0 = hys2f1(t+1, b, c, x, &err, regularized); *loss += err;
         t += 1;
         for (n = 1; n < da; ++n) {
             f2 = f1;

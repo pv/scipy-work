@@ -68,6 +68,7 @@
 #define hyp1f2_doc "(y,err)=hyp1f2(a,b,c,x) returns (y,err) with the hypergeometric function 1F2 in y and an error estimate in err."
 #define hyp2f0_doc "(y,err)=hyp2f0(a,b,x,type) returns (y,err) with the hypergeometric function 2F0 in y and an error estimate in err.  The input type determines a convergence factor and\ncan be either 1 or 2."
 #define hyp2f1_doc "y=hyp2f1(a,b,c,z) returns the gauss hypergeometric function\n( 2F1(a,b;c;z) )."
+#define hyp2f1_regularized_doc "y=hyp2f1_regularized(a,b,c,z) returns the regularized gauss hypergeometric function\n( 2F1(a,b;c;z)/Gamma(c) )."
 #define hyp3f0_doc "(y,err)=hyp3f0(a,b,c,x) returns (y,err) with the hypergeometric function 3F0 in y and an error estimate in err."
 #define hyperu_doc "y=hyperu(a,b,x) returns the confluent hypergeometric function of the\nsecond kind U(a,b,x)."
 #define i0_doc "y=i0(x) returns the modified Bessel function of order 0 at x."

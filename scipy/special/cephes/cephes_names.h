@@ -33,6 +33,7 @@
 #define gdtrc cephes_gdtrc
 #define gdtri cephes_gdtri
 #define hyp2f1 cephes_hyp2f1
+#define hyp2f1_regularized cephes_hyp2f1_regularized
 #define hyperg cephes_hyperg
 #define hyp2f0 cephes_hyp2f0
 #define onef2 cephes_onef2

@@ -47,6 +47,7 @@ static PyUFuncGenericFunction cephes3_functions[] = { NULL, NULL, NULL, NULL};
 static PyUFuncGenericFunction cephes3a_functions[] = { NULL, NULL, };
 static PyUFuncGenericFunction cephes3_2_functions[] = { NULL, NULL,};
 static PyUFuncGenericFunction cephes4_functions[] = { NULL, NULL, NULL, NULL,};
+static PyUFuncGenericFunction cephes4a_functions[] = { NULL, NULL,};
 static PyUFuncGenericFunction cephes4a_2_functions[] = { NULL, NULL, };
 static PyUFuncGenericFunction cephes4_2_functions[] = { NULL, NULL, };
 static PyUFuncGenericFunction cephes5_2_functions[] = { NULL, NULL, };
@@ -113,6 +114,7 @@ static void * gdtr_data[] = { (void *)gdtr, (void *)gdtr, };
 static void * gdtri_data[] = { (void *)gdtri, (void *)gdtri, };
 */
 static void * hyp2f1_data[] = { (void *)hyp2f1, (void *)hyp2f1, (void *)chyp2f1_wrap, (void *)chyp2f1_wrap};
+static void * hyp2f1_regularized_data[] = { (void *)hyp2f1_regularized, (void *)hyp2f1_regularized };
 static void * hyp1f1_data[] = { (void *)hyp1f1_wrap, (void *)hyp1f1_wrap, (void *)chyp1f1_wrap, (void *)chyp1f1_wrap};
 static void * hypU_data[] = { (void *)hypU_wrap, (void *)hypU_wrap, };
 static void * hyp2f0_data[] = { (void *)hyp2f0, (void *)hyp2f0, };
@@ -388,6 +390,8 @@ static void Cephes_InitOperators(PyObject *dictionary) {
         cephes4_functions[1] = PyUFunc_dddd_d;
         cephes4_functions[2] = PyUFunc_fffF_F_As_dddD_D;
         cephes4_functions[3] = PyUFunc_dddD_D;
+        cephes4a_functions[0] = PyUFunc_ffff_f_As_dddd_d;
+        cephes4a_functions[1] = PyUFunc_dddd_d;
         cephes4_2_functions[0] = PyUFunc_ffff_ff_As_dddd_dd;
         cephes4_2_functions[1] = PyUFunc_dddd_dd;
         cephes4a_2_functions[0] = PyUFunc_ffff_ff_As_dddi_dd;
@@ -438,6 +442,11 @@ static void Cephes_InitOperators(PyObject *dictionary) {
 	f = PyUFunc_FromFuncAndData(cephes4_functions, hyp2f1_data, cephes_5c2_types, 4, 4, 1, PyUFunc_None, "hyp2f1", hyp2f1_doc, 0);
 	PyDict_SetItemString(dictionary, "hyp2f1", f);
 	Py_DECREF(f);
+
+	f = PyUFunc_FromFuncAndData(cephes4a_functions, hyp2f1_regularized_data, cephes_5_types, 2, 4, 1, PyUFunc_None, "hyp2f1_regularized", hyp2f1_regularized_doc, 0);
+	PyDict_SetItemString(dictionary, "hyp2f1_regularized", f);
+	Py_DECREF(f);
+
 	f = PyUFunc_FromFuncAndData(cephes3_functions, hyp1f1_data, cephes_4c_types, 4, 3, 1, PyUFunc_None, "hyp1f1", hyp1f1_doc, 0);
 	PyDict_SetItemString(dictionary, "hyp1f1", f);
 	Py_DECREF(f);
