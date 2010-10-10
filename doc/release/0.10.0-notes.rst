@@ -38,6 +38,11 @@ about our function's call signatures.
 New features
 ============
 
+Optimization in convex set (``scipy.optimize``)
+-----------------------------------------------
+
+The function ``scipy.optimize.fmin_bfgs`` can now handle functions
+that are finite only in a convex set and infinite outside the set.
 
 
 Deprecated features
