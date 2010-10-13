@@ -23,7 +23,8 @@ __all__ = ['lobpcg']
 ## except:
 ##     raise ImportError('lobpcg requires symeig')
 
-def symeig( mtxA, mtxB = None, eigenvectors = True, select = None ):
+def symeig( mtxA, mtxB = None, eigenvectors = True, select = None,
+            overwrite_a=False, overwrite_b=False):
     import scipy.linalg as sla
     import scipy.lib.lapack as ll
     if select is None:
@@ -48,7 +49,8 @@ def symeig( mtxA, mtxB = None, eigenvectors = True, select = None ):
 ##         from symeig import symeig
 ##         print symeig( mtxA, mtxB )
     else:
-        out = sla.eig( mtxA, mtxB, right = eigenvectors )
+        out = sla.eig( mtxA, mtxB, right = eigenvectors,
+                       overwrite_a=overwrite_a, overwrite_b=overwrite_b)
         w = out[0]
         ii = np.argsort( w )
         w = w[slice( *select )]
@@ -122,7 +124,7 @@ def applyConstraints( blockVectorV, factYBY, blockVectorBY, blockVectorY ):
     """Internal. Changes blockVectorV in place."""
     gramYBV = sp.dot( blockVectorBY.T, blockVectorV )
     import scipy.linalg as sla
-    tmp = sla.cho_solve( factYBY, gramYBV )
+    tmp = sla.cho_solve( factYBY, gramYBV, overwrite_b = True )
     blockVectorV -= sp.dot( blockVectorY, tmp )
 
 
@@ -136,7 +138,7 @@ def b_orthonormalize( B, blockVectorV,
         else:
             blockVectorBV = blockVectorV # Shared data!!!
     gramVBV = sp.dot( blockVectorV.T, blockVectorBV )
-    gramVBV = sla.cholesky( gramVBV )
+    gramVBV = sla.cholesky( gramVBV, overwrite_a = True )
     gramVBV = sla.inv( gramVBV, overwrite_a = True )
     # gramVBV is now R^{-1}.
     blockVectorV = sp.dot( blockVectorV, gramVBV )
@@ -297,7 +299,7 @@ def lobpcg( A, X,
         gramYBY = sp.dot( blockVectorY.T, blockVectorBY )
         try:
             # gramYBY is a Cholesky factor from now on...
-            gramYBY = sla.cho_factor( gramYBY )
+            gramYBY = sla.cho_factor( gramYBY, overwrite_a=True )
         except:
             raise ValueError('cannot handle linearly dependent constraints')
 
@@ -314,7 +316,7 @@ def lobpcg( A, X,
     # gramXBX is X^T * X.
     gramXBX = sp.dot( blockVectorX.T, blockVectorX )
 
-    _lambda, eigBlockVector = symeig( gramXAX )
+    _lambda, eigBlockVector = symeig( gramXAX, overwrite_a=True )
     ii = np.argsort( _lambda )[:sizeX]
     if largest:
         ii = ii[::-1]
@@ -450,7 +452,9 @@ def lobpcg( A, X,
         ##
         # Solve the generalized eigenvalue problem.
 #        _lambda, eigBlockVector = la.eig( gramA, gramB )
-        _lambda, eigBlockVector = symeig( gramA, gramB )
+        _lambda, eigBlockVector = symeig( gramA, gramB,
+                                          overwrite_a=True,
+                                          overwrite_b=True )
         ii = np.argsort( _lambda )[:sizeX]
         if largest:
             ii = ii[::-1]
