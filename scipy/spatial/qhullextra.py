@@ -170,89 +170,66 @@ def voronoi_volume(tri, ivertex):
         ndim_factorial *= (j+1)
 
     #
-    # Iterate over faces of the Voronoi polytope, i.e., over natural neighbors
+    # Compute the volume of the Voronoi polytope, using Cohen-Hickey
+    # triangulation.
     #
-    # The volume of the total Voronoi cell is::
-    #
-    #     V = \sum_k h_k S_k / ndim
-    #
-    # where the sum runs over the faces, h_k is the distance of the
-    # k-th face from the vertex, and S_k is the area of the k-th face.
+    # J. Cohen and T. Hickey, J. Assoc. Comp. Mach. 26, 401 (1979).
     #
 
-    v = ivertex
-    total_volume = 0
+    # 1) Compute the (ndim-1)-faces F_k of the Polyhedron
+    faces = []
     for v2 in neighbors:
-
-        #
-        # Find the Voronoi centers forming the face
-        #
-
         simp_list = []
         for s in simplices:
             if v2 in tri.vertices[s]:
                 simp_list.append(s)
+        faces.append(set(simp_list))
 
-        is_neighbor = 0
+    # 2) Implement the algorithm
 
-        #
-        # Compute the area of the face.
-        #
-        # The Delaunay neighborhood structure restricted to the
-        # Voronoi face gives a triangulation of its convex hull.
-        # (Really!?!? Verify this!)
-        #
-        # This allows computing the area as a sum of the area of d-2
-        # simplices.
-        #
+    volume = 0
 
-        #
-        # Find simplices in the Voronoi cell face
-        #
-        # Note that the cell face is not necessarily simplical!
-        #
-        # In the non-simplical cases we use the knowledge that the
-        # Voronoi centers are connected to each other by ridges formed
-        # according to the neighborhood structure of the Delaunay
-        # triangulation.
-        #
-
-        if len(simp_list) == tri.ndim:
-            # simplical voronoi facet
-            faces = [simp_list]
+    def vol(d, last, S):
+        if d > 0:
+            L = set([frozenset()])
+            volume = 0
+            for face in faces:
+                z = last.intersection(face)
+                if z not in L:
+                    L.add(frozenset(z))
+                    eta = sorted(list(z))[0]
+                    if eta not in S:
+                        S.add(eta)
+                        volume += vol(d - 1, z, S)
+                        S.remove(eta)
+            return volume
         else:
-            # non-simplical voronoi facet: split using a neighbor cycle
-            #
-            # XXX: this does not work in d > 3
-            #
-            c0 = simp_list[0]
-            cs = [c0]*(tri.ndim-1)
-            faces = []
-            while 1:
-                for n in tri.neighbors[cs[-1]]:
-                    if n in simp_list and n not in cs and n != c0:
-                        cs.pop(0)
-                        cs.append(n)
-                        break
-                else:
-                    break
-                faces.append([c0] + cs)
+            v = list(S.union(last))[1:]
+            return abs(np.linalg.det(centers[v,:] - centers[simplices[0]]))/ndim_factorial
 
-        # Compute volume of simplices
-        for ix in faces:
-            volume = abs(np.linalg.det(centers[ix,:] - x0)) / ndim_factorial
-            total_volume += volume
+    last_0 = set(simplices)
+    S_0 = set([simplices[0]])
 
-    return total_volume
+    volume = vol(tri.ndim - 1, last_0, S_0)
+    return volume
+
+def factorial(x):
+    fac = 1
+    while x > 0:
+        fac *= x
+        x -= 1
+    return fac
+
+def unit_cube_center_voronoi_volume(d):
+    return 2**d * (d/4.)**d / factorial(d)
 
 def test_voronoi_volume_2d():
     pts = [[0.0, 0.0], [1.0, 0.0], [1.0, 1.0], [0.0, 1.0], [0.5, 0.5]]
     pts = np.array(pts, dtype=float)
-    pts += 1e-4*np.random.randn(*pts.shape)
     tri = Delaunay(pts)
     vol = voronoi_volume(tri, 4)
 
-    expected_volume = 4 * 0.5**2 / 2
+    expected_volume = unit_cube_center_voronoi_volume(2)
     np.testing.assert_allclose(vol, expected_volume)
 
 def test_voronoi_volume_3d():
@@ -267,12 +244,11 @@ def test_voronoi_volume_3d():
            [0.5, 0.5, 0.5]]
 
     pts = np.array(pts, dtype=float)
-    pts += 1e-4*np.random.randn(*pts.shape)
 
     tri = Delaunay(pts)
     vol = voronoi_volume(tri, 8)
 
-    expected_volume = 8 * 0.75**3 / 6
+    expected_volume = unit_cube_center_voronoi_volume(3)
     np.testing.assert_allclose(vol, expected_volume)
 
 def test_voronoi_volume_4d():
@@ -287,16 +263,22 @@ def test_voronoi_volume_4d():
     tri = Delaunay(pts)
     vol = voronoi_volume(tri, 16)
 
-    neigh2 = []
-    for j, s in enumerate(vol):
-        nn = []
-        for s2 in tri.neighbors[s]:
-            if s2 in vol:
-                nn.append(s2)
-        neigh2.append(nn)
-    neigh2 = np.asarray(neigh2)
-    print neigh2
+    expected_volume = unit_cube_center_voronoi_volume(4)
+    np.testing.assert_allclose(vol, expected_volume)
 
-    #expected_volume = 16 * 1.0**4 / 24
-    #np.testing.assert_allclose(vol, expected_volume)
+def test_voronoi_volume_5d():
+    pts = []
+    for i in xrange(2):
+        for j in xrange(2):
+            for k in xrange(2):
+                for l in xrange(2):
+                    for m in xrange(2):
+                        pts.append((i, j, k, l, m))
+    pts.append([0.5, 0.5, 0.5, 0.5, 0.5])
+
+    tri = Delaunay(pts)
+    vol = voronoi_volume(tri, 2**5)
+
+    expected_volume = unit_cube_center_voronoi_volume(5)
+    np.testing.assert_allclose(vol, expected_volume)
 
