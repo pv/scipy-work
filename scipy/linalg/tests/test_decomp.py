@@ -570,7 +570,9 @@ def eigenhproblem_standard(desc, dim, dtype,
         a_c = a.copy()
     else:
         a_c = a
-    w, z = eigh(a, overwrite_a=overwrite, lower=lower, eigvals=eigvals)
+
+    w, z = eigh(a, overwrite_a=overwrite, lower=lower, eigvals=eigvals,
+                turbo=turbo)
     assert_dtype_equal(z.dtype, dtype)
     w = w.astype(dtype)
     diag_ = diag(dot(z.T.conj(), dot(a_c, z))).real
@@ -604,8 +606,9 @@ def eigenhproblem_general(desc, dim, dtype,
 def test_eigh_integer():
     a = array([[1,2],[2,7]])
     b = array([[3,1],[1,5]])
-    w,z = eigh(a)
-    w,z = eigh(a,b)
+    for turbo in (True, False):
+        w,z = eigh(a,turbo=turbo)
+        w,z = eigh(a,b,turbo=turbo)
 
 class TestLU(TestCase):
 

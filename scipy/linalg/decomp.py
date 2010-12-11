@@ -221,8 +221,10 @@ def eigh(a, b=None, lower=True, eigvals_only=False, overwrite_a=False,
         Whether to calculate only eigenvalues and no eigenvectors.
         (Default: both are calculated)
     turbo : boolean
-        Use divide and conquer algorithm (faster but expensive in memory,
-        only for generalized eigenvalue problem and if eigvals=None)
+        Use divide and conquer or relatively robust representation algorithms.
+        These may be faster, but can be more expensive in memory and less
+        robust than the default algorithm.
+        (Has no effect for generalized eigenproblems when eigvals is not None.)
     eigvals : tuple (lo, hi)
         Indexes of the smallest and largest (in ascending order) eigenvalues
         and corresponding eigenvectors to be returned: 0 <= lo < hi <= M-1.
@@ -292,7 +294,7 @@ def eigh(a, b=None, lower=True, eigvals_only=False, overwrite_a=False,
     # port eigenvalue range from python to fortran convention
     if eigvals is not None:
         lo, hi = eigvals
-        if lo < 0 or hi >= a1.shape[0]:
+        if lo < 0 or hi >= a1.shape[0] or lo > hi:
             raise ValueError('The eigenvalue range specified is not valid.\n'
                              'Valid range is [%s,%s]' % (0, a1.shape[0]-1))
         lo += 1
@@ -312,19 +314,33 @@ def eigh(a, b=None, lower=True, eigvals_only=False, overwrite_a=False,
         pfx = 'sy'
 
     #  Standard Eigenvalue Problem
-    #  Use '*evr' routines
     # FIXME: implement calculation of optimal lwork
     #        for all lapack routines
     if b1 is None:
-        (evr,) = get_lapack_funcs((pfx+'evr',), (a1,))
-        if eigvals is None:
-            w, v, info = evr(a1, uplo=uplo, jobz=_job, range="A", il=1,
-                             iu=a1.shape[0], overwrite_a=overwrite_a)
+        if turbo:
+            (evr,) = get_lapack_funcs((pfx+'evr',), (a1,))
+            if eigvals is None:
+                w, v, info = evr(a1, uplo=uplo, jobz=_job, range="A", il=1,
+                                 iu=a1.shape[0], overwrite_a=overwrite_a)
+            else:
+                (lo, hi)= eigvals
+                w_tot, v, info = evr(a1, uplo=uplo, jobz=_job, range="I",
+                                     il=lo, iu=hi, overwrite_a=overwrite_a)
+                w = w_tot[0:hi-lo+1]
         else:
-            (lo, hi)= eigvals
-            w_tot, v, info = evr(a1, uplo=uplo, jobz=_job, range="I",
-                                 il=lo, iu=hi, overwrite_a=overwrite_a)
-            w = w_tot[0:hi-lo+1]
+            if eigvals is None:
+                (ev,) = get_lapack_funcs((pfx+'ev',), (a1,))
+                w, v, info = ev(a1, lower=lower, compute_v=(not eigvals_only),
+                                 overwrite_a=overwrite_a)
+            else:
+                (lo, hi)= eigvals
+                (evx,) = get_lapack_funcs((pfx+'evx',), (a1,))
+                w_tot, v, info = evx(a1, lower=lower,
+                                     range=2, il=lo, iu=hi,
+                                     compute_v=(not eigvals_only),
+                                     overwrite_a=overwrite_a)
+                w = w_tot[0:hi-lo+1]
+
 
     # Generalized Eigenvalue Problem
     else:
