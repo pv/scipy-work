@@ -3,7 +3,8 @@ import _minpack
 
 from numpy import atleast_1d, dot, take, triu, shape, eye, \
                   transpose, zeros, product, greater, array, \
-                  all, where, isscalar, asarray, inf, abs
+                  all, where, isscalar, asarray, inf, abs, \
+                  finfo, inexact, issubdtype, dtype, sqrt
 
 error = _minpack.error
 
@@ -24,7 +25,11 @@ def _check_func(checker, argname, thefunc, x0, args, numinputs, output_shape=Non
             else:
                 msg += "."
             raise TypeError(msg)
-    return shape(res)
+    if not issubdtype(dtype, inexact):
+        dt = res.dtype
+    else:
+        dt = dtype(float)
+    return shape(res), dt
 
 
 def fsolve(func, x0, args=(), fprime=None, full_output=0,
@@ -166,8 +171,8 @@ def fsolve(func, x0, args=(), fprime=None, full_output=0,
 
 
 def leastsq(func, x0, args=(), Dfun=None, full_output=0,
-            col_deriv=0, ftol=1.49012e-8, xtol=1.49012e-8,
-            gtol=0.0, maxfev=0, epsfcn=0.0, factor=100, diag=None):
+            col_deriv=0, ftol=None, xtol=None,
+            gtol=0.0, maxfev=0, epsfcn=None, factor=100, diag=None):
     """
     Minimize the sum of squares of a set of equations.
 
@@ -273,11 +278,18 @@ def leastsq(func, x0, args=(), Dfun=None, full_output=0,
     n = len(x0)
     if type(args) != type(()):
         args = (args,)
-    m = _check_func('leastsq', 'func', func, x0, args, n)[0]
+    shape, dtype = _check_func('leastsq', 'func', func, x0, args, n)
+    m = shape[0]
     if n > m:
         raise TypeError('Improper input: N=%s must not exceed M=%s' % (n,m))
+    if epsfcn is None:
+        epsfcn = 8*finfo(dtype).eps
+    if ftol is None:
+        ftol = sqrt(finfo(dtype).eps)
+    if xtol is None:
+        xtol = sqrt(finfo(dtype).eps)
     if Dfun is None:
-        if (maxfev == 0):
+        if maxfev == 0:
             maxfev = 200*(n + 1)
         retval = _minpack._lmdif(func, x0, args, full_output, ftol, xtol,
                 gtol, maxfev, epsfcn, factor, diag)
