@@ -286,11 +286,28 @@ extern "C" {
     def module_init_code(self):
         init_code_list =  self.build_information().module_init_code()
         init_code = indent(''.join(init_code_list),4)
-        code = 'PyMODINIT_FUNC init%s(void)\n' \
-               '{\n' \
-               '%s' \
-               '    (void) Py_InitModule("%s", compiled_methods);\n' \
-               '}\n' % (self.name,init_code,self.name)
+        if sys.version_info[0] >= 3:
+            code = (
+                'static struct PyModuleDef moduledef = {\n'
+                '    PyModuleDef_HEAD_INIT,\n'
+                '    "%s",\n'
+                '    NULL,\n'
+                '    -1,\n'
+                '    compiled_methods,\n'
+                '    NULL, NULL, NULL, NULL\n'
+                '};\n'
+                'PyObject *PyInit_%s() {\n'
+                '    PyObject *module;\n'
+                '%s\n'
+                '    module = PyModule_Create(&moduledef);\n'
+                '    return module;\n'
+                '}\n') % (self.name, self.name, init_code)
+        else:
+            code = 'PyMODINIT_FUNC init%s(void)\n' \
+                   '{\n' \
+                   '%s' \
+                   '    (void) Py_InitModule("%s", compiled_methods);\n' \
+                   '}\n' % (self.name,init_code,self.name)
         return code
 
     def generate_file(self,file_name="",location='.'):

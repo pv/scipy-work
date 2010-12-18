@@ -90,7 +90,7 @@ def compiler_exe_path(exe_name):
 def check_sum(file):
     import scipy.weave.md5_load as md5
     try:
-        f = open(file,'r')
+        f = open(file,'rb')
         bytes = f.read(-1)
     except IOError:
         bytes = ''

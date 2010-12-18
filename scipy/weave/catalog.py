@@ -36,6 +36,7 @@ import sys
 import pickle
 import socket
 import tempfile
+from numpy.compat import asbytes
 
 try:
     import dbhash
@@ -88,7 +89,7 @@ def expr_to_filename(expr):
     """
     import scipy.weave.md5_load as md5
     base = 'sc_'
-    return base + md5.new(expr).hexdigest()
+    return base + md5.new(asbytes(expr)).hexdigest()
 
 def unique_file(d,expr):
     """ Generate a unqiue file name based on expr in directory d
@@ -104,7 +105,7 @@ def unique_file(d,expr):
     #base = 'scipy_compile'
     base = expr_to_filename(expr)
     for i in xrange(1000000):
-        fname = base + `i`
+        fname = base + repr(i)
         if not (fname+'.cpp' in files or
                 fname+'.o' in files or
                 fname+'.so' in files or

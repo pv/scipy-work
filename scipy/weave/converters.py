@@ -1,6 +1,7 @@
 """ converters.py
 """
 
+import sys
 import common_info
 import c_spec
 
@@ -16,9 +17,12 @@ default = [c_spec.int_converter(),
            c_spec.list_converter(),
            c_spec.dict_converter(),
            c_spec.tuple_converter(),
-           c_spec.file_converter(),
-           c_spec.instance_converter(),]
+           c_spec.instance_converter(),
+           ]
           #common_spec.module_converter()]
+
+if sys.version_info[0] < 3:
+    default.append(c_spec.file_converter())
 
 #----------------------------------------------------------------------------
 # add numpy array converters to the default

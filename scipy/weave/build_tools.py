@@ -260,7 +260,10 @@ def build_extension(module_path,compiler_name = '',build_dir = None,
         ext = create_extension(module_path,**kw)
         # the switcheroo on SystemExit here is meant to keep command line
         # sessions from exiting when compiles fail.
-        builtin = sys.modules['__builtin__']
+        if sys.version_info[0] >= 3:
+            import builtins as builtin
+        else:
+            builtin = sys.modules['__builtin__']
         old_SysExit = builtin.__dict__['SystemExit']
         builtin.__dict__['SystemExit'] = CompileError
 

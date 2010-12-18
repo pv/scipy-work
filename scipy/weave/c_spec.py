@@ -1,3 +1,4 @@
+import sys
 import types
 from base_spec import base_converter
 import base_info
@@ -206,20 +207,32 @@ class string_converter(common_base_converter):
     def init_info(self):
         common_base_converter.init_info(self)
         self.type_name = 'string'
-        self.check_func = 'PyString_Check'
         self.c_type = 'std::string'
         self.return_type = 'std::string'
-        self.to_c_return = "std::string(PyString_AsString(py_obj))"
+        if sys.version_info[0] >= 3:
+            self.check_func = 'PyBytes_Check'
+            self.to_c_return = "std::string(PyBytes_AsString(py_obj))"
+        else:
+            self.check_func = 'PyString_Check'
+            self.to_c_return = "std::string(PyString_AsString(py_obj))"
         self.matching_types = [types.StringType]
         self.headers.append('<string>')
     def c_to_py_code(self):
         # !! Need to dedent returned code.
-        code = """
-               PyObject* string_to_py(std::string s)
-               {
-                   return PyString_FromString(s.c_str());
-               }
-               """
+        if sys.version_info[0] >= 3:
+            code = """
+                   PyObject* string_to_py(std::string s)
+                   {
+                       return PyBytes_FromString(s.c_str());
+                   }
+                   """
+        else:
+            code = """
+                   PyObject* string_to_py(std::string s)
+                   {
+                       return PyString_FromString(s.c_str());
+                   }
+                   """
         return code
 
 #----------------------------------------------------------------------------
@@ -252,29 +265,30 @@ class unicode_converter(common_base_converter):
 #----------------------------------------------------------------------------
 # File Converter
 #----------------------------------------------------------------------------
-class file_converter(common_base_converter):
-    def init_info(self):
-        common_base_converter.init_info(self)
-        self.type_name = 'file'
-        self.check_func = 'PyFile_Check'
-        self.c_type = 'FILE*'
-        self.return_type = self.c_type
-        self.to_c_return = "PyFile_AsFile(py_obj)"
-        self.headers = ['<stdio.h>']
-        self.matching_types = [types.FileType]
+if sys.version_info[0] < 3:
+    class file_converter(common_base_converter):
+        def init_info(self):
+            common_base_converter.init_info(self)
+            self.type_name = 'file'
+            self.check_func = 'PyFile_Check'
+            self.c_type = 'FILE*'
+            self.return_type = self.c_type
+            self.headers = ['<stdio.h>']
+            self.matching_types = [types.FileType]
+            self.to_c_return = "PyFile_AsFile(py_obj)"
 
-    def c_to_py_code(self):
-        # !! Need to dedent returned code.
-        code = """
-               PyObject* file_to_py(FILE* file, const char* name,
-                                    const char* mode)
-               {
-                   return (PyObject*) PyFile_FromFile(file,
-                     const_cast<char*>(name),
-                     const_cast<char*>(mode), fclose);
-               }
-               """
-        return code
+        def c_to_py_code(self):
+            # !! Need to dedent returned code.
+            code = """
+                   PyObject* file_to_py(FILE* file, const char* name,
+                                        const char* mode)
+                   {
+                       return (PyObject*) PyFile_FromFile(file,
+                         const_cast<char*>(name),
+                         const_cast<char*>(mode), fclose);
+                   }
+                   """
+            return code
 
 #----------------------------------------------------------------------------
 #
@@ -290,11 +304,12 @@ class file_converter(common_base_converter):
 # Standard Python numeric --> C type maps
 #----------------------------------------------------------------------------
 num_to_c_types = {}
-num_to_c_types[type(1)]  = 'long'
-num_to_c_types[type(1.)] = 'double'
-num_to_c_types[type(1.+1.j)] = 'std::complex<double> '
-# !! hmmm. The following is likely unsafe...
-num_to_c_types[type(1L)]  = 'npy_longlong'
+num_to_c_types[int]  = 'long'
+num_to_c_types[float] = 'double'
+num_to_c_types[complex] = 'std::complex<double> '
+if sys.version_info[0] < 3:
+    # !! hmmm. The following is likely unsafe...
+    num_to_c_types[long]  = 'npy_longlong'
 
 #----------------------------------------------------------------------------
 # Numeric array Python numeric --> C type maps
@@ -332,22 +347,27 @@ class int_converter(scalar_converter):
     def init_info(self):
         scalar_converter.init_info(self)
         self.type_name = 'int'
-        self.check_func = 'PyInt_Check'
         self.c_type = 'int'
         self.return_type = 'int'
-        self.to_c_return = "(int) PyInt_AsLong(py_obj)"
+        if sys.version_info[0] >= 3:
+            self.check_func = 'PyLong_Check'
+            self.to_c_return = "(int) PyLong_AsLong(py_obj)"
+        else:
+            self.check_func = 'PyInt_Check'
+            self.to_c_return = "(int) PyInt_AsLong(py_obj)"
         self.matching_types = [types.IntType]
 
-class long_converter(scalar_converter):
-    def init_info(self):
-        scalar_converter.init_info(self)
-        # !! long to int conversion isn't safe!
-        self.type_name = 'long'
-        self.check_func = 'PyLong_Check'
-        self.c_type = 'longlong'
-        self.return_type = 'longlong'
-        self.to_c_return = "(longlong) PyLong_AsLongLong(py_obj)"
-        self.matching_types = [types.LongType]
+if sys.version_info[0] < 3:
+    class long_converter(scalar_converter):
+        def init_info(self):
+            scalar_converter.init_info(self)
+            # !! long to int conversion isn't safe!
+            self.type_name = 'long'
+            self.check_func = 'PyLong_Check'
+            self.c_type = 'longlong'
+            self.return_type = 'longlong'
+            self.to_c_return = "(longlong) PyLong_AsLongLong(py_obj)"
+            self.matching_types = [types.LongType]
 
 class float_converter(scalar_converter):
     def init_info(self):
@@ -377,8 +397,8 @@ class complex_converter(scalar_converter):
 #
 # Based on SCXX by Gordon McMillan
 #----------------------------------------------------------------------------
-import os, c_spec # yes, I import myself to find out my __file__ location.
-local_dir,junk = os.path.split(os.path.abspath(c_spec.__file__))
+import os
+local_dir,junk = os.path.split(os.path.abspath(__file__))
 scxx_dir = os.path.join(local_dir,'scxx')
 
 class scxx_converter(common_base_converter):
@@ -428,17 +448,30 @@ class dict_converter(scxx_converter):
 #----------------------------------------------------------------------------
 # Instance Converter
 #----------------------------------------------------------------------------
-class instance_converter(scxx_converter):
-    def init_info(self):
-        scxx_converter.init_info(self)
-        self.type_name = 'instance'
-        self.check_func = 'PyInstance_Check'
-        self.c_type = 'py::object'
-        self.return_type = 'py::object'
-        self.to_c_return = 'py::object(py_obj)'
-        self.matching_types = [types.InstanceType]
-        # ref counting handled by py::object
-        self.use_ref_count = 0
+if sys.version_info[0] < 3:
+    class instance_converter(scxx_converter):
+        def init_info(self):
+            scxx_converter.init_info(self)
+            self.type_name = 'instance'
+            self.check_func = 'PyInstance_Check'
+            self.c_type = 'py::object'
+            self.return_type = 'py::object'
+            self.to_c_return = 'py::object(py_obj)'
+            self.matching_types = [types.InstanceType]
+            # ref counting handled by py::object
+            self.use_ref_count = 0
+else:
+    class instance_converter(scxx_converter):
+        def init_info(self):
+            scxx_converter.init_info(self)
+            self.type_name = 'instance'
+            self.check_func = 'PyObject_Check'
+            self.c_type = 'py::object'
+            self.return_type = 'py::object'
+            self.to_c_return = 'py::object(py_obj)'
+            self.matching_types = [object]
+            # ref counting handled by py::object
+            self.use_ref_count = 0
 
 #----------------------------------------------------------------------------
 # Catchall Converter
