@@ -1,8 +1,9 @@
-      subroutine hybrj(fcn,n,x,fvec,fjac,ldfjac,xtol,maxfev,diag,mode,
+      subroutine hybrj(fcn,n,x,fvec,fjac,ldfjac,xtol,xatol,fatol,
+     *                 maxfev,diag,mode,
      *                 factor,nprint,info,nfev,njev,r,lr,qtf,wa1,wa2,
      *                 wa3,wa4)
       integer n,ldfjac,maxfev,mode,nprint,info,nfev,njev,lr
-      double precision xtol,factor
+      double precision xtol,xatol,fatol,factor
       double precision x(n),fvec(n),fjac(ldfjac,n),diag(n),r(lr),
      *                 qtf(n),wa1(n),wa2(n),wa3(n),wa4(n)
 c     **********
@@ -60,9 +61,11 @@ c
 c       ldfjac is a positive integer input variable not less than n
 c         which specifies the leading dimension of the array fjac.
 c
-c       xtol is a nonnegative input variable. termination
-c         occurs when the relative error between two consecutive
-c         iterates is at most xtol.
+c       xtol, xatol, fatol
+c         are nonnegative input variables. termination occurs when
+c         the error between two consecutive iterates is
+c         |err| < xtol*|x| + xatol, *OR*
+c         the function value satisfies |f| < fatol
 c
 c       maxfev is a positive integer input variable. termination
 c         occurs when the number of calls to fcn with iflag = 1
@@ -170,6 +173,7 @@ c
 c     check the input parameters for errors.
 c
       if (n .le. 0 .or. ldfjac .lt. n .or. xtol .lt. zero
+     *    .or. xatol .lt. zero .or. fatol .lt. zero
      *    .or. maxfev .le. 0 .or. factor .le. zero
      *    .or. lr .lt. (n*(n + 1))/2) go to 300
       if (mode .ne. 2) go to 20
@@ -383,7 +387,9 @@ c
 c
 c           test for convergence.
 c
-            if (delta .le. xtol*xnorm .or. fnorm .eq. zero) info = 1
+            if (delta .le. xtol*xnorm+xatol .or. fnorm .eq. fatol) then
+               info = 1
+            end if
             if (info .ne. 0) go to 300
 c
 c           tests for termination and stringent tolerances.

@@ -1,8 +1,8 @@
-      subroutine hybrd(fcn,n,x,fvec,xtol,maxfev,ml,mu,epsfcn,diag,
-     *                 mode,factor,nprint,info,nfev,fjac,ldfjac,r,lr,
-     *                 qtf,wa1,wa2,wa3,wa4)
+      subroutine hybrd(fcn,n,x,fvec,xtol,xatol,fatol,maxfev,ml,mu,
+     *                 epsfcn,diag,mode,factor,nprint,info,nfev,fjac,
+     *                 ldfjac,r,lr,qtf,wa1,wa2,wa3,wa4)
       integer n,maxfev,ml,mu,mode,nprint,info,nfev,ldfjac,lr
-      double precision xtol,epsfcn,factor
+      double precision xtol,xatol,fatol,epsfcn,factor
       double precision x(n),fvec(n),diag(n),fjac(ldfjac,n),r(lr),
      *                 qtf(n),wa1(n),wa2(n),wa3(n),wa4(n)
       external fcn
@@ -18,8 +18,8 @@ c     then calculated by a forward-difference approximation.
 c
 c     the subroutine statement is
 c
-c       subroutine hybrd(fcn,n,x,fvec,xtol,maxfev,ml,mu,epsfcn,
-c                        diag,mode,factor,nprint,info,nfev,fjac,
+c       subroutine hybrd(fcn,n,x,fvec,xtol,xatol,fatol,maxfev,
+c                        ml,mu,epsfcn,diag,mode,factor,nprint,info,nfev,fjac,
 c                        ldfjac,r,lr,qtf,wa1,wa2,wa3,wa4)
 c
 c     where
@@ -53,9 +53,11 @@ c
 c       fvec is an output array of length n which contains
 c         the functions evaluated at the output x.
 c
-c       xtol is a nonnegative input variable. termination
-c         occurs when the relative error between two consecutive
-c         iterates is at most xtol.
+c       xtol, xatol, fatol
+c         are nonnegative input variables. termination occurs when
+c         the error between two consecutive iterates is
+c         |err| < xtol*|x| + xatol, *OR*
+c         the function value satisfies |f| < fatol
 c
 c       maxfev is a positive integer input variable. termination
 c         occurs when the number of calls to fcn is at least maxfev
@@ -182,7 +184,8 @@ c
 c
 c     check the input parameters for errors.
 c
-      if (n .le. 0 .or. xtol .lt. zero .or. maxfev .le. 0
+      if (n .le. 0 .or. xtol .lt. zero .or. xatol .lt. zero
+     *    .or. fatol .lt. zero .or. maxfev .le. 0
      *    .or. ml .lt. 0 .or. mu .lt. 0 .or. factor .le. zero
      *    .or. ldfjac .lt. n .or. lr .lt. (n*(n + 1))/2) go to 300
       if (mode .ne. 2) go to 20
@@ -401,7 +404,9 @@ c
 c
 c           test for convergence.
 c
-            if (delta .le. xtol*xnorm .or. fnorm .eq. zero) info = 1
+            if (delta .le. xtol*xnorm+xatol .or. fnorm .le. fatol) then
+               info = 1
+            end if
             if (info .ne. 0) go to 300
 c
 c           tests for termination and stringent tolerances.

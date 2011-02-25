@@ -2,6 +2,7 @@
 Unit tests for optimization routines from minpack.py.
 """
 
+import warnings
 from numpy.testing import assert_, assert_almost_equal, assert_array_equal, \
         assert_array_almost_equal, TestCase, run_module_suite, assert_raises
 import numpy as np
@@ -127,6 +128,16 @@ class TestFSolve(object):
         deriv_func = lambda x: dummy_func(x, (3,3))
         assert_raises(TypeError, optimize.fsolve, func, x0=[0,1], fprime=deriv_func)
 
+    def test_xatol_fatol(self):
+        func = lambda x: x**2
+        warnings.simplefilter('error')
+        # this should not converge to any relative tolerance, as solution: x=0
+        assert_raises(RuntimeWarning, optimize.fsolve, func, x0=[1])
+        sol = optimize.fsolve(func, x0=[1], xatol=1e-30)
+        assert_(abs(sol) <= 2*1e-30)
+        sol = optimize.fsolve(func, x0=[1], fatol=1e-30)
+        assert_(abs(sol) <= 2*np.sqrt(1e-30))
+        warnings.resetwarnings()
 
 class TestLeastSq(TestCase):
     def setUp(self):

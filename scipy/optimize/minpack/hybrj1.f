@@ -1,6 +1,7 @@
-      subroutine hybrj1(fcn,n,x,fvec,fjac,ldfjac,tol,info,wa,lwa)
+      subroutine hybrj1(fcn,n,x,fvec,fjac,ldfjac,xtol,xatol,fatol,
+     *                  info,wa,lwa)
       integer n,ldfjac,info,lwa
-      double precision tol
+      double precision xtol,xatol,fatol
       double precision x(n),fvec(n),fjac(ldfjac,n),wa(lwa)
       external fcn
 c     **********
@@ -96,7 +97,7 @@ c     burton s. garbow, kenneth e. hillstrom, jorge j. more
 c
 c     **********
       integer j,lr,maxfev,mode,nfev,njev,nprint
-      double precision factor,one,xtol,zero
+      double precision factor,one,xtol2,xatol2,fatol2,zero
       data factor,one,zero /1.0d2,1.0d0,0.0d0/
       info = 0
 c
@@ -108,14 +109,17 @@ c
 c     call hybrj.
 c
       maxfev = 100*(n + 1)
-      xtol = tol
+      xtol2 = xtol
+      xatol2 = xatol
+      fatol2 = fatol
       mode = 2
       do 10 j = 1, n
          wa(j) = one
    10    continue
       nprint = 0
       lr = (n*(n + 1))/2
-      call hybrj(fcn,n,x,fvec,fjac,ldfjac,xtol,maxfev,wa(1),mode,
+      call hybrj(fcn,n,x,fvec,fjac,ldfjac,xtol,xatol,fatol,
+     *           maxfev,wa(1),mode,
      *           factor,nprint,info,nfev,njev,wa(6*n+1),lr,wa(n+1),
      *           wa(2*n+1),wa(3*n+1),wa(4*n+1),wa(5*n+1))
       if (info .eq. 5) info = 4

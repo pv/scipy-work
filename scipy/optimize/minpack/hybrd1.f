@@ -1,6 +1,6 @@
-      subroutine hybrd1(fcn,n,x,fvec,tol,info,wa,lwa)
+      subroutine hybrd1(fcn,n,x,fvec,xtol,xatol,fatol,info,wa,lwa)
       integer n,info,lwa
-      double precision tol
+      double precision tol, atol, fatol
       double precision x(n),fvec(n),wa(lwa)
       external fcn
 c     **********
@@ -50,9 +50,11 @@ c
 c       fvec is an output array of length n which contains
 c         the functions evaluated at the output x.
 c
-c       tol is a nonnegative input variable. termination occurs
-c         when the algorithm estimates that the relative error
-c         between x and the solution is at most tol.
+c       xtol, xatol, fatol
+c         are nonnegative input variables. termination occurs when
+c         the error between two consecutive iterates is
+c         |err| < xtol*|x| + xatol, *OR*
+c         the function value satisfies |f| < fatol
 c
 c       info is an integer output variable. if the user has
 c         terminated execution, info is set to the (negative)
@@ -88,7 +90,7 @@ c     burton s. garbow, kenneth e. hillstrom, jorge j. more
 c
 c     **********
       integer index,j,lr,maxfev,ml,mode,mu,nfev,nprint
-      double precision epsfcn,factor,one,xtol,zero
+      double precision epsfcn,factor,one,xtol2,xatol2,fatol2,zero
       data factor,one,zero /1.0d2,1.0d0,0.0d0/
       info = 0
 c
@@ -100,7 +102,9 @@ c
 c     call hybrd.
 c
       maxfev = 200*(n + 1)
-      xtol = tol
+      xtol2 = xtol
+      xatol2 = xatol
+      fatol2 = fatol
       ml = n - 1
       mu = n - 1
       epsfcn = zero
@@ -111,7 +115,8 @@ c
       nprint = 0
       lr = (n*(n + 1))/2
       index = 6*n + lr
-      call hybrd(fcn,n,x,fvec,xtol,maxfev,ml,mu,epsfcn,wa(1),mode,
+      call hybrd(fcn,n,x,fvec,xtol,xatol,fatol,maxfev,ml,mu,epsfcn,
+     *           wa(1),mode,
      *           factor,nprint,info,nfev,wa(index+1),n,wa(6*n+1),lr,
      *           wa(n+1),wa(2*n+1),wa(3*n+1),wa(4*n+1),wa(5*n+1))
       if (info .eq. 5) info = 4

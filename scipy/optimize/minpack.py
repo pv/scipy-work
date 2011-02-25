@@ -29,7 +29,7 @@ def _check_func(checker, argname, thefunc, x0, args, numinputs, output_shape=Non
 
 def fsolve(func, x0, args=(), fprime=None, full_output=0,
            col_deriv=0, xtol=1.49012e-8, maxfev=0, band=None,
-           epsfcn=0.0, factor=100, diag=None):
+           epsfcn=0.0, factor=100, diag=None, xatol=0.0, fatol=0.0):
     """
     Find the roots of a function.
 
@@ -79,9 +79,10 @@ def fsolve(func, x0, args=(), fprime=None, full_output=0,
 
     Other Parameters
     ----------------
-    xtol : float
-        The calculation will terminate if the relative error between two
-        consecutive iterates is at most `xtol`.
+    xtol, xatol, ftol : float
+        The calculation will terminate if the error between two
+        consecutive iterates is ``|err| <= xtol*|x| + xatol``, **OR**,
+        the function norm satisfies ``|f| <= ftol``.
     maxfev : int
         The maximum number of calls to the function. If zero, then
         ``100*(N+1)`` is the maximum where N is the number of elements
@@ -122,13 +123,13 @@ def fsolve(func, x0, args=(), fprime=None, full_output=0,
         if (maxfev == 0):
             maxfev = 200*(n + 1)
         retval = _minpack._hybrd(func, x0, args, full_output, xtol,
-                maxfev, ml, mu, epsfcn, factor, diag)
+                xatol, fatol, maxfev, ml, mu, epsfcn, factor, diag)
     else:
         _check_func('fsolve', 'fprime', Dfun, x0, args, n, (n,n))
         if (maxfev == 0):
             maxfev = 100*(n + 1)
         retval = _minpack._hybrj(func, Dfun, x0, args, full_output,
-                col_deriv, xtol, maxfev, factor,diag)
+                col_deriv, xtol, xatol, fatol, maxfev, factor,diag)
 
     errors = {0:["Improper input parameters were entered.",TypeError],
               1:["The solution converged.", None],

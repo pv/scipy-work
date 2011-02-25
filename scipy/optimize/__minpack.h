@@ -48,8 +48,8 @@
 #endif
 
 extern void CHKDER(int*,int*,double*,double*,double*,int*,double*,double*,int*,double*);
-extern void HYBRD(void*,int*,double*,double*,double*,int*,int*,int*,double*,double*,int*,double*,int*,int*,int*,double*,int*,double*,int*,double*,double*,double*,double*,double*);
-extern void HYBRJ(void*,int*,double*,double*,double*,int*,double*,int*,double*,int*,double*,int*,int*,int*,int*,double*,int*,double*,double*,double*,double*,double*);
+extern void HYBRD(void*,int*,double*,double*,double*,double*,double*,int*,int*,int*,double*,double*,int*,double*,int*,int*,int*,double*,int*,double*,int*,double*,double*,double*,double*,double*);
+extern void HYBRJ(void*,int*,double*,double*,double*,int*,double*,double*,double*,int*,double*,int*,double*,int*,int*,int*,int*,double*,int*,double*,double*,double*,double*,double*);
 extern void LMDIF(void*,int*,int*,double*,double*,double*,double*,double*,int*,double*,double*,int*,double*,int*,int*,int*,double*,int*,int*,double*,double*,double*,double*,double*);
 extern void LMDER(void*,int*,int*,double*,double*,double*,int*,double*,double*,double*,int*,double*,int*,double*,int*,int*,int*,int*,int*,double*,double*,double*,double*,double*);
 extern void LMSTR(void*,int*,int*,double*,double*,double*,int*,double*,double*,double*,int*,double*,int*,double*,int*,int*,int*,int*,int*,double*,double*,double*,double*,double*);
@@ -223,12 +223,13 @@ int smjac_multipack_lm_function(int *m, int *n, double *x, double *fvec, double 
 }
 
 
-static char doc_hybrd[] = "[x,infodict,info] = _hybrd(fun, x0, args, full_output, xtol, maxfev, ml, mu, epsfcn, factor, diag)";
+static char doc_hybrd[] = "[x,infodict,info] = _hybrd(fun, x0, args, full_output, xtol, xatol, fatol, maxfev, ml, mu, epsfcn, factor, diag)";
 
 static PyObject *minpack_hybrd(PyObject *dummy, PyObject *args) {
   PyObject *fcn, *x0, *extra_args = NULL, *o_diag = NULL;
   int      full_output = 0, maxfev = -10, ml = -10, mu = -10;
   double   xtol = 1.49012e-8, epsfcn = 0.0, factor = 1.0e2;
+  double   xatol = 0, fatol = 0;
   int      mode = 2, nprint = 0, info, nfev, ldfjac;
   npy_intp n,lr;
   double   *x, *fvec, *diag, *fjac, *r, *qtf;
@@ -242,8 +243,8 @@ static PyObject *minpack_hybrd(PyObject *dummy, PyObject *args) {
   double   *wa = NULL;
 
   STORE_VARS();    /* Define storage variables for global variables. */
-  
-  if (!PyArg_ParseTuple(args, "OO|OidiiiddO", &fcn, &x0, &extra_args, &full_output, &xtol, &maxfev, &ml, &mu, &epsfcn, &factor, &o_diag)) return NULL;
+
+  if (!PyArg_ParseTuple(args, "OO|OidddiiiddO", &fcn, &x0, &extra_args, &full_output, &xtol, &xatol, &fatol, &maxfev, &ml, &mu, &epsfcn, &factor, &o_diag)) return NULL;
 
   INIT_FUNC(fcn,extra_args,minpack_error);
 
@@ -288,7 +289,7 @@ static PyObject *minpack_hybrd(PyObject *dummy, PyObject *args) {
   allocated = 1;
 
   /* Call the underlying FORTRAN routines. */
-  HYBRD(raw_multipack_calling_function, &n, x, fvec, &xtol, &maxfev, &ml, &mu, &epsfcn, diag, &mode, &factor, &nprint, &info, &nfev, fjac, &ldfjac, r, &lr, qtf, wa, wa+n, wa+2*n, wa+3*n);
+  HYBRD(raw_multipack_calling_function, &n, x, fvec, &xtol, &xatol, &fatol, &maxfev, &ml, &mu, &epsfcn, diag, &mode, &factor, &nprint, &info, &nfev, fjac, &ldfjac, r, &lr, qtf, wa, wa+n, wa+2*n, wa+3*n);
 
   RESTORE_FUNC();
 
@@ -324,12 +325,13 @@ static PyObject *minpack_hybrd(PyObject *dummy, PyObject *args) {
 }
 
 
-static char doc_hybrj[] = "[x,infodict,info] = _hybrj(fun, Dfun, x0, args, full_output, col_deriv, xtol, maxfev, factor, diag)";
+static char doc_hybrj[] = "[x,infodict,info] = _hybrj(fun, Dfun, x0, args, full_output, col_deriv, xtol, xatol, fatol, maxfev, factor, diag)";
 
 static PyObject *minpack_hybrj(PyObject *dummy, PyObject *args) {
   PyObject *fcn, *Dfun, *x0, *extra_args = NULL, *o_diag = NULL;
   int      full_output = 0, maxfev = -10, col_deriv = 1;
   double   xtol = 1.49012e-8, factor = 1.0e2;
+  double   xatol = 0, fatol = 0;
   int      mode = 2, nprint = 0, info, nfev, njev, ldfjac;
   npy_intp n, lr;
   double   *x, *fvec, *diag, *fjac, *r, *qtf;
@@ -344,7 +346,7 @@ static PyObject *minpack_hybrj(PyObject *dummy, PyObject *args) {
 
   STORE_VARS();
 
-  if (!PyArg_ParseTuple(args, "OOO|OiididO", &fcn, &Dfun, &x0, &extra_args, &full_output, &col_deriv, &xtol, &maxfev, &factor, &o_diag)) return NULL;
+  if (!PyArg_ParseTuple(args, "OOO|OiidddidO", &fcn, &Dfun, &x0, &extra_args, &full_output, &col_deriv, &xtol, &xatol, &fatol, &maxfev, &factor, &o_diag)) return NULL;
 
   INIT_JAC_FUNC(fcn,Dfun,extra_args,col_deriv,minpack_error);
 
@@ -388,7 +390,7 @@ static PyObject *minpack_hybrj(PyObject *dummy, PyObject *args) {
   allocated = 1;
 
   /* Call the underlying FORTRAN routines. */
-  HYBRJ(jac_multipack_calling_function, &n, x, fvec, fjac, &ldfjac, &xtol, &maxfev, diag, &mode, &factor, &nprint, &info, &nfev, &njev, r, &lr, qtf, wa, wa+n, wa+2*n, wa+3*n);
+  HYBRJ(jac_multipack_calling_function, &n, x, fvec, fjac, &ldfjac, &xtol, &xatol, &fatol, &maxfev, diag, &mode, &factor, &nprint, &info, &nfev, &njev, r, &lr, qtf, wa, wa+n, wa+2*n, wa+3*n);
 
   RESTORE_JAC_FUNC();
 
