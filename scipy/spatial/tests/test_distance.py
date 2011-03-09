@@ -37,12 +37,15 @@
 import os.path
 
 import numpy as np
+from numpy.linalg import norm
 from numpy.testing import verbose, TestCase, run_module_suite, \
-        assert_raises, assert_array_equal
+        assert_raises, assert_array_equal, assert_almost_equal, \
+        assert_equal
 from scipy.spatial.distance import squareform, pdist, cdist, matching, \
-                                   jaccard, dice, sokalsneath, rogerstanimoto, \
-                                   russellrao, yule, num_obs_y, num_obs_dm, \
-                                   is_valid_dm, is_valid_y, wminkowski
+        jaccard, dice, sokalsneath, rogerstanimoto, russellrao, yule, \
+        num_obs_y, num_obs_dm, is_valid_dm, is_valid_y, minkowski, wminkowski, \
+        euclidean, sqeuclidean, cosine, correlation, mahalanobis
+                                    
 
 _filenames = ["iris.txt",
               "cdist-X1.txt",
@@ -1404,6 +1407,70 @@ class TestPdist(TestCase):
 def within_tol(a, b, tol):
     return np.abs(a - b).max() < tol
 
+
+class TestSomeDistanceFunctions(TestCase):
+
+    def setUp(self):
+        # 1D arrays
+        x = np.array([1.0, 2.0, 3.0])
+        y = np.array([1.0, 1.0, 5.0])
+        # 3x1 arrays
+        x31 = x[:,np.newaxis]
+        y31 = y[:,np.newaxis]
+        # 1x3 arrays
+        x13 = x31.T
+        y13 = y31.T
+
+        self.cases = [(x,y), (x31, y31), (x13, y13)]
+
+    def test_minkowski(self):
+        for x, y in self.cases:
+            dist1 = minkowski(x, y, p=1)
+            assert_almost_equal(dist1, 3.0)
+            dist1p5 = minkowski(x, y, p=1.5)
+            assert_almost_equal(dist1p5, (1.0+2.0**1.5)**(2./3))
+            dist2 = minkowski(x, y, p=2)
+            assert_almost_equal(dist2, np.sqrt(5))
+
+    def test_wminkowski(self):
+        w = np.array([1.0, 2.0, 0.5])
+        for x, y in self.cases:
+            dist1 = wminkowski(x, y, p=1, w=w)
+            assert_almost_equal(dist1, 3.0)
+            dist1p5 = wminkowski(x, y, p=1.5, w=w)
+            assert_almost_equal(dist1p5, (2.0**1.5+1.0)**(2./3))
+            dist2 = wminkowski(x, y, p=2, w=w)
+            assert_almost_equal(dist2, np.sqrt(5))
+
+    def test_euclidean(self):
+        for x, y in self.cases:
+            dist = euclidean(x, y)
+            assert_almost_equal(dist, np.sqrt(5))
+
+    def test_sqeuclidean(self):
+        for x, y in self.cases:
+            dist = sqeuclidean(x, y)
+            assert_almost_equal(dist, 5.0)
+
+    def test_cosine(self):
+        for x, y in self.cases:
+            dist = cosine(x, y)
+            assert_almost_equal(dist, 1.0 - 18.0/(np.sqrt(14)*np.sqrt(27)))
+
+    def test_correlation(self):
+        xm = np.array([-1.0, 0, 1.0])
+        ym = np.array([-4.0/3, -4.0/3, 5.0-7.0/3])
+        for x, y in self.cases:
+            dist = correlation(x, y)
+            assert_almost_equal(dist, 1.0 - np.dot(xm, ym)/(norm(xm)*norm(ym)))
+
+    def test_mahalanobis(self):
+        x = np.array([1.0, 2.0, 3.0])
+        y = np.array([1.0, 1.0, 5.0])
+        vi = np.array([[2.0, 1.0, 0.0],[1.0, 2.0, 1.0], [0.0, 1.0, 2.0]])
+        for x, y in self.cases:
+            dist = mahalanobis(x, y, vi)
+            assert_almost_equal(dist, np.sqrt(6.0))
 
 class TestSquareForm(TestCase):
 

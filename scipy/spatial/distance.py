@@ -112,6 +112,7 @@ Copyright (C) Damian Eads, 2007-2008. New BSD License.
 
 import warnings
 import numpy as np
+from numpy.linalg import norm
 
 import _distance_wrap
 
@@ -174,11 +175,12 @@ def minkowski(u, v, p):
     d : double
         The Minkowski distance between vectors ``u`` and ``v``.
     """
-    u = np.asarray(u, order='c')
-    v = np.asarray(v, order='c')
+    u = np.asarray(u, order='c').ravel()
+    v = np.asarray(v, order='c').ravel()
     if p < 1:
         raise ValueError("p must be at least 1")
-    return (abs(u-v)**p).sum() ** (1.0 / p)
+    dist = norm(u-v, ord=p)
+    return dist
 
 def wminkowski(u, v, p, w):
     r"""
@@ -205,12 +207,13 @@ def wminkowski(u, v, p, w):
     d : double
         The Minkowski distance between vectors ``u`` and ``v``.
     """
-    u = np.asarray(u, order='c')
-    v = np.asarray(v, order='c')
-    w = np.asarray(w)
+    u = np.asarray(u, order='c').ravel()
+    v = np.asarray(v, order='c').ravel()
+    w = np.asarray(w).ravel()
     if p < 1:
         raise ValueError("p must be at least 1")
-    return ((w * abs(u-v))**p).sum() ** (1.0 / p)
+    dist = norm(w*(u-v), ord=p)
+    return dist
 
 def euclidean(u, v):
     """
@@ -233,10 +236,10 @@ def euclidean(u, v):
     d : double
         The Euclidean distance between vectors ``u`` and ``v``.
     """
-    u = np.asarray(u, order='c')
-    v = np.asarray(v, order='c')
-    q=np.matrix(u-v)
-    return np.sqrt((q*q.T).sum())
+    u = np.asarray(u, order='c').ravel()
+    v = np.asarray(v, order='c').ravel()
+    dist = norm(u-v)
+    return dist
 
 def sqeuclidean(u, v):
     """
@@ -260,9 +263,10 @@ def sqeuclidean(u, v):
     d : double
         The squared Euclidean distance between vectors ``u`` and ``v``.
     """
-    u = np.asarray(u, order='c')
-    v = np.asarray(v, order='c')
-    return ((u-v)*(u-v).T).sum()
+    u = np.asarray(u, order='c').ravel()
+    v = np.asarray(v, order='c').ravel()
+    dist = ((u-v)**2).sum()
+    return dist
 
 def cosine(u, v):
     r"""
@@ -286,10 +290,10 @@ def cosine(u, v):
     d : double
         The Cosine distance between vectors ``u`` and ``v``.
     """
-    u = np.asarray(u, order='c')
-    v = np.asarray(v, order='c')
-    return (1.0 - (np.dot(u, v.T) / \
-                   (np.sqrt(np.dot(u, u.T)) * np.sqrt(np.dot(v, v.T)))))
+    u = np.asarray(u, order='c').ravel()
+    v = np.asarray(v, order='c').ravel()
+    dist = 1.0 - np.dot(u,v) / (norm(u) * norm(v))
+    return dist
 
 def correlation(u, v):
     r"""
@@ -316,13 +320,14 @@ def correlation(u, v):
     d : double
         The correlation distance between vectors ``u`` and ``v``.
     """
+    u = np.asarray(u, order='c').ravel()
+    v = np.asarray(v, order='c').ravel()
     umu = u.mean()
     vmu = v.mean()
     um = u - umu
     vm = v - vmu
-    return 1.0 - (np.dot(um, vm) /
-                  (np.sqrt(np.dot(um, um)) \
-                   * np.sqrt(np.dot(vm, vm))))
+    dist = 1.0 - np.dot(um, vm) / (norm(um)*norm(vm))
+    return dist
 
 def hamming(u, v):
     r"""
@@ -494,10 +499,12 @@ def mahalanobis(u, v, VI):
     d : double
         The Mahalanobis distance between vectors ``u`` and ``v``.
     """
-    u = np.asarray(u, order='c')
-    v = np.asarray(v, order='c')
-    VI = np.asarray(VI, order='c')
-    return np.sqrt(np.dot(np.dot((u-v),VI),(u-v).T).sum())
+    u = np.asarray(u, order='c').ravel()
+    v = np.asarray(v, order='c').ravel()
+    VI = np.atleast_2d(VI)
+    delta = u - v
+    m = np.dot(np.dot(delta, VI), delta)
+    return np.sqrt(m)
 
 def chebyshev(u, v):
     r"""
@@ -889,6 +896,7 @@ def pdist(X, metric='euclidean', p=2, w=None, V=None, VI=None):
        .. math::
 
           \sqrt{\sum {(u_i-v_i)^2 / V[x_i]}}.
+
 
        V is the variance vector; V[i] is the variance computed over all
           the i'th components of the points. If not passed, it is
