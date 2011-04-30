@@ -1,103 +1,99 @@
 """
-cont2discrete - Continuous to Discrete state-space transforms
+Continuous to discrete transformations for state-space and transfer function.
 """
 
 # Author: Jeffrey Armstrong <jeff@approximatrix.com>
 # March 29, 2011
 
-import numpy
+import numpy as np
 import numpy.linalg
 import scipy.linalg
-from math import sqrt
-import math
 
 from ltisys import tf2ss, ss2tf
 
 def _mrdivide(b,a):
     """Convenience function for matrix divides"""
-    s = numpy.linalg.solve(a.transpose(),b.transpose())
+    s = np.linalg.solve(a.transpose(), b.transpose())
     return s.transpose()
 
-def cont2discrete(*args,**kwargs):
-    """Transforms a continuous state-space system to a discrete state-space
-    system.  The function defaults to a bilinear transform.
-    
+def ss_cont2discrete(a, b, c, d, dt, method="zoh"):
+    """Transform a continuous to a discrete state-space system.
+
+    The function defaults to a bilinear transform.
+
     Parameters
     -----------
-    a,b,c,d : ndarray
-        Arrays representing the continuous state-space system
-        
+    a, b, c, d : ndarray
+        Arrays representing the continuous state-space system.
     dt : float
-        The discretization time step
-        
-    method : string
-        Which method to use (bilinear or zoh).  Defaults to zoh.
-        
+        The discretization time step.
+    method : {"bilinear", "zoh"}
+        Which method to use, bilinear or zero-order hold ("zoh", the default).
+
     Returns
     -------
-    ad,bd,cd,dd : ndarray
+    ad, bd, cd, dd : ndarray
         The equivalent discrete state-space system
-        
-    Method
-    ------
+
+    See Also
+    --------
+    tf_cont2discrete
+
+    Notes
+    -----
     By default, the routine uses a Zero-Order Hold (zoh) method
-    to perform the transformation.  Alternatively, Tustin's 
+    to perform the transformation.  Alternatively, Tustin's
     bilinear approximation can be used.
+
     """
-    
-    
-    
-    # 3 args = transfer function
-    if len(args) == 3:
-        a,b,c,d = tf2ss(args[0],args[1])
-        dt = args[2]
-    # 5 args = state-space system
-    elif len(args) == 5:
-        a,b,c,d,dt = args
-    else:
-        raise ValueError("Function accepts 3 (tf) or 5 (ss) arguments")
-    
-    try:
-        method = kwargs['method']
-    except KeyError:
-        # Default method is zero-order hold
-        method='zoh'
-    
-    if method=='bilinear' or method=='tustin':
-    
-        itv = 2.0/dt*numpy.eye(a.shape[0])
-    
-        # ad = (itv+a)/(itv-a)
-        ad = _mrdivide((itv+a),(itv-a))
-        iab = numpy.linalg.solve((itv-a),b)
-    
-        tk = 2.0/dt #sqrt(2.0/dt*dt)
-        bd = tk*iab
-    
-        cd = 2.0*_mrdivide(c,(itv-a))
-
-        dd = d + numpy.asmatrix(c)*numpy.asmatrix(iab)
-
+    if method=='bilinear':
+        itv = 2.0/ dt * np.eye(a.shape[0])
+        ad = _mrdivide((itv+a), (itv-a))
+        iab = np.linalg.solve((itv-a), b)
+        tk = 2.0 / dt
+        bd = tk * iab
+        cd = 2.0 * _mrdivide(c, (itv-a))
+        dd = d + np.dot(c, iab)
     elif method=='zoh':
-        
-        em = numpy.vstack(( numpy.hstack(( a, b )), \
-                            numpy.hstack(( numpy.zeros((b.shape[1],a.shape[1])), numpy.zeros((b.shape[1],b.shape[1])) )) ))
-        
-        ms = scipy.linalg.expm(dt*em)
-        
-        ms = ms[0:a.shape[0]]
-        ad = ms[:,0:a.shape[1]]
-        bd = ms[:,a.shape[1]:]
-        
+        em = np.vstack((np.hstack((a, b)),
+                        np.hstack((np.zeros((b.shape[1], a.shape[1])),
+                        np.zeros((b.shape[1], b.shape[1])) )) ))
+        ms = scipy.linalg.expm(dt * em)
+        ms = ms[:a.shape[0]]
+        ad = ms[:, :a.shape[1]]
+        bd = ms[:, a.shape[1]:]
         cd = c
         dd = d
-    
     else:
-        
         raise ValueError("Unknown transformation method.")
-    
-    if len(args) == 3:
-        return ss2tf(ad,bd,cd,dd)
-    else:
-        return ad,bd,cd,dd
-    
+
+    return ad, bd, cd, dd
+
+def tf_cont2discrete(num, den, dt, method="zoh"):
+    """Transform a continuous to a discrete transfer function.
+
+    The function defaults to a bilinear transform.
+
+    Parameters
+    ----------
+    num, den : array_like
+        Sequences representing the numerator and denominator polynomials.
+    dt : float
+        The discretization time step.
+    method : {"bilinear", "zoh"}
+        Which method to use, bilinear or zero-order hold ("zoh", the default).
+
+    Returns
+    -------
+    dnum, dden : array_like
+        Sequences representing the numerator and denominator polynomials of the
+        discrete transfer function.
+
+    See Also
+    --------
+    ss_cont2discrete
+
+    """
+    a, b, c, d = tf2ss(num, den)
+    ad, bd, cd, dd = ss_cont2discrete(a, b, c, d, dt, method=method)
+    return ss2tf(ad, bd, cd, dd)
