@@ -2216,20 +2216,28 @@ def pearsonr(x, y):
     return r, prob
 
 
-def fisher_exact(table) :
+def fisher_exact(table, test='two-sided'):
     """Performs a Fisher exact test on a 2x2 contingency table.
 
     Parameters
     ----------
     table : array_like of ints
-        A 2x2 contingency table.
+        A 2x2 contingency table.  Elements should be non-negative integers.
+    test : {'two-sided', 'one-sided'}, optional
+        Whether the test is one-sided or two-sided. Default is 'two-sided'.
 
     Returns
     -------
     oddsratio : float
         This is prior odds ratio and not a posterior estimate.
-    p_value : float
-        P-value for 2-sided hypothesis of independence.
+    p_value : float or array of floats
+        For a two-sided test, this is one value.
+        For a one-side test, this is an array of two values,
+        ``[left_tail_pvalue, right_tail_pvalue]``.
+
+    See Also
+    --------
+    chisquare
 
     Notes
     -----
@@ -2238,12 +2246,35 @@ def fisher_exact(table) :
     Likelihood Estimate", while R uses the "conditional Maximum Likelihood
     Estimate".
 
+    For tables with large numbers the (inexact) `chisquare` test can also be
+    used.
+
     Examples
     --------
-    >>> fisher_exact([[100, 2], [1000, 5]])
-    (0.25, 0.13007593634330314)
+    Say we spend a few days counting whales and sharks in the Atlantic and
+    Indian oceans. In the Atlantic ocean we find 6 whales and 1 shark, in the
+    Indian ocean 2 whales and 5 sharks. Then our contingency table is::
+
+                Atlantic  Indian
+        whales     8        2
+        sharks     1        5
+
+    We use this table to find the p-value:
+
+    >>> oddsratio, pvalue = stats.fisher_exact([[8, 2], [1, 5]])
+    >>> pvalue
+    0.0349...
+
+    The probability that we would observe this or an even more imbalanced ratio
+    by chance is about 3.5%.  A commonly used significance level is 5%, if we
+    adopt that we can therefore conclude that our observed imbalance is
+    statistically significant; whales prefer the Atlantic while sharks prefer
+    the Indian ocean.
 
     """
+    if not test in ["one-sided", "two-sided"]:
+        raise ValueError("`test` should be one of {'two-sided', 'one-sided'}")
+
     hypergeom = distributions.hypergeom
     c = np.asarray(table, dtype=np.int64)  # int32 is not enough for the algorithm
     if not c.shape == (2, 2):
@@ -2258,13 +2289,22 @@ def fisher_exact(table) :
     n2 = c[1,0] + c[1,1]
     n  = c[0,0] + c[1,0]
 
+    if test == 'one-sided':
+        left_tail_pvalue = hypergeom.cdf(c[0,0], n1 + n2, n1, n)
+        if c[0, 0]:
+            x = c[0, 0] - 1
+        else:
+            x = c[0, 0]
+        right_tail_pvalue = hypergeom.sf(x, n1 + n2, n1, n)
+        return oddsratio, np.array([left_tail_pvalue, right_tail_pvalue])
+
     mode = int(float((n + 1) * (n1 + 1)) / (n1 + n2 + 2))
     pexact = hypergeom.pmf(c[0,0], n1 + n2, n1, n)
     pmode = hypergeom.pmf(mode, n1 + n2, n1, n)
 
     epsilon = 1 - 1e-4
     if float(np.abs(pexact - pmode)) / np.abs(np.max(pexact, pmode)) <= 1 - epsilon:
-        return oddsratio, 1
+        return oddsratio, 1.
 
     elif c[0,0] < mode:
         plower = hypergeom.cdf(c[0,0], n1 + n2, n1, n)
