@@ -3,8 +3,8 @@
 
 import numpy as np
 from scipy.linalg import get_blas_funcs
-from iterative import set_docstring
-from utils import make_system
+from scipy.sparse.linalg.isolve.iterative import set_docstring
+from scipy.sparse.linalg.isolve.utils import make_system
 
 __all__ = ['lgmres']
 
@@ -119,6 +119,10 @@ def lgmres(A, b, x0=None, tol=1e-5, maxiter=1000, M=None, callback=None,
     if b_norm == 0:
         b_norm = 1
 
+    j_max = inner_m + max(outer_k, len(outer_v))
+    hess  = np.zeros((j_max + 1, j_max), dtype=x.dtype, order='F')
+    e1    = np.zeros((j_max + 1,), dtype=x.dtype, order='F')
+
     for k_outer in xrange(maxiter):
         r_outer = matvec(x) - b
 
@@ -148,10 +152,12 @@ def lgmres(A, b, x0=None, tol=1e-5, maxiter=1000, M=None, callback=None,
                                "|v| ~ %.1g, |M v| = 0" % rnorm)
 
         vs0 = scal(1.0/inner_res_0, vs0)
-        hs = []
         vs = [vs0]
         ws = []
         y = None
+
+        hess.fill(0)
+        e1[0] = inner_res_0
 
         for j in xrange(1, 1 + inner_m + len(outer_v)):
             # -- Arnoldi process:
@@ -206,14 +212,13 @@ def lgmres(A, b, x0=None, tol=1e-5, maxiter=1000, M=None, callback=None,
                 v_new = v_new.copy()
 
             #     ++ orthogonalize
-            hcur = []
-            for v in vs:
+            for q, v in enumerate(vs):
                 alpha = dot(v, v_new)
-                hcur.append(alpha)
+                hess[q, j-1] = alpha
                 v_new = axpy(v, v_new, v.shape[0], -alpha) # v_new -= alpha*v
-            hcur.append(norm2(v_new))
+            hess[j,j-1] = norm2(v_new)
 
-            if hcur[-1] == 0:
+            if hess[j,j-1] == 0:
                 # Exact solution found; bail out.
                 # Zero basis vector (v_new) in the least-squares problem
                 # does no harm, so we can just use the same code as usually;
@@ -221,10 +226,9 @@ def lgmres(A, b, x0=None, tol=1e-5, maxiter=1000, M=None, callback=None,
                 bailout = True
             else:
                 bailout = False
-                v_new = scal(1.0/hcur[-1], v_new)
+                v_new = scal(1.0/hess[j,j-1], v_new)
 
             vs.append(v_new)
-            hs.append(hcur)
             ws.append(z)
 
             # XXX: Ugly: should implement the GMRES iteration properly,
@@ -235,14 +239,11 @@ def lgmres(A, b, x0=None, tol=1e-5, maxiter=1000, M=None, callback=None,
                 continue
 
             # -- GMRES optimization problem
-            hess  = np.zeros((j+1, j), x.dtype)
-            e1    = np.zeros((j+1,), x.dtype)
-            e1[0] = inner_res_0
-            for q in xrange(j):
-                hess[:(q+2),q] = hs[q]
+            hess_part = hess[:j+1,:j]
+            e1_part = e1[:j+1]
 
-            y, resids, rank, s = lstsq(hess, e1)
-            inner_res = norm2(np.dot(hess, y) - e1)
+            y, resids, rank, s = lstsq(hess_part, e1_part)
+            inner_res = norm2(np.dot(hess_part, y) - e1_part)
 
             # -- check for termination
             if inner_res < tol * inner_res_0:
@@ -256,7 +257,7 @@ def lgmres(A, b, x0=None, tol=1e-5, maxiter=1000, M=None, callback=None,
         # -- Store LGMRES augmentation vectors
         nx = norm2(dx)
         if store_outer_Av:
-            q = np.dot(hess, y)
+            q = np.dot(hess_part, y)
             ax = vs[0]*q[0]
             for v, qc in zip(vs[1:], q[1:]):
                 ax = axpy(v, ax, ax.shape[0], qc)
