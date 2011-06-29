@@ -276,3 +276,30 @@ def lgmres(A, b, x0=None, tol=1e-5, maxiter=1000, M=None, callback=None,
         return postprocess(x), maxiter
 
     return postprocess(x), 0
+
+if __name__ == "__main__":
+    from scipy.sparse.linalg import LinearOperator, gmres
+    import pyamg
+    import time
+    np.random.seed(1234)
+    N = 2000
+    A = pyamg.gallery.poisson([N])
+    b = np.random.rand(N)
+
+    count = [0]
+    def matvec(x):
+        count[0] += 1
+        return A*x
+    op = LinearOperator(matvec=matvec, shape=A.shape, dtype=A.dtype)
+
+    count[0] = 0
+    start = time.time()
+    y, info = lgmres(op, b, tol=1e-6)
+    print norm2(A*y - b)/norm2(b)
+    print "--", (time.time() - start) / count[0], count[0]
+
+    count[0] = 0
+    start = time.time()
+    y2, info = gmres(op, b, restart=66, tol=1e-6)
+    print norm2(A*y2 - b)/norm2(b)
+    print "--", (time.time() - start) / count[0], count[0]
