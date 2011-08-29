@@ -93,7 +93,7 @@ int NI_Label(PyArrayObject* input, PyArrayObject* strct,
          in input to -1: */
     for(jj = 0; jj < size; jj++) {
         Int32 *p = (Int32*)po;
-        switch (input->descr->type_num) {
+        switch (NI_NormalizeType(input->descr->type_num)) {
         CASE_LABEL(p, pi, Bool);
         CASE_LABEL(p, pi, UInt8);
         CASE_LABEL(p, pi, UInt16);
@@ -304,7 +304,7 @@ int NI_FindObjects(PyArrayObject* input, npy_intp max_label,
     }
     /* iterate over all points: */
     for(jj = 0 ; jj < size; jj++) {
-        switch (input->descr->type_num) {
+        switch (NI_NormalizeType(input->descr->type_num)) {
         CASE_FIND_OBJECT_POINT(pi, regions, input->nd, input->dimensions,
                                                      max_label, ii,  Bool);
         CASE_FIND_OBJECT_POINT(pi, regions, input->nd, input->dimensions,
@@ -338,7 +338,7 @@ int NI_FindObjects(PyArrayObject* input, npy_intp max_label,
 /* macro to get input value: */
 #define NI_GET_VALUE(_pi, _v, _type)                                  \
 {                                                                     \
-    switch(_type) {                                                     \
+    switch(NI_NormalizeType(_type)) {                                   \
     case tBool:                                                         \
         _v = (*(Bool*)_pi) != 0;                                          \
         break;                                                            \
@@ -383,7 +383,7 @@ int NI_FindObjects(PyArrayObject* input, npy_intp max_label,
 #define NI_GET_LABEL(_pm, _label, _type)                              \
 {                                                                     \
     if (_pm) {                                                          \
-        switch(_type) {                                                   \
+        switch(NI_NormalizeType(_type)) {                               \
         case tBool:                                                       \
             _label = *(Bool*)_pm;                                           \
             break;                                                          \
@@ -851,7 +851,7 @@ int NI_WatershedIFT(PyArrayObject* input, PyArrayObject* markers,
     for(jj = 0; jj < size; jj++) {
         /* get marker */
         int label = 0;
-        switch(markers->descr->type_num) {
+        switch(NI_NormalizeType(markers->descr->type_num)) {
         CASE_GET_LABEL(label, pm, UInt8);
         CASE_GET_LABEL(label, pm, UInt16);
         CASE_GET_LABEL(label, pm, UInt32);
@@ -864,7 +864,7 @@ int NI_WatershedIFT(PyArrayObject* input, PyArrayObject* markers,
             PyErr_SetString(PyExc_RuntimeError, "data type not supported");
             goto exit;
         }
-        switch(output->descr->type_num) {
+        switch(NI_NormalizeType(output->descr->type_num)) {
         CASE_PUT_LABEL(label, pl, UInt8);
         CASE_PUT_LABEL(label, pl, UInt16);
         CASE_PUT_LABEL(label, pl, UInt32);
@@ -1010,7 +1010,7 @@ int NI_WatershedIFT(PyArrayObject* input, PyArrayObject* markers,
                                  adapt the cost and the label of the neighbor: */
                             int idx;
                             p->cost = max;
-                            switch(output->descr->type_num) {
+                            switch(NI_NormalizeType(output->descr->type_num)) {
                             CASE_WINDEX2(v_index, strides, output->strides, input->nd,
                                                      idx, o_contiguous, label, pl, UInt8);
                             CASE_WINDEX2(v_index, strides, output->strides, input->nd,
@@ -1032,7 +1032,7 @@ int NI_WatershedIFT(PyArrayObject* input, PyArrayObject* markers,
                                                                 "data type not supported");
                                 goto exit;
                             }
-                            switch(output->descr->type_num) {
+                            switch(NI_NormalizeType(output->descr->type_num)) {
                             CASE_WINDEX3(p_index, strides, output->strides, input->nd,
                                                      idx, o_contiguous, label, pl, UInt8);
                             CASE_WINDEX3(p_index, strides, output->strides, input->nd,

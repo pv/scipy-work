@@ -217,7 +217,7 @@ int NI_Correlate(PyArrayObject* input, PyArrayObject* weights,
     oo = offsets;
     for(jj = 0; jj < size; jj++) {
         double tmp = 0.0;
-        switch (input->descr->type_num) {
+        switch (NI_NormalizeType(input->descr->type_num)) {
             CASE_CORRELATE_POINT(pi, ww, oo, filter_size, cvalue, Bool,
                                                      tmp, border_flag_value);
             CASE_CORRELATE_POINT(pi, ww, oo, filter_size, cvalue, UInt8,
@@ -244,7 +244,7 @@ int NI_Correlate(PyArrayObject* input, PyArrayObject* weights,
             PyErr_SetString(PyExc_RuntimeError, "array type not supported");
             goto exit;
         }
-        switch (output->descr->type_num) {
+        switch (NI_NormalizeType(output->descr->type_num)) {
             CASE_FILTER_OUT(po, tmp, Bool);
             CASE_FILTER_OUT(po, tmp, UInt8);
             CASE_FILTER_OUT(po, tmp, UInt16);
@@ -485,7 +485,7 @@ int NI_MinOrMaxFilter(PyArrayObject* input, PyArrayObject* footprint,
     oo = offsets;
     for(jj = 0; jj < size; jj++) {
         double tmp = 0.0;
-        switch (input->descr->type_num) {
+        switch (NI_NormalizeType(input->descr->type_num)) {
             CASE_MIN_OR_MAX_POINT(pi, oo, filter_size, cvalue, Bool,
                                                         minimum, tmp, border_flag_value, ss);
             CASE_MIN_OR_MAX_POINT(pi, oo, filter_size, cvalue, UInt8,
@@ -512,7 +512,7 @@ int NI_MinOrMaxFilter(PyArrayObject* input, PyArrayObject* footprint,
             PyErr_SetString(PyExc_RuntimeError, "array type not supported");
             goto exit;
         }
-        switch (output->descr->type_num) {
+        switch (NI_NormalizeType(output->descr->type_num)) {
             CASE_FILTER_OUT(po, tmp, Bool);
             CASE_FILTER_OUT(po, tmp, UInt8);
             CASE_FILTER_OUT(po, tmp, UInt16);
@@ -641,7 +641,7 @@ int NI_RankFilter(PyArrayObject* input, int rank,
     oo = offsets;
     for(jj = 0; jj < size; jj++) {
         double tmp = 0.0;
-        switch (input->descr->type_num) {
+        switch (NI_NormalizeType(input->descr->type_num)) {
             CASE_RANK_POINT(pi, oo, filter_size, cvalue, Bool,
                                             rank, buffer, tmp, border_flag_value);
             CASE_RANK_POINT(pi, oo, filter_size, cvalue, UInt8,
@@ -668,7 +668,7 @@ int NI_RankFilter(PyArrayObject* input, int rank,
             PyErr_SetString(PyExc_RuntimeError, "array type not supported");
             goto exit;
         }
-        switch (output->descr->type_num) {
+        switch (NI_NormalizeType(output->descr->type_num)) {
             CASE_FILTER_OUT(po, tmp, Bool);
             CASE_FILTER_OUT(po, tmp, UInt8);
             CASE_FILTER_OUT(po, tmp, UInt16);
@@ -821,7 +821,7 @@ int NI_GenericFilter(PyArrayObject* input,
     oo = offsets;
     for(jj = 0; jj < size; jj++) {
         double tmp = 0.0;
-        switch (input->descr->type_num) {
+        switch (NI_NormalizeType(input->descr->type_num)) {
             CASE_FILTER_POINT(pi, oo, filter_size, cvalue, Bool,
                                                 tmp, border_flag_value, function, data, buffer);
             CASE_FILTER_POINT(pi, oo, filter_size, cvalue, UInt8,
@@ -848,7 +848,7 @@ int NI_GenericFilter(PyArrayObject* input,
             PyErr_SetString(PyExc_RuntimeError, "array type not supported");
             goto exit;
         }
-        switch (output->descr->type_num) {
+        switch (NI_NormalizeType(output->descr->type_num)) {
             CASE_FILTER_OUT(po, tmp, Bool);
             CASE_FILTER_OUT(po, tmp, UInt8);
             CASE_FILTER_OUT(po, tmp, UInt16);

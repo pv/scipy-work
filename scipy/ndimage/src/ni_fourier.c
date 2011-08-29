@@ -378,7 +378,7 @@ int NI_FourierFilter(PyArrayObject *input, PyArrayObject* parameter_array,
                 goto exit;
             }
         } else {
-            switch (input->descr->type_num) {
+            switch (NI_NormalizeType(input->descr->type_num)) {
                 CASE_FOURIER_FILTER_RR(pi, tmp, Bool)
                 CASE_FOURIER_FILTER_RR(pi, tmp, UInt8)
                 CASE_FOURIER_FILTER_RR(pi, tmp, UInt16)
@@ -506,7 +506,7 @@ int NI_FourierShift(PyArrayObject *input, PyArrayObject* shift_array,
                 tmp += params[kk][ii.coordinates[kk]];
         sint = sin(tmp);
         cost = cos(tmp);
-        switch (input->descr->type_num) {
+        switch (NI_NormalizeType(input->descr->type_num)) {
             CASE_FOURIER_SHIFT_R(pi, tmp, r, i, cost, sint, Bool)
             CASE_FOURIER_SHIFT_R(pi, tmp, r, i, cost, sint, UInt8)
             CASE_FOURIER_SHIFT_R(pi, tmp, r, i, cost, sint, UInt16)
