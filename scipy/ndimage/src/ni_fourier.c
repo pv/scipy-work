@@ -383,9 +383,7 @@ int NI_FourierFilter(PyArrayObject *input, PyArrayObject* parameter_array,
                 CASE_FOURIER_FILTER_RR(pi, tmp, UInt8)
                 CASE_FOURIER_FILTER_RR(pi, tmp, UInt16)
                 CASE_FOURIER_FILTER_RR(pi, tmp, UInt32)
-#if HAS_UINT64
                 CASE_FOURIER_FILTER_RR(pi, tmp, UInt64)
-#endif
                 CASE_FOURIER_FILTER_RR(pi, tmp, Int8)
                 CASE_FOURIER_FILTER_RR(pi, tmp, Int16)
                 CASE_FOURIER_FILTER_RR(pi, tmp, Int32)
@@ -513,9 +511,7 @@ int NI_FourierShift(PyArrayObject *input, PyArrayObject* shift_array,
             CASE_FOURIER_SHIFT_R(pi, tmp, r, i, cost, sint, UInt8)
             CASE_FOURIER_SHIFT_R(pi, tmp, r, i, cost, sint, UInt16)
             CASE_FOURIER_SHIFT_R(pi, tmp, r, i, cost, sint, UInt32)
-#if HAS_UINT64
             CASE_FOURIER_SHIFT_R(pi, tmp, r, i, cost, sint, UInt64)
-#endif
             CASE_FOURIER_SHIFT_R(pi, tmp, r, i, cost, sint, Int8)
             CASE_FOURIER_SHIFT_R(pi, tmp, r, i, cost, sint, Int16)
             CASE_FOURIER_SHIFT_R(pi, tmp, r, i, cost, sint, Int32)

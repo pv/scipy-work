@@ -98,9 +98,7 @@ int NI_Label(PyArrayObject* input, PyArrayObject* strct,
         CASE_LABEL(p, pi, UInt8);
         CASE_LABEL(p, pi, UInt16);
         CASE_LABEL(p, pi, UInt32);
-#if HAS_UINT64
         CASE_LABEL(p, pi, UInt64);
-#endif
         CASE_LABEL(p, pi, Int8);
         CASE_LABEL(p, pi, Int16);
         CASE_LABEL(p, pi, Int32);
@@ -315,10 +313,8 @@ int NI_FindObjects(PyArrayObject* input, npy_intp max_label,
                                                      max_label, ii, UInt16);
         CASE_FIND_OBJECT_POINT(pi, regions, input->nd, input->dimensions,
                                                      max_label, ii, UInt32);
-#if HAS_UINT64
         CASE_FIND_OBJECT_POINT(pi, regions, input->nd, input->dimensions,
                                                      max_label, ii, UInt64);
-#endif
         CASE_FIND_OBJECT_POINT(pi, regions, input->nd, input->dimensions,
                                                      max_label, ii, Int8);
         CASE_FIND_OBJECT_POINT(pi, regions, input->nd, input->dimensions,
@@ -340,7 +336,6 @@ int NI_FindObjects(PyArrayObject* input, npy_intp max_label,
 
 
 /* macro to get input value: */
-#if HAS_UINT64
 #define NI_GET_VALUE(_pi, _v, _type)                                  \
 {                                                                     \
     switch(_type) {                                                     \
@@ -383,50 +378,8 @@ int NI_FindObjects(PyArrayObject* input, npy_intp max_label,
             return 0;                                                       \
     }                                                                   \
 }
-#else
-#define NI_GET_VALUE(_pi, _v, _type)                                  \
-{                                                                     \
-    switch(_type) {                                                     \
-    case tBool:                                                         \
-        _v = (*(Bool*)_pi) != 0;                                          \
-        break;                                                            \
-    case tUInt8:                                                        \
-        _v = *(UInt8*)_pi;                                                \
-        break;                                                            \
-    case tUInt16:                                                       \
-        _v = *(UInt16*)_pi;                                               \
-        break;                                                            \
-    case tUInt32:                                                       \
-        _v = *(UInt32*)_pi;                                               \
-        break;                                                            \
-    case tInt8:                                                         \
-        _v = *(Int8*)_pi;                                                 \
-        break;                                                            \
-    case tInt16:                                                        \
-        _v = *(Int16*)_pi;                                                \
-        break;                                                            \
-    case tInt32:                                                        \
-        _v = *(Int32*)_pi;                                                \
-        break;                                                            \
-    case tInt64:                                                        \
-        _v = *(Int64*)_pi;                                                \
-        break;                                                            \
-    case tFloat32:                                                      \
-        _v = *(Float32*)_pi;                                              \
-        break;                                                            \
-    case tFloat64:                                                      \
-        _v = *(Float64*)_pi;                                              \
-        break;                                                            \
-    default:                                                            \
-            PyErr_SetString(PyExc_RuntimeError,                       \
-                                        "data type not supported");   \
-            return 0;                                                       \
-    }                                                                   \
-}
-#endif
 
 /* macro to get label value: */
-#if HAS_UINT64
 #define NI_GET_LABEL(_pm, _label, _type)                              \
 {                                                                     \
     if (_pm) {                                                          \
@@ -471,49 +424,6 @@ int NI_FindObjects(PyArrayObject* input, npy_intp max_label,
         }                                                                 \
     }                                                                   \
 }
-#else
-#define NI_GET_LABEL(_pm, _label, _type)                              \
-{                                                                     \
-    if (_pm) {                                                          \
-        switch(_type) {                                                   \
-        case tBool:                                                       \
-            _label = *(Bool*)_pm;                                           \
-            break;                                                          \
-        case tUInt8:                                                      \
-            _label = *(UInt8*)_pm;                                          \
-            break;                                                          \
-        case tUInt16:                                                     \
-            _label = *(UInt16*)_pm;                                         \
-            break;                                                          \
-        case tUInt32:                                                     \
-            _label = *(UInt32*)_pm;                                         \
-            break;                                                          \
-        case tInt8:                                                       \
-            _label = *(Int8*)_pm;                                           \
-            break;                                                          \
-        case tInt16:                                                      \
-            _label = *(Int16*)_pm;                                          \
-            break;                                                          \
-        case tInt32:                                                      \
-            _label = *(Int32*)_pm;                                          \
-             break;                                                         \
-        case tInt64:                                                      \
-            _label = *(Int64*)_pm;                                          \
-             break;                                                         \
-        case tFloat32:                                                    \
-            _label = *(Float32*)_pm;                                        \
-            break;                                                          \
-        case tFloat64:                                                    \
-            _label = *(Float64*)_pm;                                        \
-            break;                                                          \
-        default:                                                          \
-            PyErr_SetString(PyExc_RuntimeError,                       \
-                                        "data type not supported");   \
-            return 0;                                                       \
-        }                                                                 \
-    }                                                                   \
-}
-#endif
 
 int NI_Statistics(PyArrayObject *input, PyArrayObject *labels,
     npy_intp min_label, npy_intp max_label, npy_intp *indices,
@@ -945,9 +855,7 @@ int NI_WatershedIFT(PyArrayObject* input, PyArrayObject* markers,
         CASE_GET_LABEL(label, pm, UInt8);
         CASE_GET_LABEL(label, pm, UInt16);
         CASE_GET_LABEL(label, pm, UInt32);
-#if HAS_UINT64
         CASE_GET_LABEL(label, pm, UInt64);
-#endif
         CASE_GET_LABEL(label, pm, Int8);
         CASE_GET_LABEL(label, pm, Int16);
         CASE_GET_LABEL(label, pm, Int32);
@@ -960,9 +868,7 @@ int NI_WatershedIFT(PyArrayObject* input, PyArrayObject* markers,
         CASE_PUT_LABEL(label, pl, UInt8);
         CASE_PUT_LABEL(label, pl, UInt16);
         CASE_PUT_LABEL(label, pl, UInt32);
-#if HAS_UINT64
         CASE_PUT_LABEL(label, pl, UInt64);
-#endif
         CASE_PUT_LABEL(label, pl, Int8);
         CASE_PUT_LABEL(label, pl, Int16);
         CASE_PUT_LABEL(label, pl, Int32);
@@ -1111,10 +1017,8 @@ int NI_WatershedIFT(PyArrayObject* input, PyArrayObject* markers,
                                                      idx, o_contiguous, label, pl, UInt16);
                             CASE_WINDEX2(v_index, strides, output->strides, input->nd,
                                                      idx, o_contiguous, label, pl, UInt32);
-#if HAS_UINT64
                             CASE_WINDEX2(v_index, strides, output->strides, input->nd,
                                                      idx, o_contiguous, label, pl, UInt64);
-#endif
                             CASE_WINDEX2(v_index, strides, output->strides, input->nd,
                                                      idx, o_contiguous, label, pl, Int8);
                             CASE_WINDEX2(v_index, strides, output->strides, input->nd,
@@ -1135,10 +1039,8 @@ int NI_WatershedIFT(PyArrayObject* input, PyArrayObject* markers,
                                                      idx, o_contiguous, label, pl, UInt16);
                             CASE_WINDEX3(p_index, strides, output->strides, input->nd,
                                                      idx, o_contiguous, label, pl, UInt32);
-#if HAS_UINT64
                             CASE_WINDEX3(p_index, strides, output->strides, input->nd,
                                                      idx, o_contiguous, label, pl, UInt64);
-#endif
                             CASE_WINDEX3(p_index, strides, output->strides, input->nd,
                                                      idx, o_contiguous, label, pl, Int8);
                             CASE_WINDEX3(p_index, strides, output->strides, input->nd,

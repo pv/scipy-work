@@ -70,8 +70,6 @@ typedef enum
 
 #define MAXDIM NPY_MAXDIMS
 
-#define HAS_UINT64 1
-
 
 #ifdef ND_IMPORT_ARRAY
 

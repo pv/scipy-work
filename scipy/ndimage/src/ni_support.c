@@ -352,9 +352,7 @@ int NI_ArrayToLineBuffer(NI_LineBuffer *buffer,
             CASE_COPY_DATA_TO_LINE(pa, pb, length, buffer->line_stride, UInt8);
             CASE_COPY_DATA_TO_LINE(pa, pb, length, buffer->line_stride, UInt16);
             CASE_COPY_DATA_TO_LINE(pa, pb, length, buffer->line_stride, UInt32);
-#if HAS_UINT64
             CASE_COPY_DATA_TO_LINE(pa, pb, length, buffer->line_stride, UInt64);
-#endif
             CASE_COPY_DATA_TO_LINE(pa, pb, length, buffer->line_stride, Int8);
             CASE_COPY_DATA_TO_LINE(pa, pb, length, buffer->line_stride, Int16);
             CASE_COPY_DATA_TO_LINE(pa, pb, length, buffer->line_stride, Int32);
@@ -415,9 +413,7 @@ int NI_LineBufferToArray(NI_LineBuffer *buffer)
             CASE_COPY_LINE_TO_DATA(pb, pa, length, buffer->line_stride, UInt8);
             CASE_COPY_LINE_TO_DATA(pb, pa, length, buffer->line_stride, UInt16);
             CASE_COPY_LINE_TO_DATA(pb, pa, length, buffer->line_stride, UInt32);
-#if HAS_UINT64
             CASE_COPY_LINE_TO_DATA(pb, pa, length, buffer->line_stride, UInt64);
-#endif
             CASE_COPY_LINE_TO_DATA(pb, pa, length, buffer->line_stride, Int8);
             CASE_COPY_LINE_TO_DATA(pb, pa, length, buffer->line_stride, Int16);
             CASE_COPY_LINE_TO_DATA(pb, pa, length, buffer->line_stride, Int32);

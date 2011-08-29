@@ -226,10 +226,8 @@ int NI_Correlate(PyArrayObject* input, PyArrayObject* weights,
                                                      tmp, border_flag_value);
             CASE_CORRELATE_POINT(pi, ww, oo, filter_size, cvalue, UInt32,
                                                      tmp, border_flag_value);
-#if HAS_UINT64
             CASE_CORRELATE_POINT(pi, ww, oo, filter_size, cvalue, UInt64,
                                                      tmp, border_flag_value);
-#endif
             CASE_CORRELATE_POINT(pi, ww, oo, filter_size, cvalue, Int8,
                                                      tmp, border_flag_value);
             CASE_CORRELATE_POINT(pi, ww, oo, filter_size, cvalue, Int16,
@@ -251,9 +249,7 @@ int NI_Correlate(PyArrayObject* input, PyArrayObject* weights,
             CASE_FILTER_OUT(po, tmp, UInt8);
             CASE_FILTER_OUT(po, tmp, UInt16);
             CASE_FILTER_OUT(po, tmp, UInt32);
-#if HAS_UINT64
             CASE_FILTER_OUT(po, tmp, UInt64);
-#endif
             CASE_FILTER_OUT(po, tmp, Int8);
             CASE_FILTER_OUT(po, tmp, Int16);
             CASE_FILTER_OUT(po, tmp, Int32);
@@ -498,10 +494,8 @@ int NI_MinOrMaxFilter(PyArrayObject* input, PyArrayObject* footprint,
                                                         minimum, tmp, border_flag_value, ss);
             CASE_MIN_OR_MAX_POINT(pi, oo, filter_size, cvalue, UInt32,
                                                         minimum, tmp, border_flag_value, ss);
-#if HAS_UINT64
             CASE_MIN_OR_MAX_POINT(pi, oo, filter_size, cvalue, UInt64,
                                                         minimum, tmp, border_flag_value, ss);
-#endif
             CASE_MIN_OR_MAX_POINT(pi, oo, filter_size, cvalue, Int8,
                                                         minimum, tmp, border_flag_value, ss);
             CASE_MIN_OR_MAX_POINT(pi, oo, filter_size, cvalue, Int16,
@@ -523,9 +517,7 @@ int NI_MinOrMaxFilter(PyArrayObject* input, PyArrayObject* footprint,
             CASE_FILTER_OUT(po, tmp, UInt8);
             CASE_FILTER_OUT(po, tmp, UInt16);
             CASE_FILTER_OUT(po, tmp, UInt32);
-#if HAS_UINT64
             CASE_FILTER_OUT(po, tmp, UInt64);
-#endif
             CASE_FILTER_OUT(po, tmp, Int8);
             CASE_FILTER_OUT(po, tmp, Int16);
             CASE_FILTER_OUT(po, tmp, Int32);
@@ -658,10 +650,8 @@ int NI_RankFilter(PyArrayObject* input, int rank,
                                             rank, buffer, tmp, border_flag_value);
             CASE_RANK_POINT(pi, oo, filter_size, cvalue, UInt32,
                                             rank, buffer, tmp, border_flag_value);
-#if HAS_UINT64
             CASE_RANK_POINT(pi, oo, filter_size, cvalue, UInt64,
                                             rank, buffer, tmp, border_flag_value);
-#endif
             CASE_RANK_POINT(pi, oo, filter_size, cvalue, Int8,
                                             rank, buffer, tmp, border_flag_value);
             CASE_RANK_POINT(pi, oo, filter_size, cvalue, Int16,
@@ -683,9 +673,7 @@ int NI_RankFilter(PyArrayObject* input, int rank,
             CASE_FILTER_OUT(po, tmp, UInt8);
             CASE_FILTER_OUT(po, tmp, UInt16);
             CASE_FILTER_OUT(po, tmp, UInt32);
-#if HAS_UINT64
             CASE_FILTER_OUT(po, tmp, UInt64);
-#endif
             CASE_FILTER_OUT(po, tmp, Int8);
             CASE_FILTER_OUT(po, tmp, Int16);
             CASE_FILTER_OUT(po, tmp, Int32);
@@ -842,10 +830,8 @@ int NI_GenericFilter(PyArrayObject* input,
                                                 tmp, border_flag_value, function, data, buffer);
             CASE_FILTER_POINT(pi, oo, filter_size, cvalue, UInt32,
                                                 tmp, border_flag_value, function, data, buffer);
-#if HAS_UINT64
             CASE_FILTER_POINT(pi, oo, filter_size, cvalue, UInt64,
                                                 tmp, border_flag_value, function, data, buffer);
-#endif
             CASE_FILTER_POINT(pi, oo, filter_size, cvalue, Int8,
                                                 tmp, border_flag_value, function, data, buffer);
             CASE_FILTER_POINT(pi, oo, filter_size, cvalue, Int16,
@@ -867,9 +853,7 @@ int NI_GenericFilter(PyArrayObject* input,
             CASE_FILTER_OUT(po, tmp, UInt8);
             CASE_FILTER_OUT(po, tmp, UInt16);
             CASE_FILTER_OUT(po, tmp, UInt32);
-#if HAS_UINT64
             CASE_FILTER_OUT(po, tmp, UInt64);
-#endif
             CASE_FILTER_OUT(po, tmp, Int8);
             CASE_FILTER_OUT(po, tmp, Int16);
             CASE_FILTER_OUT(po, tmp, Int32);

@@ -161,9 +161,7 @@ int NI_BinaryErosion(PyArrayObject* input, PyArrayObject* strct,
             CASE_GET_MASK(msk_value, pm, UInt8);
             CASE_GET_MASK(msk_value, pm, UInt16);
             CASE_GET_MASK(msk_value, pm, UInt32);
-#if HAS_UINT64
             CASE_GET_MASK(msk_value, pm, UInt64);
-#endif
             CASE_GET_MASK(msk_value, pm, Int8);
             CASE_GET_MASK(msk_value, pm, Int16);
             CASE_GET_MASK(msk_value, pm, Int32);
@@ -188,11 +186,9 @@ int NI_BinaryErosion(PyArrayObject* input, PyArrayObject* strct,
         CASE_NI_ERODE_POINT(pi, out, oo, struct_size, UInt32, msk_value,
                                                 bdr_value, border_flag_value, center_is_true,
                                                 true, false, pchange);
-#if HAS_UINT64
         CASE_NI_ERODE_POINT(pi, out, oo, struct_size, UInt64, msk_value,
                                                 bdr_value, border_flag_value, center_is_true,
                                                 true, false, pchange);
-#endif
         CASE_NI_ERODE_POINT(pi, out, oo, struct_size, Int8, msk_value,
                                                 bdr_value, border_flag_value, center_is_true,
                                                 true, false, pchange);
@@ -220,9 +216,7 @@ int NI_BinaryErosion(PyArrayObject* input, PyArrayObject* strct,
         CASE_OUTPUT(po, out, UInt8);
         CASE_OUTPUT(po, out, UInt16);
         CASE_OUTPUT(po, out, UInt32);
-#if HAS_UINT64
         CASE_OUTPUT(po, out, UInt64);
-#endif
         CASE_OUTPUT(po, out, Int8);
         CASE_OUTPUT(po, out, Int16);
         CASE_OUTPUT(po, out, Int32);
@@ -414,12 +408,10 @@ int NI_BinaryErosion2(PyArrayObject* array, PyArrayObject* strct,
                                             oo, array->nd, list1, list2, current_coordinates1,
                                             current_coordinates2, block1, block2,
                                             border_flag_value, true, false, UInt32, mklist);
-#if HAS_UINT64
         CASE_ERODE_POINT2(struct_size, offsets, coordinate_offsets, pi,
                                             oo, array->nd, list1, list2, current_coordinates1,
                                             current_coordinates2, block1, block2,
                                             border_flag_value, true, false, UInt64, mklist);
-#endif
         CASE_ERODE_POINT2(struct_size, offsets, coordinate_offsets, pi,
                                             oo, array->nd, list1, list2, current_coordinates1,
                                             current_coordinates2, block1, block2,
