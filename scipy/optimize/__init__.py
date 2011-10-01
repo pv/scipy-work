@@ -143,6 +143,7 @@ Utility Functions
 
 from __future__ import division, print_function, absolute_import
 
+from .lmfit import *
 from .optimize import *
 from ._minimize import *
 from ._root import *
