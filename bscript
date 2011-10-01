@@ -2,6 +2,8 @@ import os
 import sys
 import os.path as op
 
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'tools', 'bento'))
+
 from numpy.distutils.misc_util \
     import \
         get_numpy_include_dirs, get_pkg_info
