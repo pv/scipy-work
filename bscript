@@ -1,6 +1,7 @@
 import os
 import sys
 import os.path as op
+import optparse
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'tools', 'bento'))
 
@@ -102,12 +103,27 @@ def startup(context):
 
 @hooks.options
 def options(context):
+    opt = optparse.Option('--cflags', action='store', default="",
+                          help='additional CFLAGS')
+    context.add_option("configure", opt)
+
+    opt = optparse.Option('--cxxflags', action='store', default="",
+                          help='additional CPPFLAGS')
+    context.add_option("configure", opt)
+    opt = optparse.Option('--fflags', action='store', default="",
+                          help='additional FFLAGS')
+    context.add_option("configure", opt)
     register_options(context)
 
 @hooks.pre_configure
 def pre_configure(context):
     opts = context.waf_options_context
     conf = context.waf_context
+
+    o, a = context.options_context.parser.parse_args(context.cmd_argv)
+    conf.env.append_value('CFLAGS', o.cflags.split())
+    conf.env.append_value('CPPFLAGS', o.cxxflags.split())
+    conf.env.append_value('FCFLAGS', o.fflags.split())
 
     opts.load("compiler_cxx")
     opts.load("compiler_fc")
