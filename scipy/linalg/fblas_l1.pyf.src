@@ -224,15 +224,18 @@ subroutine <prefix>axpy(n,a,x,offx,incx,y,offy,incy)
 end subroutine <prefix>axpy
 
 
-function <prefix2>dot(n,x,offx,incx,y,offy,incy) result (xy)
+subroutine <prefix2>dot(xy,n,x,offx,incx,y,offy,incy)
   ! Computes a vector-vector dot product.
 
-  callstatement (*f2py_func)(&<prefix2>dot,&n,x+offx,&incx,y+offy,&incy)
+  <ftype2> intent(out) :: xy
+  fortranname w<prefix2>dot
+
+  callstatement (*f2py_func)(&xy,&n,x+offx,&incx,y+offy,&incy)
   callprotoargument <ctype2>*,int*,<ctype2>*,int*,<ctype2>*,int*
 
   <ftype2> dimension(*), intent(in) :: x
   <ftype2> dimension(*), intent(in) :: y
-  <ftype2> <prefix2>dot,xy
+
   integer optional, intent(in),check(incx>0||incx<0) :: incx = 1
   integer optional, intent(in),check(incy>0||incy<0) :: incy = 1
   integer optional, intent(in),depend(x) :: offx=0
@@ -244,7 +247,7 @@ function <prefix2>dot(n,x,offx,incx,y,offy,incy) result (xy)
   check(len(x)-offx>(n-1)*abs(incx)) :: n
   check(len(y)-offy>(n-1)*abs(incy)) :: n
 
-end function <prefix2>dot
+end subroutine <prefix2>dot
 
 
 

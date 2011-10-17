@@ -41,3 +41,25 @@
       integer incy
       r = zdotc (n, zx, incx, zy, incy)
       end
+
+      subroutine wsdot (r, n, x, incx, y, incy)
+      external sdot
+      real sdot, r
+      integer n
+      real x (*)
+      integer incx
+      real y (*)
+      integer incy
+      r = sdot (n, x, incx, y, incy)
+      end
+
+      subroutine wddot (r, n, x, incx, y, incy)
+      external ddot
+      double precision ddot, r
+      integer n
+      double precision x (*)
+      integer incx
+      double precision y (*)
+      integer incy
+      r = ddot (n, x, incx, y, incy)
+      end

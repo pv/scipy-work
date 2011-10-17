@@ -21,3 +21,11 @@ void WRAP_F77(zdotu)(double complex *dotu, const int *N, const double complex *X
 {
     cblas_zdotu_sub(*N, X, *incX, Y, *incY, dotu);
 }
+void WRAP_F77(sdot)(float *sdot, const int *N, const float *X, const int *incX, const float *Y, const int *incY)
+{
+    *sdot = cblas_sdot(*N, X, *incX, Y, *incY);
+}
+void WRAP_F77(ddot)(double *ddot, const int *N, const double *X, const int *incX, const double *Y, const int *incY)
+{
+    *ddot = cblas_ddot(*N, X, *incX, Y, *incY);
+}

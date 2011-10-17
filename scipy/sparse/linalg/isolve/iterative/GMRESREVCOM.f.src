@@ -104,7 +104,7 @@
 *     .. Local Scalars ..
       INTEGER             I, MAXIT, AV, GIV, H, R, S, V, W, Y,
      $                    NEED1, NEED2
-      <_t>  <xdot=sdot,ddot,wcdotc,wzdotc>
+      <_t>  <xdot=wsdot,ddot,wcdotc,wzdotc>
       <_t>  toz
       <_t>    TMPVAL
       <rt>    BNRM2, RNORM, TOL,  
