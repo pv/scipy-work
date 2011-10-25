@@ -145,6 +145,9 @@ def scalar_search_wolfe1(phi, derphi, phi0=None, old_phi0=None, derphi0=None,
         stp, phi1, derphi1, task = minpack2.dcsrch(alpha1, phi1, derphi1,
                                                    c1, c2, xtol, task,
                                                    amin, amax, isave, dsave)
+        if np.isnan(phi1):
+            task[:5] == asbytes('ERROR')
+            break
         if task[:2] == asbytes('FG'):
             alpha1 = stp
             phi1 = phi(stp)
