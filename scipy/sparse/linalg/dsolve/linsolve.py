@@ -95,8 +95,14 @@ def spsolve(A, b, permc_spec=None, use_umfpack=True):
 
         b = asarray(b, dtype=A.dtype)
         options = dict(ColPerm=permc_spec)
-        return _superlu.gssv(N, A.nnz, A.data, A.indices, A.indptr, b, flag,
-                             options=options)[0]
+        x, info = _superlu.gssv(N, A.nnz, A.data, A.indices, A.indptr, b, flag,
+                                options=options)
+        if info != 0:
+            if info <= max(A.shape):
+                raise ValueError("Matrix is singular")
+            else:
+                raise RuntimeError("Call to SuperLU/gssv failed")
+        return x
 
 def splu(A, permc_spec=None, diag_pivot_thresh=None,
          drop_tol=None, relax=None, panel_size=None, options=dict()):
