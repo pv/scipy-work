@@ -18,7 +18,7 @@ class TestLinsolve(TestCase):
     def test_singular(self):
         A = csc_matrix( (5,5), dtype='d' )
         b = array([1, 2, 3, 4, 5],dtype='d')
-        x = spsolve(A, b, use_umfpack=False)
+        assert_raises(ValueError, spsolve, A, b, use_umfpack=False)
 
     def test_twodiags(self):
         A = spdiags([[1, 2, 3, 4, 5], [6, 5, 8, 9, 10]], [0, 1], 5, 5)
