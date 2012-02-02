@@ -139,6 +139,7 @@ fail:
     }
     StatFree(&stat);  
     Py_XDECREF(Py_X);
+    superlu_python_module_memory_dealloc();
     return NULL;
 }
 
@@ -200,6 +201,7 @@ Py_gstrf(PyObject *self, PyObject *args, PyObject *keywds)
 fail:
     /* arrays of input matrix will not be freed */
     Destroy_SuperMatrix_Store(&A); 
+    superlu_python_module_memory_dealloc();
     return NULL;
 }
 

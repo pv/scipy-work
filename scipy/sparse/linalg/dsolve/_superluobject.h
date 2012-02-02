@@ -50,6 +50,8 @@ int set_superlu_options_from_dict(superlu_options_t *options,
                                   int ilu, PyObject *option_dict,
                                   int *panel_size, int *relax);
 
+void superlu_python_module_memory_dealloc();
+
 /*
  * Definitions for other SuperLU data types than Z,
  * and type-generic definitions.

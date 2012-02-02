@@ -201,7 +201,11 @@ cgstrf (superlu_options_t *options, SuperMatrix *A,
     int       *xlsub, *xlusup, *xusub;
     int       nzlumax;
     float fill_ratio = sp_ienv(6);  /* estimated fill ratio */
+#if SCIPY_FIX
+    GlobalLU_t Glu = {0};
+#else
     static    GlobalLU_t Glu; /* persistent to facilitate multiple factors. */
+#endif
 
     /* Local scalars */
     fact_t    fact = options->Fact;

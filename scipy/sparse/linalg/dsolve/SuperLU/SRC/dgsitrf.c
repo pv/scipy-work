@@ -193,7 +193,11 @@ dgsitrf(superlu_options_t *options, SuperMatrix *A, int relax, int panel_size,
     double    *amax; 
     double    drop_sum;
     double alpha, omega;  /* used in MILU, mimicing DRIC */
+#if SCIPY_FIX
+    GlobalLU_t Glu = {0};
+#else
     static GlobalLU_t Glu; /* persistent to facilitate multiple factors. */
+#endif
     double    *dwork2;	   /* used by the second dropping rule */
 
     /* Local scalars */

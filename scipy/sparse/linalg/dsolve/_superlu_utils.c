@@ -16,12 +16,37 @@ PyObject *_superlumodule_memory_dict=NULL;
    errors don't exit Python and memory allocated internal to SuperLU is freed.
    Calling program should deallocate (using SUPERLU_FREE) all memory that could have
    been allocated.  (It's ok to FREE unallocated memory)---will be ignored.
+
+   We don't need a mutex here, as we are protected by GIL.
 */
 
 void superlu_python_module_abort(char *msg)
 {
   PyErr_SetString(PyExc_RuntimeError, msg);
   longjmp(_superlu_py_jmpbuf, -1);
+}
+
+void superlu_python_module_memory_dealloc()
+{
+  PyObject *dict, *key, *value;
+  Py_ssize_t pos = 0;
+
+  if (_superlumodule_memory_dict == NULL) {
+    return;
+  }
+
+  dict = _superlumodule_memory_dict;
+  _superlumodule_memory_dict = NULL;
+
+  while (PyDict_Next(dict, &pos, &key, &value)) {
+    void *ptr;
+    ptr = PyLong_AsVoidPtr(key);
+    if (ptr) {
+      free(ptr);
+    }
+  }
+
+  Py_DECREF(dict);
 }
 
 void *superlu_python_module_malloc(size_t size)
