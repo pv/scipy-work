@@ -10,9 +10,12 @@ Run tests if linalg is not installed:
   python tests/test_decomp.py
 """
 
+import os
+
 import numpy as np
 from numpy.testing import TestCase, assert_equal, assert_array_almost_equal, \
-        assert_array_equal, assert_raises, assert_, run_module_suite, dec
+        assert_array_equal, assert_raises, assert_, run_module_suite, dec, \
+        assert_allclose
 
 from scipy.linalg import eig, eigvals, lu, svd, svdvals, cholesky, qr, \
      schur, rsf2csf, lu_solve, lu_factor, solve, diagsvd, hessenberg, rq, \
@@ -616,6 +619,28 @@ def test_eigh_integer():
     b = array([[3,1],[1,5]])
     w,z = eigh(a)
     w,z = eigh(a,b)
+
+def _check_eigh_syevr_failures_1159(abstol=0):
+    A = np.load(os.path.join(os.path.dirname(__file__), 'data',
+                             'ticket_1159.npz'))['A']
+
+    for dtype in [np.float32, np.float64, np.complex64, np.complex128]:
+        if abstol > 0:
+            tol = abstol
+        else:
+            tol = 1e6 * np.finfo(dtype).eps
+        for k in range(1, 20):
+            w, v = eigh(A.astype(dtype), eigvals=(0, k))
+            assert_allclose(v.T.conj().dot(v), np.eye(k+1),
+                            atol=tol, err_msg="For: %r %r" % (dtype, k))
+
+@dec.knownfailureif(True, "This test exposes a bug0056 in LAPACK")
+def test_eigh_syevr_failures_1159():
+    _check_eigh_syevr_failures_1159()
+
+def test_eigh_syevr_failures_1159_sloppy():
+    # same as test_eigh_syevr_failures_1159, but with ultra-sloppy tolerance
+    _check_eigh_syevr_failures_1159(abstol=0.1)
 
 class TestLU(TestCase):
 

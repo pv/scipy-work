@@ -1672,7 +1672,7 @@ subroutine ssyevr(jobz,range,uplo,n,a,lda,vl,vu,il,iu,abstol,m,w,z,ldz,isuppz,wo
     real intent(hide) :: vu=1
     integer optional,intent(in) :: il=1
     integer optional,intent(in),depend(n) :: iu=n
-    real intent(hide) :: abstol=0.
+    real intent(in),optional :: abstol=0.
     integer  intent(hide),depend(iu) :: m=iu-il+1
     real intent(out),dimension(n),depend(n) :: w
     real intent(out),dimension(n,m),depend(n,m) :: z
@@ -1700,7 +1700,7 @@ subroutine dsyevr(jobz,range,uplo,n,a,lda,vl,vu,il,iu,abstol,m,w,z,ldz,isuppz,wo
     double precision intent(hide) :: vu=1
     integer optional,intent(in) :: il=1
     integer optional,intent(in),depend(n) :: iu=n
-    double precision intent(hide) :: abstol=0.
+    double precision intent(in),optional :: abstol=0.
     integer  intent(hide),depend(iu) :: m=iu-il+1
     double precision intent(out),dimension(n),depend(n) :: w
     double precision intent(out),dimension(n,m),depend(n,m) :: z
@@ -1728,7 +1728,7 @@ subroutine cheevr(jobz,range,uplo,n,a,lda,vl,vu,il,iu,abstol,m,w,z,ldz,isuppz,wo
     real intent(hide) :: vu=1
     integer optional,intent(in) :: il=1
     integer optional,intent(in),depend(n) :: iu=n
-    real intent(hide) :: abstol=0.
+    real intent(in),optional :: abstol=0.
     integer  intent(hide),depend(iu) :: m=iu-il+1
     real intent(out),dimension(n),depend(n) :: w
     complex intent(out),dimension(n,m),depend(n,m) :: z
@@ -1758,7 +1758,7 @@ subroutine zheevr(jobz,range,uplo,n,a,lda,vl,vu,il,iu,abstol,m,w,z,ldz,isuppz,wo
     double precision intent(hide) :: vu=1
     integer optional,intent(in) :: il=1
     integer optional,intent(in),depend(n) :: iu=n
-    double precision intent(hide) :: abstol=0.
+    double precision intent(in),optional :: abstol=0.
     integer  intent(hide),depend(iu) :: m=iu-il+1
     double precision  intent(out),dimension(n),depend(n) :: w
     complex*16 intent(out),dimension(n,m),depend(n,m) :: z

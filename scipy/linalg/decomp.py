@@ -316,13 +316,21 @@ def eigh(a, b=None, lower=True, eigvals_only=False, overwrite_a=False,
     #        for all lapack routines
     if b1 is None:
         (evr,) = get_lapack_funcs((pfx+'evr',), (a1,))
+
+        # This is a partial workaround for an apparent bug in
+        # Lapack's *EVR routines:
+        # bug0056 in http://www.netlib.org/lapack/Errata/
+        abstol = 2 * numpy.finfo(evr.dtype).tiny
+
         if eigvals is None:
             w, v, info = evr(a1, uplo=uplo, jobz=_job, range="A", il=1,
-                             iu=a1.shape[0], overwrite_a=overwrite_a)
+                             iu=a1.shape[0], abstol=abstol,
+                             overwrite_a=overwrite_a)
         else:
             (lo, hi)= eigvals
             w_tot, v, info = evr(a1, uplo=uplo, jobz=_job, range="I",
-                                 il=lo, iu=hi, overwrite_a=overwrite_a)
+                                 il=lo, iu=hi, abstol=abstol,
+                                 overwrite_a=overwrite_a)
             w = w_tot[0:hi-lo+1]
 
     # Generalized Eigenvalue Problem
