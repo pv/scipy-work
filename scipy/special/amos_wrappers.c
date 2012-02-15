@@ -445,6 +445,13 @@ Py_complex cbesk_wrap( double v, Py_complex z) {
       cy.imag = 0;
     }
   }
+  else if (ierr == 4) {
+    if (z.real >= sqrt(v) && fabs(z.imag) == fabs(z.real)) {
+      /* Abramowitz & Stegun, 9.7.2 */
+      cy.real = 0;
+      cy.imag = 0;
+    }
+  }
 
   return cy;
 }
