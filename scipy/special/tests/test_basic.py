@@ -1637,26 +1637,35 @@ class TestBessel(TestCase):
         x = np.random.pareto(0.2, N) * (-1)**np.random.randint(2, size=N)
 
         imsk = (np.random.randint(8, size=N) == 0)
-        v[imsk] = v.astype(int)
+        v[imsk] = v[imsk].astype(int)
 
-        c1 = special.iv(v, x)
-        c2 = special.iv(v, x+0j)
+        olderr = np.seterr(all='ignore')
+        try:
+            c1 = special.iv(v, x)
+            c2 = special.iv(v, x+0j)
 
-        # deal with differences in the inf cutoffs
-        c1[abs(c1) > 1e300] = np.inf
-        c2[abs(c2) > 1e300] = np.inf
+            # deal with differences in the inf cutoffs
+            c1[abs(c1) > 1e300] = np.inf
+            c2[abs(c2) > 1e300] = np.inf
 
-        dc = abs(c1/c2 - 1)
-        dc[np.isnan(dc)] = 0
+            dc = abs(c1/c2 - 1)
+            dc[np.isnan(dc)] = 0
+            dc[abs(c1 - c2) < 1e-300] = 0
 
-        k = np.argmax(dc)
+            k = np.argmax(dc)
 
-        # Most error apparently comes from AMOS and not our implementation;
-        # there are some problems near integer orders there
-        assert_(dc[k] < 1e-9, (v[k], x[k], special.iv(v[k], x[k]), special.iv(v[k], x[k]+0j)))
+            # Most error apparently comes from AMOS and not our implementation;
+            # there are some problems near integer orders there
+            assert_(dc[k] < 1e-9, (v[k], x[k], special.iv(v[k], x[k]), special.iv(v[k], x[k]+0j)))
+        finally:
+            np.seterr(**olderr)
 
     def test_kv_cephes_vs_amos(self):
-        self.check_cephes_vs_amos(special.kv, special.kn, rtol=1e-9, atol=1e-305)
+        olderr = np.seterr(all='ignore')
+        try:
+            self.check_cephes_vs_amos(special.kv, special.kn, rtol=1e-9, atol=1e-305)
+        finally:
+            np.seterr(**olderr)
 
     def test_ticket_623(self):
         assert_tol_equal(special.jv(3, 4), 0.43017147387562193)
