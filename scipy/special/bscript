@@ -17,7 +17,8 @@ def pre_build(context):
     context.register_builder("specfun", builder)
 
     def builder(extension):
-        return default_builder(extension, 
+        return default_builder(extension,
+                               features="c fc pyext cshlib bento f2py",
                                use="sc_amos sc_toms sc_c_misc sc_cephes sc_mach " \
-                                   "sc_cdf sc_specfunlib NPYMATH CLIB")
+                                   "sc_cdf sc_specfunlib NPYMATH CLIB FCLIB")
     context.register_builder("_cephes", builder)
