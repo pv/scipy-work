@@ -488,10 +488,12 @@ c     ************
      +                 gd,gdold,stp,stpmx,time
       double precision one,zero
       parameter        (one=1.0d0,zero=0.0d0)
+      double precision dlamch
+      external dlamch
       
       if (task .eq. 'START') then
 
-         epsmch = epsilon(one)
+         epsmch = 2*dlamch('e')
 
          call timer(time1)
 
