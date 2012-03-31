@@ -206,8 +206,8 @@ latex_preamble = r'''
 
 % Make Examples/etc section headers smaller and more compact
 \makeatletter
-\titleformat{\paragraph}{\normalsize\py@HeaderFamily}%
-            {\py@TitleColor}{0em}{\py@TitleColor}{\py@NormalColor}
+\titleformat{\paragraph}{\normalsize\normalfont\bfseries\itshape}%
+            {\py@NormalColor}{0em}{\py@NormalColor}{\py@NormalColor}
 \titlespacing*{\paragraph}{0pt}{1ex}{0pt}
 \makeatother
 
