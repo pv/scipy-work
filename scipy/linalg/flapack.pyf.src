@@ -1175,8 +1175,8 @@ interface
      !  A = Z * T * Z^H  -- a complex matrix is in Schur form if it is upper 
      !  triangular
 
-     callstatement (*f2py_func)((compute_v?"V":"N"),(sort_t?"S":"N"),cb_<prefix2c>select_in_gees__user__routines,&n,a,&nrows,&sdim,w,vs,&ldvs,work,&lwork,rwork,bwork,&info,1,1)
-     callprotoargument char*,char*,int(*)(<ctype2c>*),int*,<ctype2c>*,int*,int*,<ctype2c>*,<ctype2c>*,int*,<ctype2c>*,int*,<ctype2>*,int*,int*,int,int
+     callstatement (*f2py_func)((compute_v?"V":"N"),(sort_t?"S":"N"),cb_<prefix2c>select_in_gees__user__routines,&n,a,&nrows,&sdim,w,vs,&ldvs,work,&lwork,rwork,bwork,&info)
+     callprotoargument char*,char*,int(*)(<ctype2c>*),int*,<ctype2c>*,int*,int*,<ctype2c>*,<ctype2c>*,int*,<ctype2c>*,int*,<ctype2>*,int*,int*
 
      use gees__user__routines
 
@@ -1205,8 +1205,8 @@ interface
      !  A = Z * T * Z^H  -- a real matrix is in Schur form if it is upper quasi-
      !  triangular with 1x1 and 2x2 blocks.
 
-     callstatement (*f2py_func)((compute_v?"V":"N"),(sort_t?"S":"N"),cb_<prefix2>select_in_gees__user__routines,&n,a,&nrows,&sdim,wr,wi,vs,&ldvs,work,&lwork,bwork,&info,1,1)
-     callprotoargument char*,char*,int(*)(<ctype2>*,<ctype2>*),int*,<ctype2>*,int*,int*,<ctype2>*,<ctype2>*,<ctype2>*,int*,<ctype2>*,int*,int*,int*,int,int
+     callstatement (*f2py_func)((compute_v?"V":"N"),(sort_t?"S":"N"),cb_<prefix2>select_in_gees__user__routines,&n,a,&nrows,&sdim,wr,wi,vs,&ldvs,work,&lwork,bwork,&info)
+     callprotoargument char*,char*,int(*)(<ctype2>*,<ctype2>*),int*,<ctype2>*,int*,int*,<ctype2>*,<ctype2>*,<ctype2>*,int*,<ctype2>*,int*,int*,int*
 
     use gees__user__routines
 
