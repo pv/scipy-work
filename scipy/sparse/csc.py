@@ -13,7 +13,7 @@ from scipy.lib.six import xrange
 from .base import isspmatrix
 from .sparsetools import csc_tocsr
 from . import sparsetools
-from .sputils import upcast, isintlike, IndexMixin
+from .sputils import upcast, isintlike, IndexMixin, get_index_dtype
 
 from .compressed import _cs_matrix
 
@@ -127,13 +127,18 @@ class csc_matrix(_cs_matrix, IndexMixin):
 
     def tocsr(self):
         M,N = self.shape
-        indptr = np.empty(M + 1, dtype=np.intc)
-        indices = np.empty(self.nnz, dtype=np.intc)
+        idx_dtype = get_index_dtype(nnz=max(M + 1, self.nnz))
+        indptr = np.empty(M + 1, dtype=idx_dtype)
+        indices = np.empty(self.nnz, dtype=idx_dtype)
         data = np.empty(self.nnz, dtype=upcast(self.dtype))
 
         csc_tocsr(M, N,
-                 self.indptr, self.indices, self.data,
-                 indptr, indices, data)
+                  self.indptr.astype(idx_dtype),
+                  self.indices.astype(idx_dtype),
+                  self.data,
+                  indptr,
+                  indices,
+                  data)
 
         from .csr import csr_matrix
         A = csr_matrix((data, indices, indptr), shape=self.shape)
@@ -141,14 +146,33 @@ class csc_matrix(_cs_matrix, IndexMixin):
         return A
 
     def __getitem__(self, key):
-        # Use CSR to implement fancy indexing.
+        # use CSR to implement fancy indexing
+        if isinstance(key, tuple):
+            row = key[0]
+            col = key[1]
 
-        row, col = self._unpack_index(key)
-        # Things that return submatrices. row or col is a int or slice.
-        if (isinstance(row, slice) or isinstance(col, slice) or
-            isintlike(row) or isintlike(col)):
-            return self.T[col, row].T
-        # Things that return a sequence of values.
+            if isintlike(row) or isinstance(row, slice):
+                return self.T[col,row].T
+            else:
+                #[[1,2],??] or [[[1],[2]],??]
+                if isintlike(col) or isinstance(col,slice):
+                    return self.T[col,row].T
+                else:
+                    idx_dtype = get_index_dtype(nnz=max(len(row), len(col)))
+                    row = np.asarray(row, dtype=idx_dtype)
+                    col = np.asarray(col, dtype=idx_dtype)
+                    if len(row.shape) == 1:
+                        return self.T[col,row]
+                    elif len(row.shape) == 2:
+                        row = row.reshape(-1)
+                        col = col.reshape(-1,1)
+                        return self.T[col,row].T
+                    else:
+                        raise NotImplementedError('unsupported indexing')
+
+            return self.T[col,row].T
+        elif isintlike(key) or isinstance(key,slice):
+            return self.T[:,key].T                              #[i] or [1:2]
         else:
             return self.T[col, row]
 
