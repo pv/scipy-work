@@ -146,6 +146,7 @@ T_INPLACE_ARRAY2( ctype )
  * Create all desired index and data types here
  */
 DECLARE_INDEX_TYPE( int       )
+DECLARE_INDEX_TYPE( long long )
 
 DECLARE_DATA_TYPE( npy_bool_wrapper        )
 DECLARE_DATA_TYPE( signed char             )
@@ -191,6 +192,21 @@ DECLARE_DATA_TYPE( npy_clongdouble_wrapper )
 %template(f_name)   f_name<int,npy_cdouble_wrapper>;
 %template(f_name)   f_name<int,npy_clongdouble_wrapper>;
 /* 64-bit indices would go here */
+%template(f_name)   f_name<long long,npy_bool_wrapper>;
+%template(f_name)   f_name<long long,signed char>;
+%template(f_name)   f_name<long long,unsigned char>;
+%template(f_name)   f_name<long long,short>;
+%template(f_name)   f_name<long long,unsigned short>;
+%template(f_name)   f_name<long long,int>;
+%template(f_name)   f_name<long long,unsigned int>;
+%template(f_name)   f_name<long long,long long>;
+%template(f_name)   f_name<long long,unsigned long long>;
+%template(f_name)   f_name<long long,float>;
+%template(f_name)   f_name<long long,double>;
+%template(f_name)   f_name<long long,long double>;
+%template(f_name)   f_name<long long,npy_cfloat_wrapper>;
+%template(f_name)   f_name<long long,npy_cdouble_wrapper>;
+%template(f_name)   f_name<long long,npy_clongdouble_wrapper>;
 %enddef
 
 
@@ -198,6 +214,7 @@ DECLARE_DATA_TYPE( npy_clongdouble_wrapper )
 /* 32-bit indices */
 %template(f_name)   f_name<int>;
 /* 64-bit indices would go here */
+%template(f_name)   f_name<long long>;
 %enddef
 
 %define INSTANTIATE_BOOL_OUT( f_name )
@@ -218,4 +235,19 @@ DECLARE_DATA_TYPE( npy_clongdouble_wrapper )
 %template(f_name)   f_name<int,npy_cdouble_wrapper,     npy_bool_wrapper>;
 %template(f_name)   f_name<int,npy_clongdouble_wrapper, npy_bool_wrapper>;
 /* 64-bit indices would go here */
+%template(f_name)   f_name<long long,npy_bool_wrapper,        npy_bool_wrapper>;
+%template(f_name)   f_name<long long,signed char,             npy_bool_wrapper>;
+%template(f_name)   f_name<long long,unsigned char,           npy_bool_wrapper>;
+%template(f_name)   f_name<long long,short,                   npy_bool_wrapper>;
+%template(f_name)   f_name<long long,unsigned short,          npy_bool_wrapper>;
+%template(f_name)   f_name<long long,int,                     npy_bool_wrapper>;
+%template(f_name)   f_name<long long,unsigned int,            npy_bool_wrapper>;
+%template(f_name)   f_name<long long,long long,               npy_bool_wrapper>;
+%template(f_name)   f_name<long long,unsigned long long,      npy_bool_wrapper>;
+%template(f_name)   f_name<long long,float,                   npy_bool_wrapper>;
+%template(f_name)   f_name<long long,double,                  npy_bool_wrapper>;
+%template(f_name)   f_name<long long,long double,             npy_bool_wrapper>;
+%template(f_name)   f_name<long long,npy_cfloat_wrapper,      npy_bool_wrapper>;
+%template(f_name)   f_name<long long,npy_cdouble_wrapper,     npy_bool_wrapper>;
+%template(f_name)   f_name<long long,npy_clongdouble_wrapper, npy_bool_wrapper>;
 %enddef
