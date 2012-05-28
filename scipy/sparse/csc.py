@@ -11,7 +11,7 @@ import numpy as np
 from scipy.lib.six.moves import xrange
 
 from .sparsetools import csc_tocsr
-from .sputils import upcast, isintlike
+from .sputils import upcast, isintlike, get_index_dtype
 
 from .compressed import _cs_matrix
 
@@ -125,13 +125,18 @@ class csc_matrix(_cs_matrix):
 
     def tocsr(self):
         M,N = self.shape
-        indptr  = np.empty(M + 1,    dtype=np.intc)
-        indices = np.empty(self.nnz, dtype=np.intc)
+        idx_dtype = get_index_dtype(nnz=max(M+1, self.nnz))
+        indptr  = np.empty(M + 1,    dtype=idx_dtype)
+        indices = np.empty(self.nnz, dtype=idx_dtype)
         data    = np.empty(self.nnz, dtype=upcast(self.dtype))
 
-        csc_tocsr(M, N, \
-                 self.indptr, self.indices, self.data, \
-                 indptr, indices, data)
+        csc_tocsr(M, N,
+                  self.indptr.astype(idx_dtype),
+                  self.indices.astype(idx_dtype),
+                  self.data,
+                  indptr,
+                  indices,
+                  data)
 
         from .csr import csr_matrix
         A = csr_matrix((data, indices, indptr), shape=self.shape)
@@ -152,8 +157,9 @@ class csc_matrix(_cs_matrix):
                 if isintlike(col) or isinstance(col,slice):
                     return self.T[col,row].T
                 else:
-                    row = np.asarray(row, dtype=np.intc)
-                    col = np.asarray(col, dtype=np.intc)
+                    idx_dtype = get_index_dtype(nnz=max(len(row), len(col)))
+                    row = np.asarray(row, dtype=idx_dtype)
+                    col = np.asarray(col, dtype=idx_dtype)
                     if len(row.shape) == 1:
                         return self.T[col,row]
                     elif len(row.shape) == 2:

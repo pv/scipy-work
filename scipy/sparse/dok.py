@@ -14,7 +14,8 @@ from scipy.lib.six.moves import zip as izip, xrange
 from scipy.lib.six import iteritems
 
 from .base import spmatrix, isspmatrix
-from .sputils import isdense, getdtype, isshape, isintlike, isscalarlike, upcast
+from .sputils import isdense, getdtype, isshape, isintlike, isscalarlike, \
+     upcast, get_index_dtype
 
 try:
     from operator import isSequenceType as _is_sequence
@@ -528,7 +529,7 @@ class dok_matrix(spmatrix, dict):
             return coo_matrix(self.shape, dtype=self.dtype)
         else:
             data    = np.asarray(list(self.values()), dtype=self.dtype)
-            indices = np.asarray(list(self.keys()), dtype=np.intc).T
+            indices = np.asarray(list(self.keys()), dtype=get_index_dtype(nnz=len(self))).T
             return coo_matrix((data,indices), shape=self.shape, dtype=self.dtype)
 
     def todok(self,copy=False):
