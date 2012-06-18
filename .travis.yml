@@ -13,4 +13,7 @@ install:
 script:
   - python setup.py clean
   - CFLAGS=-O0 python setup.py install
-  - cd /tmp && python -c "import sys, scipy; sys.exit(0 if scipy.test('full', verbose=2).wasSuccessful() else 1)"
+  - mkdir empty
+  - cd empty
+  - export PYTHONWARNINGS=default
+  - python ../tools/test-installed-scipy.py -vv -m full
