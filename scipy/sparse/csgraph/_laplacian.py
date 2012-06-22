@@ -114,6 +114,7 @@ def _laplacian_sparse(graph, normed=False, return_diag=False):
 
 
 def _laplacian_dense(graph, normed=False, return_diag=False):
+    graph = np.asarray(graph)
     n_nodes = graph.shape[0]
     lap = -graph.copy()
 
