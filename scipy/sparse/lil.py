@@ -219,18 +219,21 @@ class lil_matrix(spmatrix):
         This always returns a copy for consistency, since slices into
         Python lists return copies.
         """
+        if not isinstance(index, tuple):
+            index = (index, slice(None, None, None))
+
         try:
             i, j = index
         except (AssertionError, TypeError):
             raise IndexError('invalid index')
 
-        if not np.isscalar(i) and np.isscalar(j):
+        if not isscalarlike(i) and isscalarlike(j):
             warn('Indexing into a lil_matrix with multiple indices is slow. '
                  'Pre-converting to CSC or CSR beforehand is more efficient.',
                  SparseEfficiencyWarning)
 
-        if np.isscalar(i):
-            if np.isscalar(j):
+        if isscalarlike(i):
+            if isscalarlike(j):
                 return self._get1(i, j)
             if isinstance(j, slice):
                 j = self._slicetoseq(j, self.shape[1])
@@ -241,7 +244,7 @@ class lil_matrix(spmatrix):
         elif issequence(i) or isinstance(i, slice):
             if isinstance(i, slice):
                 i = self._slicetoseq(i, self.shape[0])
-            if np.isscalar(j):
+            if isscalarlike(j):
                 return self.__class__([[self._get1(ii, j)] for ii in i])
             if isinstance(j, slice):
                 j = self._slicetoseq(j, self.shape[1])
@@ -260,7 +263,7 @@ class lil_matrix(spmatrix):
         if j < 0 or j >= self.shape[1]:
             raise IndexError('column index out of bounds')
 
-        if not np.isscalar(x):
+        if not isscalarlike(x):
             raise ValueError('setting an array element with a sequence')
 
         try:
@@ -283,12 +286,20 @@ class lil_matrix(spmatrix):
                 del row[pos]
                 del data[pos]
 
-    def _setitem_setrow(self, row, data, j, xrow, xdata, xcols):
-        if isinstance(j, slice):
-            j = self._slicetoseq(j, self.shape[1])
+    def _setitem_setrow(self, i, row, data, j, xrow, xdata, xcols,
+                        lockstep_j):
         if issequence(j):
+            if lockstep_j:
+                # numpy-style broadcasting (for 1-D index arrays...)
+                j_set = [j[i]]
+                xi_set = [i]
+            else:
+                # for slices
+                j_set = j
+                xi_set = xrange(xcols)
+
             if xcols == len(j):
-                for jj, xi in zip(j, xrange(xcols)):
+                for jj, xi in zip(j_set, xi_set):
                     pos = bisect_left(xrow, xi)
                     if pos != len(xdata) and xrow[pos] == xi:
                         self._insertat2(row, data, jj, xdata[pos])
@@ -299,11 +310,11 @@ class lil_matrix(spmatrix):
                     val = xdata[0]
                 else:
                     val = 0
-                for jj in j:
-                    self._insertat2(row, data, jj,val)
+                for jj in j_set:
+                    self._insertat2(row, data, jj, val)
             else:
                 raise IndexError('invalid index')
-        elif np.isscalar(j):
+        elif isscalarlike(j):
             if not xcols == 1:
                 raise ValueError('array dimensions are not compatible for copy')
             if len(xdata) > 0 and xrow[0] == 0:
@@ -320,7 +331,7 @@ class lil_matrix(spmatrix):
             raise IndexError('invalid index')
 
         # shortcut for common case of single entry assign:
-        if np.isscalar(x) and np.isscalar(i) and np.isscalar(j):
+        if isscalarlike(x) and isscalarlike(i) and isscalarlike(j):
             self._insertat2(self.rows[i], self.data[i], j, x)
             return
 
@@ -336,28 +347,44 @@ class lil_matrix(spmatrix):
         if isinstance(i, tuple):       # can't index lists with tuple
             i = list(i)
 
-        if np.isscalar(i):
+        if isscalarlike(i):
             rows = [self.rows[i]]
             datas = [self.data[i]]
         else:
             rows = self.rows[i]
             datas = self.data[i]
+        idxs = xrange(len(rows))
+
+        if isinstance(j, slice):
+            j = self._slicetoseq(j, self.shape[1])
+            lockstep_j = False
+        elif isscalarlike(j):
+            j = j
+            lockstep_j = False
+        else:
+            lockstep_j = issequence(i)
+
+        #import pdb; pdb.set_trace()
 
         x = lil_matrix(x, copy=False)
         xrows, xcols = x.shape
         if xrows == len(rows):    # normal rectangular copy
-            for row, data, xrow, xdata in zip(rows, datas, x.rows, x.data):
-                self._setitem_setrow(row, data, j, xrow, xdata, xcols)
+            for i, row, data, xrow, xdata in zip(idxs, rows, datas, x.rows,
+                                                 x.data):
+                self._setitem_setrow(i, row, data, j, xrow, xdata, xcols,
+                                     lockstep_j=lockstep_j)
         elif xrows == 1:          # OK, broadcast down column
-            for row, data in zip(rows, datas):
-                self._setitem_setrow(row, data, j, x.rows[0], x.data[0], xcols)
+            for i, row, data in zip(idxs, rows, datas):
+                self._setitem_setrow(i, row, data, j, x.rows[0], x.data[0],
+                                     xcols, lockstep_j=lockstep_j)
 
         # needed to pass 'test_lil_sequence_assignement' unit test:
         # -- set row from column of entries --
         elif xcols == len(rows):
             x = x.T
-            for row, data, xrow, xdata in zip(rows, datas, x.rows, x.data):
-                self._setitem_setrow(row, data, j, xrow, xdata, xrows)
+            for i, row, data, xrow, xdata in zip(idxs, rows, datas, x.rows, x.data):
+                self._setitem_setrow(i, row, data, j, xrow, xdata, xrows,
+                                     lockstep_j=lockstep_j)
         else:
             raise IndexError('invalid index')
 
