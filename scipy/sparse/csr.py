@@ -269,7 +269,12 @@ class csr_matrix(_cs_matrix):
                         #    val.append(self._get_single_element(i,j))
                         return np.asmatrix(val)
 
-                    elif len(row.shape) == 2:
+                    elif len(row.shape) == 2 and row.shape[1] == 1 and \
+                            (len(col.shape) == 2 and col.shape[0] == 1
+                             or len(col.shape) == 1):
+                        # broadcasting
+                        check_bounds(row, self.shape[0])
+                        check_bounds(col, self.shape[1])
                         row = np.ravel(row)                   #[[[1],[2]],[1,2]]
                         P = extractor(row, self.shape[0])
                         return (P*self)[:,col]

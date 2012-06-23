@@ -155,9 +155,14 @@ class csc_matrix(_cs_matrix):
                     if len(row.shape) == 1:
                         return self.T[col,row]
                     elif len(row.shape) == 2:
-                        row = row.reshape(-1)
-                        col = col.reshape(-1,1)
-                        return self.T[col,row].T
+                        col = np.atleast_2d(col)
+                        if row.shape[1] == 1 and col.shape[0] == 1:
+                            # broadcasting
+                            row = row.reshape(-1)
+                            col = col.reshape(-1,1)
+                            return self.T[col,row].T
+                        else:
+                            raise NotImplementedError('unsupported indexing')
                     else:
                         raise NotImplementedError('unsupported indexing')
 
