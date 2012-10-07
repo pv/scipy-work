@@ -1,0 +1,5 @@
+This is version 1.51.0 of the Boost library, stripped down by
+boost_prune_special.py script
+
+Also the system version of Boost can be used with Scipy.
+
