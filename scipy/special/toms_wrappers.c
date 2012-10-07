@@ -4,6 +4,8 @@
  */
 
 #include "toms_wrappers.h"
+#include "sf_error.h"
+
 #if defined(NO_APPEND_FORTRAN)
 #if defined(UPPERCASE_FORTRAN)
 #define F_FUNC(f,F) F
@@ -26,7 +28,7 @@ Py_complex cwofz_wrap( Py_complex z) {
   Py_complex cy;
 
   F_FUNC(wofz,WOFZ)(CADDR(z), CADDR(cy), &errflag);
-  if (errflag==1) mtherr("wofz:",3); /* wofz returns a single flag both
+  if (errflag==1) sf_error("wofz",SF_ERROR_DOMAIN,NULL); /* wofz returns a single flag both
                                         for real overflows and for domain
                                         errors -- internal overflows from too
                                         large abs(z)*/

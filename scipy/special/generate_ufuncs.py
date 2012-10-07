@@ -256,33 +256,52 @@ EXTRA_CODE_COMMON = """
 # Error handling system
 #
 
-cdef extern int scipy_special_print_error_messages
-
 cdef extern from "stdarg.h":
      ctypedef struct va_list:
          pass
-     ctypedef struct fake_type:
-         pass
      void va_start(va_list, void* arg) nogil
-     void* va_arg(va_list, fake_type) nogil
      void va_end(va_list) nogil
-     fake_type int_type "int"
 
 cdef extern from "Python.h":
-    object PyErr_Warn(object, char *)
     int PyOS_vsnprintf(char *, size_t, char *, va_list va) nogil
+    int PyOS_snprintf(char *, size_t, char *, ...) nogil
 
-cdef public void scipy_special_raise_warning(char *fmt, ...) nogil:
-    cdef char msg[1024]
+cdef extern from "sf_error.h":
+    ctypedef enum sf_error_t:
+        SF_ERROR_OK
+    char **sf_error_messages
+
+from cpython.exc cimport PyErr_WarnEx
+
+cdef int _print_error_messages = 0
+cdef sf_error_t _last_error = SF_ERROR_OK
+
+cdef public void sf_error(char *func_name, sf_error_t code, char *fmt, ...) nogil:
+    cdef char msg[1024], info[2048]
     cdef va_list ap
 
-    va_start(ap, fmt)
-    PyOS_vsnprintf(msg, 1024, fmt, ap)
-    va_end(ap)
+    global _print_error_messages, _last_error
+
+    _last_error = code
+    if not _print_error_messages:
+        return
+
+    if func_name == NULL:
+        func_name = "?"
+
+    if fmt != NULL and fmt[0] != '\0':
+        va_start(ap, fmt)
+        PyOS_vsnprintf(info, 1024, fmt, ap)
+        va_end(ap)
+        PyOS_snprintf(msg, 2048, "scipy.special/%s: (%s) %s",
+                      func_name, sf_error_messages[<int>code], info)
+    else:
+        PyOS_snprintf(msg, 2048, "scipy.special/%s: %s",
+                      func_name, sf_error_messages[<int>code])
 
     with gil:
         from scipy.special import SpecialFunctionWarning
-        PyErr_Warn(SpecialFunctionWarning, msg)
+        PyErr_WarnEx(SpecialFunctionWarning, msg, 1)
 
 def errprint(inflag=None):
     \"\"\"
@@ -295,12 +314,12 @@ def errprint(inflag=None):
     change occurs.
 
     \"\"\"
-    global scipy_special_print_error_messages
+    global _print_error_messages
     cdef int oldflag
 
-    oldflag = scipy_special_print_error_messages
+    oldflag = _print_error_messages
     if inflag is not None:
-        scipy_special_print_error_messages = int(bool(inflag))
+        _print_error_messages = int(bool(inflag))
 
     return oldflag
 

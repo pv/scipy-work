@@ -23,12 +23,14 @@ def configuration(parent_package='',top_path=None):
 #        define_macros.append(('NONANS',None))
         define_macros.append(('_USE_MATH_DEFINES',None))
 
+    curdir = os.path.abspath(os.path.dirname(__file__))
+
     # C libraries
     config.add_library('sc_c_misc',sources=[join('c_misc','*.c')],
-                       include_dirs=[get_python_inc(), get_numpy_include_dirs()],
+                       include_dirs=[curdir, get_python_inc(), get_numpy_include_dirs()],
                        macros=define_macros)
     config.add_library('sc_cephes',sources=[join('cephes','*.c')],
-                       include_dirs=[get_python_inc(), get_numpy_include_dirs()],
+                       include_dirs=[curdir, get_python_inc(), get_numpy_include_dirs()],
                        macros=define_macros)
 
     # Fortran libraries
@@ -47,7 +49,6 @@ def configuration(parent_package='',top_path=None):
                          libraries=['sc_specfun'])
 
     # Extension _ufuncs
-    curdir = os.path.abspath(os.path.dirname(__file__))
     config.add_extension('_ufuncs',
                          libraries=['sc_amos','sc_toms','sc_c_misc','sc_cephes','sc_mach',
                                     'sc_cdf', 'sc_specfun'],
@@ -55,7 +56,7 @@ def configuration(parent_package='',top_path=None):
                                   "amos_wrappers.h", "toms_wrappers.h",
                                   "cdf_wrappers.h", "specfun_wrappers.h",
                                   "c_misc/misc.h", "cephes/mconf.h", "cephes/cephes_names.h"],
-                         sources=['_ufuncs.c', '_logit.c.src',
+                         sources=['_ufuncs.c', 'sf_error.c', '_logit.c.src',
                                   "amos_wrappers.c", "cdf_wrappers.c", "specfun_wrappers.c",
                                   "toms_wrappers.c"],
                          include_dirs=[curdir],
