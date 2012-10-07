@@ -1,6 +1,10 @@
 #ifndef SF_ERROR_H_
 #define SF_ERROR_H_
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 typedef enum {
     SF_ERROR_OK = 0,      /* no error */
     SF_ERROR_SINGULAR,    /* singularity encountered */
@@ -17,5 +21,9 @@ typedef enum {
 
 extern const char *sf_error_messages[];
 void sf_error(char *func_name, sf_error_t code, char *fmt, ...);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* SF_ERROR_H_ */

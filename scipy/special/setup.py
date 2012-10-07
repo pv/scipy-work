@@ -63,6 +63,14 @@ def configuration(parent_package='',top_path=None):
                          define_macros = define_macros,
                          extra_info=get_info("npymath"))
 
+    # Extension _ufuncs_cxx
+    boost_dir = os.path.join(curdir, 'boost')
+    config.add_extension('_ufuncs_cxx',
+                         sources=['_ufuncs_cxx.cxx', 'sf_error.c'],
+                         include_dirs=[curdir, boost_dir],
+                         define_macros = define_macros,
+                         extra_info=get_info("npymath"))
+
     config.add_data_files('tests/*.py')
     config.add_data_files('tests/data/README')
     config.add_data_files('tests/data/*.npz')
