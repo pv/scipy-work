@@ -23,7 +23,6 @@
 # at `-1/e` and make sure that the proper branch is chosen there
 
 import cython
-import warnings
 
 cimport sf_error
 
@@ -62,9 +61,6 @@ cdef inline double complex zexp(double complex x) nogil:
     cdef npy_cdouble r
     r = npy_cexp((<npy_cdouble*>&x)[0])
     return (<double complex*>&r)[0]
-
-cdef inline void lambertw_raise_warning(double complex z) with gil:
-    warnings.warn(": %r" % z)
 
 # Heavy lifting is here:
 
