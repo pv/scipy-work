@@ -89,7 +89,7 @@ env.PrependUnique(LIBPATH = ['.'])
 # Ufuncs extension
 src = ['_ufuncs.c', 'amos_wrappers.c', 'specfun_wrappers.c', \
        'toms_wrappers.c','cdf_wrappers.c','ufunc_extras.c',
-       '_logit.c.src']
+       '_logit.c.src', 'sf_error.c']
 
 env.NumpyPythonExtension('_ufuncs', 
                          source = src, 

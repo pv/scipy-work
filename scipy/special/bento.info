@@ -35,7 +35,8 @@ Library:
             toms_wrappers.c,
             cdf_wrappers.c,
             ufunc_extras.c,
-            _logit.c.src
+            _logit.c.src,
+            sf_error.c
     Extension: specfun
          Sources:
             specfun.pyf
