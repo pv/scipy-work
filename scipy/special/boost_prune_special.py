@@ -41,7 +41,8 @@ def process(boost_inc_dir, remove=False):
                 required_headers.add(hdr)
     p.terminate()
 
-    preserve_dirs = ['config', 'compatibility']
+    preserve_dirs = ['config', 'compatibility', 'type_traits',
+                     'smart_ptr']
 
     for root, dirs, files in os.walk(boost_inc_dir, topdown=False):
         for fn in files:
