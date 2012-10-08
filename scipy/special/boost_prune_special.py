@@ -42,7 +42,7 @@ def process(boost_inc_dir, remove=False):
     p.terminate()
 
     preserve_dirs = ['config', 'compatibility', 'type_traits',
-                     'smart_ptr']
+                     'smart_ptr', 'detail']
 
     for root, dirs, files in os.walk(boost_inc_dir, topdown=False):
         for fn in files:
