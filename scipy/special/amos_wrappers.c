@@ -240,6 +240,11 @@ Py_complex cbesi_wrap( double v, Py_complex z) {
     }
   }
 
+  if (z.imag == 0 && z.real >= 0) {
+    /* enforce exact mirror symmetry */
+    cy.imag = 0;
+  }
+
   return cy;
 }
 
@@ -314,6 +319,12 @@ Py_complex cbesj_wrap( double v, Py_complex z) {
       cy_j = rotate_jy(cy_j, cy_y, v);
     }
   }
+
+  if (z.imag == 0 && z.real >= 0) {
+    /* enforce exact mirror symmetry */
+    cy_j.imag = 0;
+  }
+
   return cy_j;
 }
 
@@ -380,6 +391,12 @@ Py_complex cbesy_wrap( double v, Py_complex z) {
       cy_y = rotate_jy(cy_y, cy_j, -v);
     }
   }
+
+  if (z.imag == 0 && z.real >= 0) {
+    /* enforce exact mirror symmetry */
+    cy_y.imag = 0;
+  }
+
   return cy_y;
 }
 
@@ -444,6 +461,11 @@ Py_complex cbesk_wrap( double v, Py_complex z) {
       cy.real = NPY_INFINITY;
       cy.imag = 0;
     }
+  }
+
+  if (z.imag == 0 && z.real >= 0) {
+    /* enforce exact mirror symmetry */
+    cy.imag = 0;
   }
 
   return cy;
