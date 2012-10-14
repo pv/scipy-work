@@ -8000,6 +8000,9 @@ C
            G0=DEXP(GR)
            GR=G0*DCOS(GI)
            GI=G0*DSIN(GI)
+           IF (Y.EQ.0D0) THEN
+              GI=0D0
+           ENDIF
         ENDIF
         RETURN
         END
