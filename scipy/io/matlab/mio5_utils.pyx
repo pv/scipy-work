@@ -409,7 +409,7 @@ cdef class VarReader5:
                 self.cstream.seek(8 - mod8, 1)
         return 0
     
-    cpdef inline cnp.ndarray read_numeric(self, int copy=True):
+    cpdef cnp.ndarray read_numeric(self, int copy=True):
         ''' Read numeric data element into ndarray
 
         Reads element, then casts to ndarray. 
