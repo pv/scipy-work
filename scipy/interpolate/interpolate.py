@@ -8,7 +8,7 @@ import numpy as np
 from _spline2 import splmake, spleval
 import fitpack
 
-__all__ = ['interp1d', 'interp2d', 'lagrange']
+__all__ = ['interp1d', 'interp2d', 'interpn', 'lagrange']
 
 def lagrange(x, w):
     """
@@ -443,3 +443,54 @@ class interp1d(object):
         # !! matlab does not.
         out_of_bounds = logical_or(below_bounds, above_bounds)
         return out_of_bounds
+
+
+class NDGridInterpolation(object):
+    def __init__(self, *args, **kw):
+        method = kw.pop('method', 'cubic')
+        if kw:
+            raise ValueError("Unknown arguments: %r" % kw.keys())
+
+        self.ndim = len(args) - 1
+        self.x = map(np.asarray, args[:-1])
+        self.y = np.asarray(args[-1])
+        if method not in ('linear', 'cubic'):
+            raise ValueError("Unknown method: %r" % method)
+        self.method = method
+
+    def __call__(self, *args_in):
+        args = map(np.asarray, args_in)
+        if len(args) == 1:
+            if args[0].ndim == 2 and args[0].shape[1] == self.ndim:
+                args = tuple(args.T)
+            elif isinstance(a[0], tuple):
+                args = map(np.asarray, a[0])
+        if len(args) != self.ndim:
+            raise ValueError("Unknown arguments")
+
+        args_bcast = np.broadcast_arrays(*args)
+        bcast_dims = np.asarray([np.asarray(x.strides) == 0 for x in args_bcast])
+
+        for j in range(self.ndim):
+            pass
+
+
+def interpn(*args, **kw):
+    """Interpolation on N-D. 
+
+    ai = interpn(x, y, z, ..., a, xi, yi, zi, ...)
+    where the arrays x, y, z, ... define a rectangular grid
+    and a.shape == (len(x), len(y), len(z), ...)
+    """
+    method = kw.pop('method', 'cubic')
+    if kw:
+        raise ValueError("Unknown arguments: " % kw.keys())
+    nd = (len(args)-1)//2
+    if len(args) != 2*nd+1:
+        raise ValueError("Wrong number of arguments")
+    q = args[:nd]
+    qi = args[nd+1:]
+    a = args[nd]
+    for j in range(nd):
+        a = interp1d(q[j], a, axis=j, kind=method)(qi[j])
+    return a
