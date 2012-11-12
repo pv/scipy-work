@@ -146,6 +146,7 @@ Additional tools
 """
 
 from interpolate import *
+from _spline2 import *
 from fitpack import *
 
 # New interface to fitpack library:
