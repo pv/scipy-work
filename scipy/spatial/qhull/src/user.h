@@ -594,6 +594,7 @@ stop after qh_JOGGLEmaxretry attempts
   see:
     user_eg.c for an example
 */
+#define qh_QHpointer 1
 #ifdef qh_QHpointer
 #if qh_dllimport
 #error QH6207 Qhull error: Use qh_QHpointer_dllimport instead of qh_dllimport with qh_QHpointer
