@@ -378,6 +378,12 @@ cdef class _Qhull(object):
 
         return True
 
+    def get_points(self):
+        if len(self._point_arrays) == 1:
+            return self._point_arrays[0]
+        else:
+            return np.vstack(self._point_arrays)
+
     @cython.boundscheck(False)
     @cython.cdivision(True)
     def get_arrays(self):
@@ -467,12 +473,7 @@ cdef class _Qhull(object):
             if error_non_simplical:
                 raise QhullError("non-simplical facet generated")
 
-            if len(self._point_arrays) == 1:
-                points = self._point_arrays[0]
-            else:
-                points = np.vstack(self._point_arrays)
-
-            return points, vertices, neighbors, equations
+            return self.get_points(), vertices, neighbors, equations
         finally:
             _qhull_lock.release()
 
@@ -1186,6 +1187,13 @@ class Delaunay(object):
     -----
     The tesselation is computed using the Qhull libary [Qhull]_.
 
+    Note that the tesselation does not necessarily contain all input
+    points as vertices when Qhull runs into precision problems. You
+    can try to work around this by specifying Qhull option 'QJ', which
+    instructs it to add random noise to the points until the
+    triangulation succeeds. See Qhull documentation [Qhull]_ for more
+    details on numerical precision issues.
+
     .. versionadded:: 0.9
 
     References
@@ -1202,6 +1210,7 @@ class Delaunay(object):
             else:
                 qhull_options = "Qbb Qz Qt"
 
+        self._qhull_options = qhull_options
         self._qhull = _Qhull(points, delaunay=True, incremental=incremental,
                              options=qhull_options)
         self._flush(force=True)
@@ -1214,15 +1223,26 @@ class Delaunay(object):
         self._qhull.add_points(points)
 
     def _flush(self, force=False):
-        if self._qhull.flush() or force:
-            self._points, self._vertices, self._neighbors, self._equations = \
-                         self._qhull.get_arrays()
-            self._npoints = self._points.shape[0]
-            self._nsimplex = self._vertices.shape[0]
-            self._min_bound = self._points.min(axis=0)
-            self._max_bound = self._points.max(axis=0)
-            self._transform = None
-            self._vertex_to_simplex = None
+        try:
+            if self._qhull.flush() or force:
+                self._points, self._vertices, self._neighbors, self._equations = \
+                             self._qhull.get_arrays()
+                self._npoints = self._points.shape[0]
+                self._nsimplex = self._vertices.shape[0]
+                self._min_bound = self._points.min(axis=0)
+                self._max_bound = self._points.max(axis=0)
+                self._transform = None
+                self._vertex_to_simplex = None
+        except QhullError:
+            # Things went wrong when adding points: try to redo from scratch
+            if force:
+                raise
+
+            points = self._qhull.get_points()
+            self._qhull.close()
+            self._qhull = _Qhull(points, delaunay=True, incremental=True,
+                                 options=self._qhull_options)
+            self._flush(force=True)
 
     @property
     def points(self):
