@@ -21,6 +21,7 @@ def configuration(parent_package = '', top_path = None):
                        sources=[join('qhull', 'src', x) for x in qhull_src],
                        include_dirs=[get_python_inc(),
                                      get_numpy_include_dirs()],
+                       define_macros=[('qh_QHpointer', '1')],
                        # XXX: GCC dependency!
                        #extra_compiler_args=['-fno-strict-aliasing'],
                        )
@@ -30,9 +31,12 @@ def configuration(parent_package = '', top_path = None):
         libs = ['qhull'] + lapack.pop('libraries')
     except KeyError:
         libs = ['qhull']
+    
+    define_macros = [('qh_QHpointer','1')] + lapack.pop('define_macros', [])
     config.add_extension('qhull',
                          sources=['qhull.c'],
                          libraries=libs,
+                         define_macros=define_macros,
                          **lapack)
 
     config.add_extension('ckdtree', sources=['ckdtree.c']) # FIXME: cython
