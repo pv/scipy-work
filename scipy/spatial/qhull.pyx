@@ -27,6 +27,12 @@ cdef extern from "stdio.h":
     extern void *stderr
     extern void *stdout
 
+cdef extern from "setjmp.h" nogil:
+    ctypedef struct jmp_buf:
+        pass
+    int setjmp(jmp_buf STATE)
+    void longjmp(jmp_buf STATE, int VALUE)
+
 cdef extern from "math.h":
     double fabs(double x) nogil
     double sqrt(double x) nogil
@@ -90,7 +96,7 @@ cdef extern from "qhull/src/libqhull.h":
         realT max_outside
         realT MINoutside
         realT DISTround
-
+        jmp_buf errexit
 
     extern qhT *qh_qh
     extern int qh_PRINToff
@@ -150,7 +156,7 @@ cdef extern from "qhull_blas.h":
 _qhull_lock = threading.Lock()
 
 # Qhull is not re-entrant: keep track which object is active
-cdef object _active_qhull = None
+cdef _Qhull _active_qhull = None
 
 @cython.final
 cdef class _Qhull(object):
@@ -165,8 +171,8 @@ cdef class _Qhull(object):
 
     cdef qhT *_saved_qh
     cdef list _point_arrays
-    cdef float paraboloid_scale
-    cdef float paraboloid_shift
+    cdef public float paraboloid_scale
+    cdef public float paraboloid_shift
     cdef object _dirty_points
     cdef int _is_delaunay
     cdef int _ndim, _n_dirty_points
@@ -225,6 +231,10 @@ cdef class _Qhull(object):
             if _active_qhull is not None:
                 _active_qhull._deactivate()
 
+            import sys
+            print >> sys.stderr, "Init", id(self)
+            sys.stderr.flush()
+
             _active_qhull = self
             with nogil:
                 exitcode = qh_new_qhull(dim, numpoints, <realT*>points.data, 0,
@@ -274,6 +284,9 @@ cdef class _Qhull(object):
         if self._saved_qh == NULL:
             raise RuntimeError("This Qhull instance is not alive")
 
+        import sys
+        print >> sys.stderr "Activate", id(self)
+        sys.stderr.flush()
         qh_restore_qhull(&self._saved_qh)
         self._saved_qh = NULL
         _active_qhull = self
@@ -291,6 +304,9 @@ cdef class _Qhull(object):
             return 0
 
         assert self._saved_qh == NULL
+        import sys
+        print >> sys.stderr, "Deactivate", id(self)
+        sys.stderr.flush()
         self._saved_qh = qh_save_qhull()
         _active_qhull = None
 
@@ -304,12 +320,12 @@ cdef class _Qhull(object):
 
         self._activate()
 
-        qh_freeqhull(0)
-        qh_memfreeshort(&curlong, &totlong)
-        if curlong != 0 or totlong != 0:
-            raise RuntimeError(
-                "qhull: did not free %d bytes (%d pieces)" %
-                (totlong, curlong))
+        qh_freeqhull(qh_ALL)
+        #qh_memfreeshort(&curlong, &totlong)
+        #if curlong != 0 or totlong != 0:
+        #    raise RuntimeError(
+        #        "qhull: did not free %d bytes (%d pieces)" %
+        #        (totlong, curlong))
         _active_qhull = None
         self._saved_qh = NULL
         return 0
@@ -337,6 +353,7 @@ cdef class _Qhull(object):
         cdef realT *p
         cdef realT bestdist
         cdef boolT isoutside
+        cdef int exitcode
 
         if self._dirty_points is None:
             return False
@@ -346,6 +363,13 @@ cdef class _Qhull(object):
         m = self._dirty_points.shape[1]
         ndim = self._ndim
 
+        # Qhull doesn't copy the point data, so we must keep it around
+        self._point_arrays.append(self._dirty_points[:,:ndim])
+
+        import sys
+        print >> sys.stderr, "Flush", id(self)
+        sys.stderr.flush()
+
         _qhull_lock.acquire()
         try:
             self._activate()
@@ -353,26 +377,35 @@ cdef class _Qhull(object):
             p = <realT*>d.data
 
             with nogil:
+                qh_qh.NOerrexit = 0
+                exitcode = setjmp(qh_qh.errexit)
+                if exitcode != 0:
+                    # nonlocal error signalled via longjmp
+                    with gil:
+                        import sys
+                        print >> sys.stderr, "AUUUGHT", id(self)
+                        sys.stderr.flush()
+                        self._uninit()
+                        raise QhullError("Qhull error")
+
                 if self._is_delaunay:
                     # lift to paraboloid
                     qh_setdelaunay(ndim+1, n, p)
 
                 for j in range(n):
-                    facet = qh_findbestfacet(p, not qh_ALL, &bestdist, &isoutside)
+                    facet = qh_findbestfacet(p, not qh_ALL,
+                                             &bestdist, &isoutside)
                     p += m
                     if isoutside:
                         if not qh_addpoint(p, facet, 0):
                             break
-                qh_check_maxout()
 
-                # XXX: does this leak memory?
-                qh_qh.hasTriangulation = 0
                 qh_triangulate()
+                qh_check_maxout()
         finally:
             _qhull_lock.release()
 
-        # Qhull doesn't copy the point data, so we must keep it around
-        self._point_arrays.append(self._dirty_points[:,:ndim])
+        # Reset dirty points
         self._dirty_points = None
         self._n_dirty_points = 0
 
@@ -1221,6 +1254,7 @@ class Delaunay(object):
 
     def add_points(self, points):
         self._qhull.add_points(points)
+        self._flush()
 
     def _flush(self, force=False):
         try:
