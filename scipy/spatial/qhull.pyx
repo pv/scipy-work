@@ -114,10 +114,10 @@ cdef extern from "qhull/src/qhull.h":
                      boolT ismalloc, char* qhull_cmd, void *outfile,
                      void *errfile) nogil
     int qh_pointid(pointT *point) nogil
+    boolT qh_addpoint(pointT *furthest, facetT *facet, boolT checkdist)
 
-# Qhull is not threadsafe: needs locking
-_qhull_lock = threading.Lock()
-
+cdef extern from "qhull/src/poly.h":
+    void qh_check_maxout()
 
 #------------------------------------------------------------------------------
 # LAPACK interface
@@ -133,159 +133,318 @@ cdef extern from "qhull_blas.h":
 
 
 #------------------------------------------------------------------------------
-# Delaunay triangulation using Qhull
+# Dealing with Qhull
 #------------------------------------------------------------------------------
 
-def _construct_delaunay(np.ndarray[np.double_t, ndim=2] points):
+# Qhull is not threadsafe: needs locking
+_qhull_lock = threading.Lock()
+
+# Qhull is not re-entrant: keep track which object is active
+cdef object _active_qhull = None
+
+cdef class _Qhull(object):
     """
-    Perform Delaunay triangulation of the given set of points.
+    Thin wrapper for Qhull.
 
+    Attributes
+    ----------
+    paraboloid_scale : float
+    paraboloid_shift : float
     """
 
-    # Run qhull with the options
-    #
-    # - d: perform delaunay triangulation
-    # - Qbb: scale last coordinate for Delaunay
-    # - Qz: reduces Delaunay precision errors for cospherical sites
-    # - Qt: output only simplical facets (can produce degenerate 0-area ones)
-    #
-    cdef char *options = "qhull d Qz Qbb Qt"
-    cdef int curlong, totlong
-    cdef int dim
-    cdef int numpoints
-    cdef int exitcode
+    cdef qhT *_saved_qh = NULL
+    cdef list _point_arrays
+    cdef float paraboloid_scale
+    cdef float paraboloid_shift
+    cdef object _dirty_points
+    cdef bool _is_delaunay
+    cdef int _dim, _n_dirty_points
 
-    points = np.ascontiguousarray(points)
-    numpoints = points.shape[0]
-    dim = points.shape[1]
+    def __init__(np.ndarray[np.double_t, ndim=2] points, incremental=False):
+        """
+        Perform Delaunay triangulation of the given set of points.
 
-    if numpoints <= 0:
-        raise ValueError("No points to triangulate")
+        """
 
-    if dim < 2:
-        raise ValueError("Need at least 2-D data to triangulate")
+        # Run qhull with the options
+        #
+        # - d: perform delaunay triangulation
+        # - Qbb: scale last coordinate for Delaunay
+        # - Qz: reduces Delaunay precision errors for cospherical sites
+        # - Qt: output only simplical facets (can produce degenerate 0-area ones)
+        global _active_qhull
+        cdef char *options = "qhull d Qz Qbb Qt"
+        cdef int curlong, totlong
+        cdef int dim
+        cdef int numpoints
+        cdef int exitcode
 
-    _qhull_lock.acquire()
-    try:
-        qh_qh.NOerrexit = 1
-        with nogil:
-            exitcode = qh_new_qhull(dim, numpoints, <realT*>points.data, 0,
-                                    options, NULL, stderr)
+        self._is_delaunay = True
 
+        points = np.ascontiguousarray(points)
+        numpoints = points.shape[0]
+        dim = points.shape[1]
+        self._dim = dim
+
+        self._dirty_points = None
+        self._n_dirty_points = 0
+
+        if numpoints <= 0:
+            raise ValueError("No points to triangulate")
+
+        if dim < 2:
+            raise ValueError("Need at least 2-D data to triangulate")
+
+        if incremental:
+            # Must keep own copies of point lists in the incremental mode.
+            points = points.copy()
+            self._point_arrays = [points]
+
+        _qhull_lock.acquire()
         try:
-            if exitcode != 0:
-                raise RuntimeError("Qhull error")
+            if _active_qhull is not None:
+                _active_qhull._deactivate()
 
+            qh_qh.NOerrexit = 1
             with nogil:
-                qh_triangulate() # get rid of non-simplical facets
+                _active_qhull = self
+                exitcode = qh_new_qhull(dim, numpoints, <realT*>points.data, 0,
+                                        options, NULL, stderr)
 
-            if qh_qh.SCALElast:
-                paraboloid_scale = qh_qh.last_newhigh / (
-                    qh_qh.last_high - qh_qh.last_low)
-                paraboloid_shift = - qh_qh.last_low * paraboloid_scale
-            else:
-                paraboloid_scale = 1.0
-                paraboloid_shift = 0.0
+            try:
+                if exitcode != 0:
+                    raise RuntimeError("Qhull error")
 
-            vertices, neighbors, equations = \
-                      _qhull_get_facet_array(dim, numpoints)
+                with nogil:
+                    qh_triangulate() # get rid of non-simplical facets
 
-            return (vertices, neighbors, equations,
-                    paraboloid_scale, paraboloid_shift)
+                if qh_qh.SCALElast:
+                    self.paraboloid_scale = qh_qh.last_newhigh / (
+                        qh_qh.last_high - qh_qh.last_low)
+                    self.paraboloid_shift = - qh_qh.last_low * paraboloid_scale
+                else:
+                    self.paraboloid_scale = 1.0
+                    self.paraboloid_shift = 0.0
+            finally:
+                if not incremental:
+                    self._uninit()
         finally:
+            _qhull_lock.release()
+
+    def __del__(self):
+        _qhull_lock.acquire()
+        try:
+            if _active_qhull is self or self._saved_qh != NULL:
+                self._uninit()
+        finally:
+            _qhull_lock.release()
+
+    cdef int _activate(self) except -1:
+        """
+        Activate this instance (_qhull_lock MUST be held when calling this)
+        """
+        global _active_qhull
+
+        if _active_qhull is self:
+            return 0
+        elif _active_qhull is not None:
+            _active_qhull._deactivate()
+
+        assert _active_qhull is None
+
+        if self._saved_qh == NULL:
+            raise RuntimeError("This Qhull instance is not alive")
+
+        qh_restore_qhull(&self._saved_qh)
+        self._saved_qh = NULL
+        _active_qhull = self
+
+        return 0
+
+    cdef int _deactivate(self) except -1:
+        """
+        Deactivate this instance (_qhull_lock MUST be held when calling this)
+        """
+        global _active_qhull
+
+        if not self.alive:
+            raise RuntimeError("This instance is not active")
+
+        if _active_qhull is not self:
+            return 0
+
+        assert self._saved_qh == NULL
+        self._saved_qh = qh_save_qhull()
+        _active_qhull = None
+
+    cdef int _uninit(self) except -1:
+        """
+        Uninitialize this instance (_qhull_lock MUST be held when calling this)
+        """
+        cdef int curlong, totlong
+
+        self._activate()
+
+        qh_freeqhull(0)
+        qh_memfreeshort(&curlong, &totlong)
+        if curlong != 0 or totlong != 0:
+            raise RuntimeError(
+                "qhull: did not free %d bytes (%d pieces)" %
+                (totlong, curlong))
+        _active_qhull = None
+        self._saved_qh = NULL
+        self.alive = False
+        return 0
+
+    def add_points(self, points):
+        n = len(points)
+        
+        if self._dirty_points is None:
+            if self._is_delaunay:
+                self._dirty_points = np.array([2*n+1, self._dim+1], float)
+            else:
+                self._dirty_points = np.array([2*n+1, self._dim], float)
+        else:
+            if self._n_dirty_points + n > self._dirty_points.shape[0]:
+                n_new = 3*self._dirty_points.shape[0]//2 + n + 1
+                self._dirty_points.resize(n_new, self._dirty_points.shape[1])
+
+        self._dirty_points[self._n_dirty_points:self._n_dirty_points+n,:self._dim] = points
+        self._n_dirty_points += n
+
+    def flush(self):
+        cdef np.ndarray[double_t, ndim=2] d
+        cdef int j, n, m
+        cdef facetT *facet
+        cdef realT *p
+        cdef realT bestdist
+        cdef boolT isoutside
+
+        if self._dirty_points is None:
+            return
+
+        d = self._dirty_points
+        n = self._n_dirty_points
+        m = self._dirty_points.shape[1]
+
+        _qhull_lock.acquire()
+        try:
+            self._activate()
+
             with nogil:
-                qh_freeqhull(0)
-                qh_memfreeshort(&curlong, &totlong)
-            if curlong != 0 or totlong != 0:
-                raise RuntimeError("qhull: did not free %d bytes (%d pieces)" %
-                                   (totlong, curlong))
-    finally:
-        _qhull_lock.release()
+                if self._is_delaunay:
+                    # lift to paraboloid
+                    qh_setdelaunay(self._dim+1, n, <realT*>d.data)
 
+                p = <realT*>d.data
+                for j in range(n):
+                    facet = qh_findbestfacet(p, !qh_ALL, &bestdist, &isoutside)
+                    p += m
+                    if isoutside:
+                        if not qh_addpoint(p, facet, 0):
+                            break
+                qh_check_maxout()
+                qh_triangulate()
+        finally:
+            _qhull_lock.release()
 
-@cython.boundscheck(False)
-@cython.cdivision(True)
-def _qhull_get_facet_array(int ndim, int numpoints):
-    """
-    Return array of simplical facets currently in Qhull.
+        self._point_arrays.append(self._dirty_points)
+        self._dirty_points = None
 
-    Returns
-    -------
-    vertices : array of int, shape (nfacets, ndim+1)
-        Indices of coordinates of vertices forming the simplical facets
-    neighbors : array of int, shape (nfacets, ndim)
-        Indices of neighboring facets.  The kth neighbor is opposite
-        the kth vertex, and the first neighbor is the horizon facet
-        for the first vertex.
+    @cython.boundscheck(False)
+    @cython.cdivision(True)
+    def get_arrays(int ndim, int numpoints):
+        """
+        Return arrays currently in Qhull.
 
-        Facets extending to infinity are denoted with index -1.
+        Returns
+        -------
+        points
+        vertices : array of int, shape (nfacets, ndim+1)
+            Indices of coordinates of vertices forming the simplical facets
+        neighbors : array of int, shape (nfacets, ndim)
+            Indices of neighboring facets.  The kth neighbor is opposite
+            the kth vertex, and the first neighbor is the horizon facet
+            for the first vertex. Facets extending to infinity are denoted
+            with index -1.
+        equations
+        """
 
-    """
+        cdef facetT* facet
+        cdef facetT* neighbor
+        cdef vertexT *vertex
+        cdef int i, j, point, error_non_simplical
+        cdef np.ndarray[np.npy_int, ndim=2] vertices
+        cdef np.ndarray[np.npy_int, ndim=2] neighbors
+        cdef np.ndarray[np.double_t, ndim=2] equations
+        cdef np.ndarray[np.npy_int, ndim=1] id_map
 
-    cdef facetT* facet
-    cdef facetT* neighbor
-    cdef vertexT *vertex
-    cdef int i, j, point, error_non_simplical
-    cdef np.ndarray[np.npy_int, ndim=2] vertices
-    cdef np.ndarray[np.npy_int, ndim=2] neighbors
-    cdef np.ndarray[np.double_t, ndim=2] equations
-    cdef np.ndarray[np.npy_int, ndim=1] id_map
+        _qhull_lock.acquire()
+        try:
+            self._activate()
 
-    id_map = np.empty((qh_qh.facet_id,), dtype=np.intc)
-    id_map.fill(-1)
+            id_map = np.empty((qh_qh.facet_id,), dtype=np.intc)
+            id_map.fill(-1)
 
-    # Compute facet indices
-    facet = qh_qh.facet_list
-    j = 0
-    while facet and facet.next:
-        if facet.simplicial and not facet.upperdelaunay:
-            id_map[facet.id] = j
-            j += 1
-        facet = facet.next
-
-    # Allocate output
-    vertices = np.zeros((j, ndim+1), dtype=np.intc)
-    neighbors = np.zeros((j, ndim+1), dtype=np.intc)
-    equations = np.zeros((j, ndim+2), dtype=np.double)
-
-    # Retrieve facet information
-    error_non_simplical = 0
-
-    with nogil:
-        facet = qh_qh.facet_list
-        j = 0
-        while facet and facet.next:
-            if not facet.simplicial:
-                error_non_simplical = 1
-                break
-
-            if facet.upperdelaunay:
+            # Compute facet indices
+            facet = qh_qh.facet_list
+            j = 0
+            while facet and facet.next:
+                if facet.simplicial and not facet.upperdelaunay:
+                    id_map[facet.id] = j
+                    j += 1
                 facet = facet.next
-                continue
 
-            # Save vertex info
-            for i in xrange(ndim+1):
-                vertex = <vertexT*>facet.vertices.e[i].p
-                point = qh_pointid(vertex.point)
-                vertices[j, i] = point
+            # Allocate output
+            vertices = np.zeros((j, ndim+1), dtype=np.intc)
+            neighbors = np.zeros((j, ndim+1), dtype=np.intc)
+            equations = np.zeros((j, ndim+2), dtype=np.double)
 
-            # Save neighbor info
-            for i in xrange(ndim+1):
-                neighbor = <facetT*>facet.neighbors.e[i].p
-                neighbors[j,i] = id_map[neighbor.id]
+            # Retrieve facet information
+            error_non_simplical = 0
 
-            # Save simplex equation info
-            for i in xrange(ndim+1):
-                equations[j,i] = facet.normal[i]
-            equations[j,ndim+1] = facet.offset
+            with nogil:
+                facet = qh_qh.facet_list
+                j = 0
+                while facet and facet.next:
+                    if not facet.simplicial:
+                        error_non_simplical = 1
+                        break
 
-            j += 1
-            facet = facet.next
+                    if facet.upperdelaunay:
+                        facet = facet.next
+                        continue
 
-    if error_non_simplical:
-        raise ValueError("non-simplical facet encountered")
+                    # Save vertex info
+                    for i in xrange(ndim+1):
+                        vertex = <vertexT*>facet.vertices.e[i].p
+                        point = qh_pointid(vertex.point)
+                        vertices[j, i] = point
 
-    return vertices, neighbors, equations
+                    # Save neighbor info
+                    for i in xrange(ndim+1):
+                        neighbor = <facetT*>facet.neighbors.e[i].p
+                        neighbors[j,i] = id_map[neighbor.id]
+
+                    # Save simplex equation info
+                    for i in xrange(ndim+1):
+                        equations[j,i] = facet.normal[i]
+                    equations[j,ndim+1] = facet.offset
+
+                    j += 1
+                    facet = facet.next
+
+            if error_non_simplical:
+                raise ValueError("non-simplical facet encountered")
+
+            if len(self._point_arrays) == 1:
+                points = self._point_arrays[0]
+            else:
+                points = np.vstack(self._point_arrays)
+
+            return points, vertices, neighbors, equations
+        finally:
+            _qhull_lock.release()
 
 
 #------------------------------------------------------------------------------
@@ -943,6 +1102,11 @@ class Delaunay(object):
     ----------
     points : ndarray of floats, shape (npoints, ndim)
         Coordinates of points to triangulate
+    incremental : bool, optional
+        Whether to allow adding points incrementally to the triangulation.
+        Default: False.
+
+        .. versionadded:: 0.12.0
 
     Attributes
     ----------
@@ -990,11 +1154,13 @@ class Delaunay(object):
     .. [Qhull] http://www.qhull.org/
 
     """
-    def __init__(self, points):
+    def __init__(self, points, incremental=False):
         points = np.ascontiguousarray(points).astype(np.double)
-        vertices, neighbors, equations, paraboloid_scale, paraboloid_shift = \
-                  _construct_delaunay(points)
+        vertices, neighbors, equations, paraboloid_scale, paraboloid_shift, \
+            qh = \
+                _construct_delaunay(points, incremental=incremental)
 
+        self.incremental = incremental
         self.ndim = points.shape[1]
         self.npoints = points.shape[0]
         self.nsimplex = vertices.shape[0]
