@@ -348,6 +348,7 @@ cdef class _Qhull(object):
         finally:
             _qhull_lock.release()
 
+        # Qhull doesn't copy the point data, so we must keep it around
         self._point_arrays.append(self._dirty_points)
         self._dirty_points = None
 
