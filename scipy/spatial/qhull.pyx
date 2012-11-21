@@ -40,7 +40,7 @@ cdef extern from "qhull/src/qset.h":
         int maxsize
         setelemT e[1]
 
-cdef extern from "qhull/src/qhull.h":
+cdef extern from "qhull/src/libqhull.h":
     ctypedef double realT
     ctypedef double coordT
     ctypedef double pointT
@@ -75,6 +75,7 @@ cdef extern from "qhull/src/qhull.h":
         boolT NOerrexit
         boolT PROJECTdelaunay
         boolT ATinfinity
+        boolT hasTriangulation
         int normal_size
         char *qhull_command
         facetT *facet_list
@@ -91,7 +92,7 @@ cdef extern from "qhull/src/qhull.h":
         realT DISTround
 
 
-    extern qhT qh_qh
+    extern qhT *qh_qh
     extern int qh_PRINToff
     extern int qh_ALL
 
@@ -114,10 +115,19 @@ cdef extern from "qhull/src/qhull.h":
                      boolT ismalloc, char* qhull_cmd, void *outfile,
                      void *errfile) nogil
     int qh_pointid(pointT *point) nogil
-    boolT qh_addpoint(pointT *furthest, facetT *facet, boolT checkdist)
+    boolT qh_addpoint(pointT *furthest, facetT *facet, boolT checkdist) nogil
+    facetT *qh_findbestfacet(pointT *point, boolT bestoutside,
+                             realT *bestdist, boolT *isoutside) nogil
+    void qh_setdelaunay(int dim, int count, pointT *points) nogil
+    void qh_restore_qhull(qhT **oldqh) nogil
+    qhT *qh_save_qhull() nogil
 
 cdef extern from "qhull/src/poly.h":
-    void qh_check_maxout()
+    void qh_check_maxout() nogil
+    void qh_outcoplanar() nogil
+
+cdef extern from "qhull/src/merge.h":
+    void qh_checkzero(boolT) nogil
 
 #------------------------------------------------------------------------------
 # LAPACK interface
@@ -142,6 +152,7 @@ _qhull_lock = threading.Lock()
 # Qhull is not re-entrant: keep track which object is active
 cdef object _active_qhull = None
 
+@cython.final
 cdef class _Qhull(object):
     """
     Thin wrapper for Qhull.
@@ -152,42 +163,48 @@ cdef class _Qhull(object):
     paraboloid_shift : float
     """
 
-    cdef qhT *_saved_qh = NULL
+    cdef qhT *_saved_qh
     cdef list _point_arrays
     cdef float paraboloid_scale
     cdef float paraboloid_shift
     cdef object _dirty_points
-    cdef bool _is_delaunay
-    cdef int _dim, _n_dirty_points
+    cdef int _is_delaunay
+    cdef int _ndim, _n_dirty_points
 
-    def __init__(np.ndarray[np.double_t, ndim=2] points, incremental=False):
-        """
-        Perform Delaunay triangulation of the given set of points.
-
-        """
-
-        # Run qhull with the options
-        #
-        # - d: perform delaunay triangulation
-        # - Qbb: scale last coordinate for Delaunay
-        # - Qz: reduces Delaunay precision errors for cospherical sites
-        # - Qt: output only simplical facets (can produce degenerate 0-area ones)
+    def __init__(self, np.ndarray[np.double_t, ndim=2] points,
+                 delaunay=True,
+                 incremental=False,
+                 options=""):
         global _active_qhull
-        cdef char *options = "qhull d Qz Qbb Qt"
+        cdef char *options_p
         cdef int curlong, totlong
         cdef int dim
         cdef int numpoints
         cdef int exitcode
 
-        self._is_delaunay = True
+        self._saved_qh = NULL
+        self._dirty_points = None
+        self._n_dirty_points = 0
+
+        if delaunay:
+            options = b"qhull d " + options
+            self._is_delaunay = 1
+        else:
+            options = b"qhull " + options
+            self._is_delaunay = 0
+
+        if incremental:
+            bad_opts = []
+            for bad_opt in ('Qbb', 'Qbk', 'Qz', 'QBk', 'QbB'):
+                if (' %s ' % bad_opt) in options:
+                    bad_opts.append(bad_opt)
+            if bad_opts:
+                raise ValueError("Qhull options %r are incompatible with incremental mode" % bad_opts)
 
         points = np.ascontiguousarray(points)
         numpoints = points.shape[0]
         dim = points.shape[1]
-        self._dim = dim
-
-        self._dirty_points = None
-        self._n_dirty_points = 0
+        self._ndim = dim
 
         if numpoints <= 0:
             raise ValueError("No points to triangulate")
@@ -198,40 +215,38 @@ cdef class _Qhull(object):
         if incremental:
             # Must keep own copies of point lists in the incremental mode.
             points = points.copy()
-            self._point_arrays = [points]
+
+        self._point_arrays = [points]
+
+        options_p = options
 
         _qhull_lock.acquire()
         try:
             if _active_qhull is not None:
                 _active_qhull._deactivate()
 
-            qh_qh.NOerrexit = 1
+            _active_qhull = self
             with nogil:
-                _active_qhull = self
                 exitcode = qh_new_qhull(dim, numpoints, <realT*>points.data, 0,
-                                        options, NULL, stderr)
+                                        options_p, NULL, stderr)
 
-            try:
-                if exitcode != 0:
-                    raise RuntimeError("Qhull error")
+            if exitcode != 0:
+                raise QhullError("Qhull error")
 
-                with nogil:
-                    qh_triangulate() # get rid of non-simplical facets
+            with nogil:
+                qh_triangulate() # get rid of non-simplical facets
 
-                if qh_qh.SCALElast:
-                    self.paraboloid_scale = qh_qh.last_newhigh / (
-                        qh_qh.last_high - qh_qh.last_low)
-                    self.paraboloid_shift = - qh_qh.last_low * paraboloid_scale
-                else:
-                    self.paraboloid_scale = 1.0
-                    self.paraboloid_shift = 0.0
-            finally:
-                if not incremental:
-                    self._uninit()
+            if qh_qh.SCALElast:
+                self.paraboloid_scale = qh_qh.last_newhigh / (
+                    qh_qh.last_high - qh_qh.last_low)
+                self.paraboloid_shift = - qh_qh.last_low * self.paraboloid_scale
+            else:
+                self.paraboloid_scale = 1.0
+                self.paraboloid_shift = 0.0
         finally:
             _qhull_lock.release()
 
-    def __del__(self):
+    def close(self):
         _qhull_lock.acquire()
         try:
             if _active_qhull is self or self._saved_qh != NULL:
@@ -239,6 +254,10 @@ cdef class _Qhull(object):
         finally:
             _qhull_lock.release()
 
+    def __del__(self):
+        self.close()
+
+    @cython.final
     cdef int _activate(self) except -1:
         """
         Activate this instance (_qhull_lock MUST be held when calling this)
@@ -261,14 +280,12 @@ cdef class _Qhull(object):
 
         return 0
 
+    @cython.final
     cdef int _deactivate(self) except -1:
         """
         Deactivate this instance (_qhull_lock MUST be held when calling this)
         """
         global _active_qhull
-
-        if not self.alive:
-            raise RuntimeError("This instance is not active")
 
         if _active_qhull is not self:
             return 0
@@ -277,10 +294,12 @@ cdef class _Qhull(object):
         self._saved_qh = qh_save_qhull()
         _active_qhull = None
 
+    @cython.final
     cdef int _uninit(self) except -1:
         """
         Uninitialize this instance (_qhull_lock MUST be held when calling this)
         """
+        global _active_qhull
         cdef int curlong, totlong
 
         self._activate()
@@ -293,7 +312,6 @@ cdef class _Qhull(object):
                 (totlong, curlong))
         _active_qhull = None
         self._saved_qh = NULL
-        self.alive = False
         return 0
 
     def add_points(self, points):
@@ -301,60 +319,68 @@ cdef class _Qhull(object):
         
         if self._dirty_points is None:
             if self._is_delaunay:
-                self._dirty_points = np.array([2*n+1, self._dim+1], float)
+                self._dirty_points = np.empty([n, self._ndim+1], float)
             else:
-                self._dirty_points = np.array([2*n+1, self._dim], float)
+                self._dirty_points = np.empty([n, self._ndim], float)
         else:
             if self._n_dirty_points + n > self._dirty_points.shape[0]:
                 n_new = 3*self._dirty_points.shape[0]//2 + n + 1
                 self._dirty_points.resize(n_new, self._dirty_points.shape[1])
 
-        self._dirty_points[self._n_dirty_points:self._n_dirty_points+n,:self._dim] = points
+        self._dirty_points[self._n_dirty_points:self._n_dirty_points+n, :self._ndim] = points
         self._n_dirty_points += n
 
     def flush(self):
-        cdef np.ndarray[double_t, ndim=2] d
-        cdef int j, n, m
+        cdef np.ndarray[np.double_t, ndim=2] d
+        cdef int j, n, m, ndim
         cdef facetT *facet
         cdef realT *p
         cdef realT bestdist
         cdef boolT isoutside
 
         if self._dirty_points is None:
-            return
+            return False
 
         d = self._dirty_points
         n = self._n_dirty_points
         m = self._dirty_points.shape[1]
+        ndim = self._ndim
 
         _qhull_lock.acquire()
         try:
             self._activate()
 
+            p = <realT*>d.data
+
             with nogil:
                 if self._is_delaunay:
                     # lift to paraboloid
-                    qh_setdelaunay(self._dim+1, n, <realT*>d.data)
+                    qh_setdelaunay(ndim+1, n, p)
 
-                p = <realT*>d.data
                 for j in range(n):
-                    facet = qh_findbestfacet(p, !qh_ALL, &bestdist, &isoutside)
+                    facet = qh_findbestfacet(p, not qh_ALL, &bestdist, &isoutside)
                     p += m
                     if isoutside:
                         if not qh_addpoint(p, facet, 0):
                             break
                 qh_check_maxout()
+
+                # XXX: does this leak memory?
+                qh_qh.hasTriangulation = 0
                 qh_triangulate()
         finally:
             _qhull_lock.release()
 
         # Qhull doesn't copy the point data, so we must keep it around
-        self._point_arrays.append(self._dirty_points)
+        self._point_arrays.append(self._dirty_points[:,:ndim])
         self._dirty_points = None
+        self._n_dirty_points = 0
+
+        return True
 
     @cython.boundscheck(False)
     @cython.cdivision(True)
-    def get_arrays(int ndim, int numpoints):
+    def get_arrays(self):
         """
         Return arrays currently in Qhull.
 
@@ -379,6 +405,9 @@ cdef class _Qhull(object):
         cdef np.ndarray[np.npy_int, ndim=2] neighbors
         cdef np.ndarray[np.double_t, ndim=2] equations
         cdef np.ndarray[np.npy_int, ndim=1] id_map
+        cdef int ndim
+
+        ndim = self._ndim
 
         _qhull_lock.acquire()
         try:
@@ -436,7 +465,7 @@ cdef class _Qhull(object):
                     facet = facet.next
 
             if error_non_simplical:
-                raise ValueError("non-simplical facet encountered")
+                raise QhullError("non-simplical facet generated")
 
             if len(self._point_arrays) == 1:
                 points = self._point_arrays[0]
@@ -447,6 +476,8 @@ cdef class _Qhull(object):
         finally:
             _qhull_lock.release()
 
+class QhullError(RuntimeError):
+    pass
 
 #------------------------------------------------------------------------------
 # Barycentric coordinates
@@ -1105,7 +1136,14 @@ class Delaunay(object):
         Coordinates of points to triangulate
     incremental : bool, optional
         Whether to allow adding points incrementally to the triangulation.
+        Qhull does not support removing points from the triangulation,
+        and you may run into problems with coplanar facets.
         Default: False.
+
+        .. versionadded:: 0.12.0
+    qhull_options : str, optional
+        Additional options to Qhull (separated by spaces). See Qhull
+        documentation [Qhull] for details.
 
         .. versionadded:: 0.12.0
 
@@ -1155,26 +1193,84 @@ class Delaunay(object):
     .. [Qhull] http://www.qhull.org/
 
     """
-    def __init__(self, points, incremental=False):
+    def __init__(self, points, incremental=False, qhull_options=None):
         points = np.ascontiguousarray(points).astype(np.double)
-        vertices, neighbors, equations, paraboloid_scale, paraboloid_shift, \
-            qh = \
-                _construct_delaunay(points, incremental=incremental)
 
-        self.incremental = incremental
-        self.ndim = points.shape[1]
-        self.npoints = points.shape[0]
-        self.nsimplex = vertices.shape[0]
-        self.points = points
-        self.vertices = vertices
-        self.neighbors = neighbors
-        self.equations = equations
-        self.paraboloid_scale = paraboloid_scale
-        self.paraboloid_shift = paraboloid_shift
-        self.min_bound = self.points.min(axis=0)
-        self.max_bound = self.points.max(axis=0)
-        self._transform = None
-        self._vertex_to_simplex = None
+        if qhull_options is None:
+            if incremental:
+                qhull_options = "Qt"
+            else:
+                qhull_options = "Qbb Qz Qt"
+
+        self._qhull = _Qhull(points, delaunay=True, incremental=incremental,
+                             options=qhull_options)
+        self._flush(force=True)
+        if not incremental:
+            self._qhull.close()
+
+        self.ndim = self._points.shape[1]
+
+    def add_points(self, points):
+        self._qhull.add_points(points)
+
+    def _flush(self, force=False):
+        if self._qhull.flush() or force:
+            self._points, self._vertices, self._neighbors, self._equations = \
+                         self._qhull.get_arrays()
+            self._npoints = self._points.shape[0]
+            self._nsimplex = self._vertices.shape[0]
+            self._min_bound = self._points.min(axis=0)
+            self._max_bound = self._points.max(axis=0)
+            self._transform = None
+            self._vertex_to_simplex = None
+
+    @property
+    def points(self):
+        self._flush()
+        return self._points
+
+    @property
+    def vertices(self):
+        self._flush()
+        return self._vertices
+
+    @property
+    def neighbors(self):
+        self._flush()
+        return self._neighbors
+
+    @property
+    def equations(self):
+        self._flush()
+        return self._equations
+
+    @property
+    def npoints(self):
+        self._flush()
+        return self._npoints
+
+    @property
+    def nsimplex(self):
+        self._flush()
+        return self._nsimplex
+
+    @property
+    def min_bound(self):
+        self._flush()
+        return self._min_bound
+
+    @property
+    def max_bound(self):
+        self._flush()
+        return self._max_bound
+
+    @property
+    def paraboloid_scale(self):
+        return self._qhull.paraboloid_scale
+
+    @property
+    def paraboloid_shift(self):
+        return self._qhull.paraboloid_shift
 
     @property
     def transform(self):
