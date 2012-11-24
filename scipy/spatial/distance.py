@@ -364,11 +364,11 @@ def jaccard(u, v):
     d : double
         The Jaccard distance between vectors ``u`` and ``v``.
     """
-    u = _validate_vector(u)
-    v = _validate_vector(v)
+    u = _validate_vector(u, dtype=bool)
+    v = _validate_vector(v, dtype=bool)
     dist = (np.double(np.bitwise_and((u != v),
-                                     np.bitwise_or(u != 0, v != 0)).sum())
-            / np.double(np.bitwise_or(u != 0, v != 0).sum()))
+                                     np.bitwise_or(u, v)).sum())
+            / np.double(np.bitwise_or(u, v).sum()))
     return dist
 
 

@@ -202,6 +202,13 @@ class TestCdist(TestCase):
             print (Y1-Y2).max()
         self.assertTrue(within_tol(Y1, Y2, eps))
 
+    def test_cdist_jaccard_non_bool(self):
+        # Check cdist(X, X, 'jaccard') on non-boolean data.
+        # Trac #1774
+        X = [[1,2,3,4], [1,2,4,3]]
+        Y = cdist(X, X, 'jaccard')
+        self.assertTrue(within_tol(Y, 0*Y, 1e-15))
+
     def test_cdist_chebychev_random(self):
         "Tests cdist(X, 'chebychev') on random data."
         eps = 1e-07
