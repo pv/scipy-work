@@ -205,7 +205,8 @@ cdef class _Qhull(object):
                 if (' %s ' % bad_opt) in options:
                     bad_opts.append(bad_opt)
             if bad_opts:
-                raise ValueError("Qhull options %r are incompatible with incremental mode" % bad_opts)
+                #raise ValueError("Qhull options %r are incompatible with incremental mode" % bad_opts)
+                print "Qhull options %r are incompatible with incremental mode" % bad_opts
 
         points = np.ascontiguousarray(points)
         numpoints = points.shape[0]
@@ -1267,10 +1268,13 @@ class Delaunay(object):
                 self._max_bound = self._points.max(axis=0)
                 self._transform = None
                 self._vertex_to_simplex = None
-        except QhullError:
+        except QhullError, e:
             # Things went wrong when adding points: try to redo from scratch
             if force:
                 raise
+
+            print e
+            print "Qhull failed: re-trying"
 
             points = self._qhull.get_points()
             self._qhull.close()
