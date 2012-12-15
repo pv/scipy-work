@@ -58,8 +58,8 @@ def configuration(parent_package='',top_path=None):
                          **newblas)
 
     # lsoda
-    config.add_extension('lsoda',
-                         sources=['lsoda.pyf'],
+    config.add_extension('_lsoda',
+                         sources=['_lsoda.pyf'],
                          libraries=libs,
                          **newblas)
 

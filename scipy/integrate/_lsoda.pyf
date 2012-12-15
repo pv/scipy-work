@@ -3,13 +3,13 @@
 !Date:   3 Feb 2002
 !$Revision$
 
-python module lsoda__user__routines 
-    interface lsoda_user_interface
+python module _lsoda__user__routines 
+    interface _lsoda_user_interface
        subroutine f(n,t,y,ydot)
          integer intent(hide) :: n
          double precision intent(in) :: t
          double precision dimension(n),intent(in,c) :: y
-         double precision dimension(n),intent(out,c) :: ydot
+         double precision dimension(n),intent(inout,c) :: ydot
        end subroutine f
        subroutine jac(n,t,y,ml,mu,jac,nrowpd)
          integer intent(hide) :: n
@@ -17,22 +17,22 @@ python module lsoda__user__routines
          double precision dimension(n),intent(c,in) :: y
          integer intent(hide) :: ml,mu
          integer intent(hide):: nrowpd
-         double precision intent(out) :: jac(nrowpd, n)
+         double precision intent(inout) :: jac(nrowpd, n)
        end subroutine jac
     end interface
-end python module lsoda__user__routines
+end python module _lsoda__user__routines
   
-python module lsoda
+python module _lsoda
     interface
        subroutine lsoda(f,neq,y,t,tout,itol,rtol,atol,itask,istate,iopt,rwork,lrw,iwork,liw,jac,jt)
          ! y1,t,istate = lsoda(f,jac,y0,t0,t1,rtol,atol,itask,istate,rwork,iwork,mf)
          callstatement (*f2py_func)(cb_f_in_lsoda__user__routines,&neq,y,&t,&tout,&itol,rtol,atol,&itask,&istate,&iopt,rwork,&lrw,iwork,&liw,cb_jac_in_lsoda__user__routines,&jt)
-         use lsoda__user__routines
+         use _lsoda__user__routines
          external f
          external jac
-         
+
          integer intent(hide),depend(y) :: neq = len(y)
-         double precision dimension(neq),intent(in,out,copy) :: y
+         double precision dimension(neq),intent(inout) :: y
          double precision intent(in,out):: t
          double precision intent(in):: tout
          integer intent(hide),depend(atol) :: itol = (len(atol)<=1 && len(rtol)<=1?1:(len(rtol)<=1?2:(len(atol)<=1?3:4)))
@@ -50,4 +50,4 @@ python module lsoda
          integer intent(in) :: jt
        end subroutine lsoda
     end interface
-end python module lsoda
+end python module _lsoda
