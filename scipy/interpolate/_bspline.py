@@ -113,11 +113,8 @@ class BSpline(object):
         # empty input yields empty output
         if x.size == 0:
             return np.array([])
-
-        if nu == 0:
-            return dfitpack.splev(self.t, self.c, self.k, x)
-        else:
-            return dfitpack.splder(self.t, self.c, self.k, x, nu)
+        r, ier = dfitpack.splder_many(self.t, self.c, self.k, x, nu)
+        return r
 
     def integral(self, a, b):
         """ Return definite integral of the spline between two given points.
