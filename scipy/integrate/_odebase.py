@@ -81,14 +81,16 @@ class OdeSolverBase(object):
 
         return OdeSolveResult(success=True, t=t, y=y, t_err=None, y_err=None)
 
-    def solve_auto(self, t_max, y0, maxiter=100000):
+    def solve_auto(self, t_max, t0, y0, maxiter=100000):
         """
         Runs the solver, determining the time points automatically.
 
         Parameters
         ----------
         t_max : float
-            Time point to solve until.
+            Final time.
+        t0 : float
+            Initial time.
         y0 : array-like
             Initial values.
         maxiter : int, optional
@@ -120,9 +122,14 @@ class OdeSolverBase(object):
         t = np.zeros((100,), dtype=float)
         y = np.zeros((100,) + y0.shape, dtype=self.dtype)
 
+        self.init_step(t0, y0)
+        t[0] = t0
+        y[0] = y0
+        nt += 1
+
         while True:
             for j in range(nt, min(maxiter, len(t))):
-                r = self.step_auto(t_max, y[j])
+                r = self.step_auto(t_max, y[j], before=True, after=True)
                 if not r.success:
                     return OdeSolveResult(success=False, t=t[:j], y=y[:j], t_err=None, y_err=None)
                 elif r.t >= t_max:
@@ -133,7 +140,8 @@ class OdeSolverBase(object):
             nt = j + 1
 
             if nt == maxiter:
-                return OdeSolveResult(success=False, t=t[:j], y=y[:j], t_err=None, y_err=None)
+                return OdeSolveResult(success=False, t=t[:nt], y=y[:nt],
+                                      t_err=t[j], y_err=y[j])
 
             t.resize(2*nt + 1)
             y.resize(t.shape[0], y.shape[1])
@@ -183,7 +191,7 @@ class OdeSolverBase(object):
         """
         raise NotImplementedError('all ODE solvers must implement this')
 
-    def step_auto(self, t_max, y_out):
+    def step_auto(self, t, y_out, before=True, after=False):
         """
         Take a step of length determined internally by the solver.
 
@@ -199,6 +207,13 @@ class OdeSolverBase(object):
             Array in which the computed value will be stored.
             Needs to be preallocated.
 
+        before : bool, optional
+            Whether the solver is allowed to stop before time `t`.
+            Only certain values may be supported by individual solvers.
+        after : bool, optional
+            Whether the solver is allowed to stop after time `t`
+            Only certain values may be supported by individual solvers.
+
         Returns
         -------
         result : OdeStepResult
@@ -207,7 +222,7 @@ class OdeSolverBase(object):
             success
                 status of the computation (successful or error occured)
             t_out
-                time, where the solver stopped (can be < t_max even
+                time, where the solver stopped (can differ from t even
                 when successful)
 
         """

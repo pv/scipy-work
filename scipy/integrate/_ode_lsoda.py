@@ -133,6 +133,14 @@ class LsodaSolver(NonReEntrantOdeSolverBase):
     def step(self, t_max, y_out):
         return self._step(t_max, y_out, itask=1)
 
-    def step_auto(self, t_max, y_out):
+    _itasks = {
+        (False, False): 1,
+        (True, False): 5,
+        (False, True): 3,
+        (True, True): 2
+    }
+
+    def step_auto(self, t_max, y_out, before=True, after=False):
         self.rwork[0] = t_max
-        return self._step(t_max, y_out, itask=5)
+        return self._step(t_max, y_out,
+                          itask=self._itasks(bool(before), bool(after)))
