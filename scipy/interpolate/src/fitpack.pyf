@@ -114,10 +114,9 @@ static int calc_regrid_lwrk(int mx, int my, int kx, int ky,
        integer intent(hide) :: ier
      end subroutine splder
 
-     subroutine splder_many(t,nt,n,c,nc,k,nu,x,nx,y,m,e,wrk,ier)
+     subroutine splder_many(t,n,c,nc,k,nu,x,nx,y,m,e,wrk,ier)
        ! dy = splder_many(t,c,k,x,[nu],[e])
-       real*8 dimension(n,nt) :: t
-       integer depend(t),intent(hide) :: nt = shape(t,1)
+       real*8 dimension(n) :: t
        integer depend(t),intent(hide) :: n = shape(t,0)
        real*8 dimension(n,nc), depend(n), intent(in) :: c
        integer depend(c),intent(hide) :: nc = shape(c,1)
@@ -126,11 +125,28 @@ static int calc_regrid_lwrk(int mx, int my, int kx, int ky,
        real*8 dimension(m,nx) :: x
        integer depend(x),intent(hide) :: m = shape(x,0)
        integer depend(x),intent(hide) :: nx = shape(x,1)
-       real*8 dimension(m,MAX(MAX(nx, nt), nc)),depend(m,nx,nt,nc),intent(out) :: y
+       real*8 dimension(m,MAX(nx, nc)),depend(m,nx,nc),intent(out) :: y
        integer check(0<=e && e<=2) :: e=0
        real*8 dimension(((nu == 0) ? 1 : n)),depend(n,nu),intent(cache,hide) :: wrk
        integer intent(out) :: ier
      end subroutine splder_many
+
+     subroutine splder_grid(t,n,c,nc,k,nu,x,nx,y,m,e,wrk,ier)
+       ! dy = splder_many(t,c,k,x,[nu],[e])
+       real*8 dimension(n) :: t
+       integer depend(t),intent(hide) :: n = shape(t,0)
+       real*8 dimension(n,nc), depend(n), intent(in) :: c
+       integer depend(c),intent(hide) :: nc = shape(c,1)
+       integer check(k>=0) :: k
+       integer depend(k),check(0<=nu && nu<=k) :: nu = 1
+       real*8 dimension(m,nx) :: x
+       integer depend(x),intent(hide) :: m = shape(x,0)
+       integer depend(x),intent(hide) :: nx = shape(x,1)
+       real*8 dimension(m,nc,nx),depend(m,nc,nx),intent(out) :: y
+       integer check(0<=e && e<=2) :: e=0
+       real*8 dimension(((nu == 0) ? 1 : n)),depend(n,nu),intent(cache,hide) :: wrk
+       integer intent(out) :: ier
+     end subroutine splder_grid
 
      function splint(t,n,c,k,a,b,wrk)
        ! iy = splint(t,c,k,a,b)

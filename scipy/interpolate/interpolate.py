@@ -18,6 +18,9 @@ from . import fitpack
 from . import _fitpack
 from . import dfitpack
 
+from _ppform import Ppform
+ppform = Ppform
+
 def reduce_sometrue(a):
     all = a
     while len(shape(all)) > 1:
@@ -482,55 +485,6 @@ class interp1d(object):
         out_of_bounds = logical_or(below_bounds, above_bounds)
         return out_of_bounds
 
-class ppform(object):
-    """The ppform of the piecewise polynomials is given in terms of coefficients
-    and breaks.  The polynomial in the ith interval is
-    x_{i} <= x < x_{i+1}
-
-    S_i = sum(coefs[m,i]*(x-breaks[i])^(k-m), m=0..k)
-    where k is the degree of the polynomial.
-    """
-    def __init__(self, coeffs, breaks, fill=0.0, sort=False):
-        self.coeffs = np.asarray(coeffs)
-        if sort:
-            self.breaks = np.sort(breaks)
-        else:
-            self.breaks = np.asarray(breaks)
-        self.K = self.coeffs.shape[0]
-        self.fill = fill
-        self.a = self.breaks[0]
-        self.b = self.breaks[-1]
-
-    def __call__(self, xnew):
-        saveshape = np.shape(xnew)
-        xnew = np.ravel(xnew)
-        res = np.empty_like(xnew)
-        mask = (xnew >= self.a) & (xnew <= self.b)
-        res[~mask] = self.fill
-        xx = xnew.compress(mask)
-        indxs = np.searchsorted(self.breaks, xx)-1
-        indxs = indxs.clip(0,len(self.breaks))
-        pp = self.coeffs
-        diff = xx - self.breaks.take(indxs)
-        V = np.vander(diff,N=self.K)
-        # values = np.diag(dot(V,pp[:,indxs]))
-        values = array([dot(V[k,:],pp[:,indxs[k]]) for k in xrange(len(xx))])
-        res[mask] = values
-        res.shape = saveshape
-        return res
-
-    def fromspline(cls, xk, cvals, order, fill=0.0):
-        N = len(xk)-1
-        sivals = np.empty((order+1,N), dtype=float)
-        for m in xrange(order,-1,-1):
-            fact = spec.gamma(m+1)
-            res = _fitpack._bspleval(xk[:-1], xk, cvals, order, m)
-            res /= fact
-            sivals[order-m,:] = res
-        return cls(sivals, xk, fill=fill)
-    fromspline = classmethod(fromspline)
-
-
 def _dot0(a, b):
     """Similar to numpy.dot, but sum over last axis of a and 1st axis of b"""
     if b.ndim <= 2:
@@ -820,19 +774,27 @@ def splmake(xk,yk,order=3,kind='smoothest',conds=None):
     if order < 0:
         raise ValueError("order must not be negative")
     if order == 0:
-        return xk, yk[:-1], order
+        coefs = yk[:-1]
     elif order == 1:
-        return xk, yk, order
+        coefs = yk
+    else:
+        try:
+            func = eval('_find_%s' % kind)
+        except:
+            raise NotImplementedError
 
-    try:
-        func = eval('_find_%s' % kind)
-    except:
-        raise NotImplementedError
+        # the constraint matrix
+        B = _fitpack._bsplmat(order, xk)
+        coefs = func(xk, yk, order, conds, B)
 
-    # the constraint matrix
-    B = _fitpack._bsplmat(order, xk)
-    coefs = func(xk, yk, order, conds, B)
-    return xk, coefs, order
+    if order <= 1:
+        t = xk
+    else:
+        t = np.r_[2*xk[0] - xk[order-1:0:-1], xk, 2*xk[-1] - xk[-2:-order-1:-1]]
+
+    t = np.r_[t[0], t, t[-1]]
+    coefs = np.r_[coefs, 0, 0]
+    return t, coefs, order
 
 def spleval(xck,xnew,deriv=0):
     """Evaluate a fixed spline represented by the given tuple at the new
@@ -847,11 +809,13 @@ def spleval(xck,xnew,deriv=0):
     N-d, then the result is xnew.shape + cvals.shape[1:] providing the
     interpolation of multiple curves.
     """
-    (xj,cvals,k) = xck
+    (t,cvals,k) = xck
     oldshape = np.shape(xnew)
     xx = np.ravel(xnew)
     sh = cvals.shape[1:]
     res = np.empty(xx.shape + sh, dtype=cvals.dtype)
+    xj = t[k:(-k or None)]
+    cvals = cvals[:-2]
     for index in np.ndindex(*sh):
         sl = (slice(None),)+index
         if issubclass(cvals.dtype.type, np.complexfloating):

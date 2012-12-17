@@ -76,19 +76,20 @@ class BSpline(object):
     __slots__ = ('t', 'c', 'k')
 
     def __init__(self, t, c, k):
-        t = np.ascontiguousarray(t)
-        c = np.ascontiguousarray(c)
+        t = np.asarray(t, order="F")
+        c = np.asarray(c, order="F")
         k = int(k)
         if t.ndim != 1:
             raise ValueError("Knot array has an invalid shape")
         if t.shape[0] != c.shape[-1]:
             raise ValueError("Coefficient array has an invalid shape")
+
         self.t = t
         self.c = c
         self.k = k
 
     @classmethod
-    def _from_valid_tck(cls, t, c, k):
+    def _from_valid_tck(cls, t, c, k, c_shape):
         self = cls.__new__(cls)
         self.t = t
         self.c = c
@@ -113,7 +114,12 @@ class BSpline(object):
         # empty input yields empty output
         if x.size == 0:
             return np.array([])
-        r, ier = dfitpack.splder_many(self.t, self.c, self.k, x, nu)
+        r, ier = dfitpack.splder_grid(self.t,
+                                      self.c.reshape(-1, self.c.shape[-1]).T,
+                                      self.k,
+                                      x.ravel(),
+                                      nu)
+        r.shape = self.c.shape[:-1] + x.shape
         return r
 
     def integral(self, a, b):

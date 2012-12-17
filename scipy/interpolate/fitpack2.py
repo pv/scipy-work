@@ -27,7 +27,8 @@ import warnings
 from numpy import zeros, concatenate, alltrue, ravel, all, diff, array, ones
 import numpy as np
 
-from . import fitpack
+from _bspline import BSpline
+
 from . import dfitpack
 
 
@@ -60,8 +61,7 @@ if iopt=-1:
   xb<t[k+1]<t[k+2]<...<t[n-k-2]<xe"""
                     }
 
-
-class UnivariateSpline(object):
+class UnivariateSpline(BSpline):
     """
     One-dimensional smoothing spline fit to a given set of data points.
 
@@ -139,19 +139,19 @@ class UnivariateSpline(object):
                        if 1/w[i] is an estimate of the standard
                        deviation of y[i].
         """
-        #_data == x,y,w,xb,xe,k,s,n,t,c,fp,fpint,nrdata,ier
-        data = dfitpack.fpcurf0(x,y,k,w=w,
-                                xb=bbox[0],xe=bbox[1],s=s)
+        # data == x,y,w,xb,xe,k,s,n,t,c,fp,fpint,nrdata,ier
+        data = dfitpack.fpcurf0(x,y,k,w=w,xb=bbox[0],xe=bbox[1],s=s)
         if data[-1]==1:
             # nest too small, setting to maximum bound
             data = self._reset_nest(data)
-        self._data = data
-        self._reset_class()
 
-    def _reset_class(self):
-        data = self._data
-        n,t,c,k,ier = data[7],data[8],data[9],data[5],data[-1]
-        self._eval_args = t[:n],c[:n],k
+        n, t, c, k = data[7], data[8], data[9], data[5]
+        self._tck = (t[:n], c[:n], k)
+        self._reset_class(data[-1])
+
+        self.__data = data # Used only for set_smoothing_factor
+
+    def _reset_class(self, ier):
         if ier==0:
             # the spline returned has a residual sum of squares fp
             # such that abs(fp-s)/s <= tol with tol a relative
@@ -195,6 +195,22 @@ class UnivariateSpline(object):
         data = dfitpack.fpcurf1(*args)
         return data
 
+    def get_knots(self):
+        """
+        Return positions of (boundary and interior) knots of the spline.
+        """
+        return self.t[self.k:-self.k]
+
+    def get_coeffs(self):
+        """Return spline coefficients."""
+        return self.c[:-self.k-1]
+
+    def get_residual(self):
+        """Return weighted sum of squared residuals of the spline
+        approximation: ``sum((w[i] * (y[i]-s(x[i])))**2, axis=0)``.
+        """
+        return self._data[10]
+
     def set_smoothing_factor(self, s):
         """ Continue spline computation with the given smoothing
         factor s and with the knots found at the last call.
@@ -210,68 +226,9 @@ class UnivariateSpline(object):
         if data[-1]==1:
             # nest too small, setting to maximum bound
             data = self._reset_nest(data)
-        self._data = data
+        self._data = _UnivariateSplineData(data)
+        self._tck = (self._data.t, self._data.c, self._data.k)
         self._reset_class()
-
-    def __call__(self, x, nu=0):
-        """ Evaluate spline (or its nu-th derivative) at positions x.
-
-        Note: x can be unordered but the evaluation is more efficient
-        if x is (partially) ordered.
-        """
-        x = np.asarray(x)
-        # empty input yields empty output
-        if x.size == 0:
-            return array([])
-#        if nu is None:
-#            return dfitpack.splev(*(self._eval_args+(x,)))
-#        return dfitpack.splder(nu=nu,*(self._eval_args+(x,)))
-        return fitpack.splev(x, self._eval_args, der=nu)
-
-    def get_knots(self):
-        """ Return positions of (boundary and interior) knots of the spline.
-        """
-        data = self._data
-        k,n = data[5],data[7]
-        return data[8][k:n-k]
-
-    def get_coeffs(self):
-        """Return spline coefficients."""
-        data = self._data
-        k,n = data[5],data[7]
-        return data[9][:n-k-1]
-
-    def get_residual(self):
-        """Return weighted sum of squared residuals of the spline
-        approximation: ``sum((w[i] * (y[i]-s(x[i])))**2, axis=0)``.
-        """
-        return self._data[10]
-
-    def integral(self, a, b):
-        """ Return definite integral of the spline between two given points.
-        """
-        return dfitpack.splint(*(self._eval_args+(a,b)))
-
-    def derivatives(self, x):
-        """ Return all derivatives of the spline at the point x."""
-        d,ier = dfitpack.spalde(*(self._eval_args+(x,)))
-        if not ier == 0:
-            raise ValueError("Error code returned by spalde: %s" % ier)
-        return d
-
-    def roots(self):
-        """ Return the zeros of the spline.
-
-        Restriction: only cubic splines are supported by fitpack.
-        """
-        k = self._data[5]
-        if k==3:
-            z,m,ier = dfitpack.sproot(*self._eval_args[:2])
-            if not ier == 0:
-                raise ValueError("Error code returned by spalde: %s" % ier)
-            return z[:m]
-        raise NotImplementedError('finding roots unsupported for '
-                                    'non-cubic splines')
 
 
 class InterpolatedUnivariateSpline(UnivariateSpline):
@@ -339,8 +296,8 @@ class InterpolatedUnivariateSpline(UnivariateSpline):
           k=3        - degree of the univariate spline.
         """
         #_data == x,y,w,xb,xe,k,s,n,t,c,fp,fpint,nrdata,ier
-        self._data = dfitpack.fpcurf0(x,y,k,w=w,
-                                      xb=bbox[0],xe=bbox[1],s=0)
+        self._data = _UnivariateSplineData(
+            dfitpack.fpcurf0(x,y,k,w=w,xb=bbox[0],xe=bbox[1],s=0))
         self._reset_class()
 
 
@@ -431,7 +388,8 @@ class LSQUnivariateSpline(UnivariateSpline):
             raise ValueError('Interior knots t must satisfy '
                             'Schoenberg-Whitney conditions')
         data = dfitpack.fpcurfm1(x,y,k,t,w=w,xb=xb,xe=xe)
-        self._data = data[:-3] + (None,None,data[-1])
+        self._data = _UnivariateSplineData(data[:-3] + (None,None,data[-1]))
+        self._tck = (self._data.t, self._data.c, self._data.k)
         self._reset_class()
 
 
