@@ -5,15 +5,17 @@ Least-Squares Fitting (:mod:`lmfit`)
 
 This module contains a class-based Levenberg-Marquardt fitter
 `Fit` and a function `leastsq` which is a function-based
-interface to the same functionality.  """
-from __future__ import division
-from numpy import (array, diagonal, dot, empty, eye, finfo, maximum, meshgrid,
-    sqrt, zeros_like, diag as npdiag)
+interface to the same functionality.
+"""
+from __future__ import division, print_function, absolute_import
+
+from numpy import array, diagonal, dot, empty, eye, finfo, maximum, meshgrid, \
+     sqrt, zeros_like, isnan
 from itertools import count
 from scipy.linalg import solve_triangular, qr, qr_multiply, norm
 from _qrsolv import qrsolv
 
-__all__ = ["Fit", "FitError", "InvalidParameter", "leastsq"]
+__all__ = []
 
 class FitError(Exception):
     """ The error raised while fitting
@@ -28,20 +30,6 @@ class FitError(Exception):
     def __init__(self, exitcode, message):
         Exception.__init__(self, message)
         self.exitcode = exitcode
-
-class InvalidParameter(Exception):
-    """ Indicate a parameter is invalid
-
-    Parameters
-    ----------
-    number : int
-        number is the number of the parameter, or 
-        a list of numbers of parameters, which are erroneous.
-        Set to None (the default) if no specific parameter is a problem.
-    """
-    def __init__(self, number=None):
-        Exception.__init__(self)
-        self.number = number
 
 class Fit(object):
     """ Least-Squares Fitting using Levenberg-Marquardt
@@ -147,10 +135,9 @@ class Fit(object):
             h = sqrt(self.eps)
         for c in [1, -1, 0.1, -0.1]:
             x[j] = tmp + c * h
-            try:
-                self.nfev += 1
-                f1 = self.func(x)
-            except InvalidParameter:
+            self.nfev += 1
+            f1 = self.func(x)
+            if isnan(f1).any():
                 continue
             x[j] = tmp
             return (f1 - f0) / (c * h)
@@ -204,15 +191,6 @@ class Fit(object):
         -------
         fvec : vector, length `M`
             the value of the function at `x`. 
-
-        Raises
-        ------
-        InvalidParameter
-            This method may raise the exception `InvalidParameter`, indicating
-            that one or more of the values in `x` are not appropriate.
-            The user may pass the number of the offending parameter as a 
-            parameter to `InvalidParameter`, or a list of numbers in the
-            case of multiple offending parameters.
         """
         raise NotImplemented("I don't know which function to fit!")
 
@@ -524,15 +502,11 @@ class Fit(object):
                                     self.scale, delta, par)
                 testx = x - p
                 pnorm = norm(self.scale * p)
-                try:
-                    self.nfev = 1
-                    testf = self.func(testx)
-                except InvalidParameter as error:
-                    if error.number is not None:
-                        self.scale[error.number] *= 2
-                    else:
-                        delta = 0.5 * min(delta, 10 * pnorm)
-                        par *= 2
+                self.nfev = 1
+                testf = self.func(testx)
+                if isnan(testf).any():
+                    delta = 0.5 * min(delta, 10 * pnorm)
+                    par *= 2
                     if self.running:
                         continue
                     else:
@@ -657,8 +631,9 @@ class Fit(object):
             x = self.params
         return sqrt(diagonal(self.covar(x, eps)))
 
-def leastsq(func, x0, args=(), Dfun=None, full_output=0, col_deriv=0, **kwargs):
-    """ Function equivalent to the class `Fit`
+def leastsq_lmfit(func, x0, args=(), Dfun=None, full_output=0, col_deriv=0, **kwargs):
+    """
+    Function equivalent to the class `Fit`
 
     This function is supposed to be a drop-in replacement for 
     `scipy.optimize.leastsq`. See the documentation there.
@@ -673,9 +648,10 @@ def leastsq(func, x0, args=(), Dfun=None, full_output=0, col_deriv=0, **kwargs):
                     return Dfun(x)
                 else:
                     return Dfun(x).T
+
     fit = MyFit()
     try:
-        ret = fit.fit(x0, *kwargs)
+        ret = fit.fit(x0, **kwargs)
     except FitError as e:
         mesg = e.message
     except ValueError as e: # make the minpack tests happy
