@@ -5,7 +5,8 @@ from . import _minpack
 
 from numpy import atleast_1d, dot, take, triu, shape, eye, \
                   transpose, zeros, product, greater, array, \
-                  all, where, isscalar, asarray, inf, abs
+                  all, where, isscalar, asarray, inf, abs, sqrt, \
+                  diagonal
 from .optimize import Result, _check_unknown_options
 
 error = _minpack.error
@@ -348,14 +349,14 @@ def leastsq(func, x0, args=(), Dfun=None, full_output=0,
                            compute_cov=full_output,
                            _full_output=full_output)
     if full_output:
-        return sol.x, sol.cov_x, sol.infodict, sol.message, sol.info
+        return sol.x, sol.cov_x, sol.infodict, sol.message, sol.status
     else:
-        return sol.x, sol.info
+        return sol.x, sol.status
 
 def _leastsq_minpack(func, x0, args=(), jac=None,
                      col_deriv=0, ftol=1.49012e-8, xtol=1.49012e-8,
                      gtol=0.0, maxfev=0, eps=0.0, factor=100, diag=None,
-                     compute_cov=False, _full_output=False,
+                     compute_cov=True, _full_output=False,
                      **unknown_options):
     """
     See docstring of `leastsq`.
@@ -425,6 +426,7 @@ def _leastsq_minpack(func, x0, args=(), jac=None,
                 raise errors['unknown'][1](errors['unknown'][0])
 
     cov_x = None
+    error = None
     if compute_cov and success:
         from numpy.dual import inv
         from numpy.linalg import LinAlgError
@@ -433,6 +435,7 @@ def _leastsq_minpack(func, x0, args=(), jac=None,
         R = dot(r, perm)
         try:
             cov_x = inv(dot(transpose(R),R))
+            error = sqrt(diagonal(cov_x))
         except LinAlgError:
             pass
 
@@ -441,6 +444,7 @@ def _leastsq_minpack(func, x0, args=(), jac=None,
                  status=info,
                  message=errors[info][0],
                  cov_x=cov_x,
+                 error=error,
                  nfev=infodict['nfev'],
                  fun=infodict['fvec'],
                  jac=infodict['fjac'],

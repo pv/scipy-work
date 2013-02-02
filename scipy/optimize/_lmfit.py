@@ -13,7 +13,9 @@ from numpy import array, diagonal, dot, empty, eye, finfo, maximum, meshgrid, \
      sqrt, zeros_like, isnan
 from itertools import count
 from scipy.linalg import solve_triangular, qr, qr_multiply, norm
-from _qrsolv import qrsolv
+from ._qrsolv import qrsolv
+
+from .optimize import Result, _check_unknown_options
 
 __all__ = []
 
@@ -608,30 +610,8 @@ class Fit(object):
         ret[j1, j2] = cov
         return ret
 
-    def error(self, x=None, eps=0):
-        """ calculate the error of the fit parameters
-
-        Give an estimation on the error of the fit result.
-
-        Parameters
-        ----------
-        x : vector, length `N`, optional
-            the fit result to calculate the error at. Take the last fit
-            result if not given.
-        eps : float, optional
-            threshold below which a parameter is considered linear-dependent
-            (ie not relevant for the fit result)
-
-        Returns
-        -------
-        err : vector, length `N`
-            the estimated error for each parameter
-        """
-        if x is None:
-            x = self.params
-        return sqrt(diagonal(self.covar(x, eps)))
-
-def leastsq_lmfit(func, x0, args=(), Dfun=None, full_output=0, col_deriv=0, **kwargs):
+def _leastsq_lmfit(func, x0, args=(), jac=None, full_output=0, col_deriv=0,
+                   compute_cov=True, **kwargs):
     """
     Function equivalent to the class `Fit`
 
@@ -642,12 +622,12 @@ def leastsq_lmfit(func, x0, args=(), Dfun=None, full_output=0, col_deriv=0, **kw
         def func(self, x):
             return func(x, *args)
 
-        if Dfun is not None:
+        if jac is not None:
             def jacobian(self, x, fvec, ret):
                 if col_deriv:
-                    return Dfun(x)
+                    return jac(x)
                 else:
-                    return Dfun(x).T
+                    return jac(x).T
 
     fit = MyFit()
     try:
@@ -670,8 +650,19 @@ def leastsq_lmfit(func, x0, args=(), Dfun=None, full_output=0, col_deriv=0, **kw
             "the cosine of the angle between function value and any "
                 "column of the Jacobian is at most `gtol` in absolute value."
             ][fit.exitcode]
-    if full_output:
-        return ret, fit.covar(ret), {"nfev": fit.nfev,
-                "fvec": fit.fvec}, mesg, fit.exitcode
-    else:
-        return ret, fit.exitcode
+
+    cov_x = None
+    error = None
+    if compute_cov:
+        cov_x = fit.covar(ret)
+        error = sqrt(diagonal(cov_x))
+
+    sol = Result(x=ret,
+                 success=(fit.exitcode in (1,2,3,4)),
+                 cov_x=cov_x,
+                 error=error,
+                 nfev=fit.nfev,
+                 fun=fit.fvec,
+                 message=mesg,
+                 status=fit.exitcode)
+    return sol
