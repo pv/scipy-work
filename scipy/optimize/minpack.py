@@ -238,7 +238,6 @@ def _root_hybr(func, x0, args=(), jac=None,
 
     return sol
 
-
 def leastsq(func, x0, args=(), Dfun=None, full_output=0,
             col_deriv=0, ftol=1.49012e-8, xtol=1.49012e-8,
             gtol=0.0, maxfev=0, epsfcn=0.0, factor=100, diag=None):
@@ -343,6 +342,28 @@ def leastsq(func, x0, args=(), Dfun=None, full_output=0,
          params
 
     """
+    sol = _leastsq_minpack(func, x0, args, Dfun,
+                           col_deriv, ftol, xtol, gtol, maxfev,
+                           epsfcn, factor, diag,
+                           compute_cov=full_output,
+                           _full_output=full_output)
+    if full_output:
+        return sol.x, sol.cov_x, sol.infodict, sol.message, sol.info
+    else:
+        return sol.x, sol.info
+
+def _leastsq_minpack(func, x0, args=(), jac=None,
+                     col_deriv=0, ftol=1.49012e-8, xtol=1.49012e-8,
+                     gtol=0.0, maxfev=0, eps=0.0, factor=100, diag=None,
+                     compute_cov=False, _full_output=False,
+                     **unknown_options):
+    """
+    See docstring of `leastsq`.
+    """
+    _check_unknown_options(unknown_options)
+    epsfcn = eps
+    Dfun = jac
+
     x0 = array(x0, ndmin=1)
     n = len(x0)
     if type(args) != type(()):
@@ -353,7 +374,9 @@ def leastsq(func, x0, args=(), Dfun=None, full_output=0,
     if Dfun is None:
         if (maxfev == 0):
             maxfev = 200*(n + 1)
-        retval = _minpack._lmdif(func, x0, args, full_output, ftol, xtol,
+
+        x, infodict, info = \
+           _minpack._lmdif(func, x0, args, 1, ftol, xtol,
                 gtol, maxfev, epsfcn, factor, diag)
     else:
         if col_deriv:
@@ -362,7 +385,9 @@ def leastsq(func, x0, args=(), Dfun=None, full_output=0,
             _check_func('leastsq', 'Dfun', Dfun, x0, args, n, (m,n))
         if (maxfev == 0):
             maxfev = 100*(n + 1)
-        retval = _minpack._lmder(func, Dfun, x0, args, full_output, col_deriv,
+
+        x, infodict, info = \
+           _minpack._lmder(func, Dfun, x0, args, 1, col_deriv,
                 ftol, xtol, gtol, maxfev, factor, diag)
 
     errors = {0:["Improper input parameters.", TypeError],
@@ -388,9 +413,9 @@ def leastsq(func, x0, args=(), Dfun=None, full_output=0,
                  "precision." % gtol, ValueError],
               'unknown':["Unknown error.", TypeError]}
 
-    info = retval[-1]    # The FORTRAN return value
+    success = (info in (1, 2, 3, 4))
 
-    if (info not in [1,2,3,4] and not full_output):
+    if not success and not _full_output:
         if info in [5,6,7,8]:
             warnings.warn(errors[info][0], RuntimeWarning)
         else:
@@ -399,22 +424,32 @@ def leastsq(func, x0, args=(), Dfun=None, full_output=0,
             except KeyError:
                 raise errors['unknown'][1](errors['unknown'][0])
 
-    mesg = errors[info][0]
-    if full_output:
-        cov_x = None
-        if info in [1,2,3,4]:
-            from numpy.dual import inv
-            from numpy.linalg import LinAlgError
-            perm = take(eye(n),retval[1]['ipvt']-1,0)
-            r = triu(transpose(retval[1]['fjac'])[:n,:])
-            R = dot(r, perm)
-            try:
-                cov_x = inv(dot(transpose(R),R))
-            except LinAlgError:
-                pass
-        return (retval[0], cov_x) + retval[1:-1] + (mesg, info)
-    else:
-        return (retval[0], info)
+    cov_x = None
+    if compute_cov and success:
+        from numpy.dual import inv
+        from numpy.linalg import LinAlgError
+        perm = take(eye(n),infodict['ipvt']-1,0)
+        r = triu(transpose(infodict['fjac'])[:n,:])
+        R = dot(r, perm)
+        try:
+            cov_x = inv(dot(transpose(R),R))
+        except LinAlgError:
+            pass
+
+    sol = Result(x=x,
+                 success=success,
+                 status=info,
+                 message=errors[info][0],
+                 cov_x=cov_x,
+                 nfev=infodict['nfev'],
+                 fun=infodict['fvec'],
+                 jac=infodict['fjac'],
+                 ipvt=infodict['ipvt'],
+                 qtf=infodict['qtf'])
+    if _full_output:
+        # backwards compatibility in leastsq()
+        sol['infodict'] = infodict
+    return sol
 
 def _general_function(params, xdata, ydata, function):
     return function(xdata, *params) - ydata

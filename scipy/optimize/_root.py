@@ -16,7 +16,7 @@ from scipy.lib.six import callable
 from warnings import warn
 
 from .optimize import MemoizeJac, Result, _check_unknown_options
-from .minpack import _root_hybr, leastsq
+from .minpack import _root_hybr, _leastsq_minpack
 from . import nonlin
 
 def root(fun, x0, args=(), method='hybr', jac=None, tol=None, callback=None,
@@ -189,16 +189,13 @@ def _root_leastsq(func, x0, args=(), jac=None,
                   gtol=0.0, maxiter=0, eps=0.0, factor=100, diag=None,
                   **unknown_options):
     _check_unknown_options(unknown_options)
-    x, cov_x, info, msg, ier = leastsq(func, x0, args=args, Dfun=jac,
-                                       full_output=True,
-                                       col_deriv=col_deriv, xtol=xtol,
-                                       ftol=ftol, gtol=gtol,
-                                       maxfev=maxiter, epsfcn=eps,
-                                       factor=factor, diag=diag)
-    sol = Result(x=x, message=msg, status=ier,
-                 success=ier in (1, 2, 3, 4), cov_x=cov_x,
-                 fun=info.pop('fvec'))
-    sol.update(info)
+
+    sol = _leastsq_minpack(func, x0, args=args, jac=jac,
+                           compute_cov=True,
+                           col_deriv=col_deriv, xtol=xtol,
+                           ftol=ftol, gtol=gtol,
+                           maxfev=maxiter, eps=eps,
+                           factor=factor, diag=diag)
     return sol
 
 def _root_nonlin_solve(func, x0, args=(), jac=None,
