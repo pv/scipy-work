@@ -12,7 +12,7 @@ ctypedef fused real_t:
     float
     double
 
-cimport numpy
+import numpy as np
 cimport cython
 
 @cython.boundscheck(False)
@@ -57,3 +57,4 @@ def qrsolv(real_t[:,:] s, real_t[:] diag):
                             tmp = s[k, l]
                             s[k, l] = cos * tmp + sin * ta[l]
                             ta[l] = -sin * tmp + cos * ta[l]
+    return np.asarray(s)
