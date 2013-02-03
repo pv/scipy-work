@@ -459,7 +459,8 @@ class _LMFit(object):
             is an variable used in determining a suitable step length
             for the forward-difference approximation. This approximation
             assumes that the relative errors in the functions are of the
-            order of eps. """
+            order of eps.
+        """
         x = 1. * array(x)
         self.params = x
         self.nfev = 1
@@ -644,11 +645,6 @@ def _leastsq_lmfit(func, x0, args=(), jac=None, col_deriv=0,
         ret = fit.fit(x0, ftol=ftol, xtol=xtol, gtol=gtol,
                       maxfev=maxfev, eps=eps, factor=factor,
                       diag=diag, maxiter=maxiter)
-    except FitError as e:
-        mesg = e.message
-    except ValueError as e: # make the minpack tests happy
-        raise TypeError(e.message)
-    else:
         mesg = [
             "an unknown (typically user) error has occurred",
             "both actual and predicted relative reductions "
@@ -662,6 +658,9 @@ def _leastsq_lmfit(func, x0, args=(), jac=None, col_deriv=0,
             "the cosine of the angle between function value and any "
                 "column of the Jacobian is at most `gtol` in absolute value."
             ][fit.exitcode]
+    except FitError as e:
+        ret = fit.params
+        mesg = e.message
 
     cov_x = None
     error = None
