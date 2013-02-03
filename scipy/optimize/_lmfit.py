@@ -568,7 +568,7 @@ class Fit(object):
                     self.exitcode = 6
                     raise FitError(6, "ftol=%f is too small, no further " 
                         "reduction in the sum of squares is possible." % ftol)
-                if self.nfev > maxfev and maxfev is not None:
+                if maxfev is not None and self.nfev > maxfev:
                     self.exitcode = 5
                     raise FitError(5,
                         "Number of function evaluations has reached %d." %
