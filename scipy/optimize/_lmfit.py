@@ -13,6 +13,7 @@ from numpy import array, diagonal, dot, empty, eye, finfo, maximum, meshgrid, \
      sqrt, zeros_like, isnan
 from itertools import count
 from scipy.linalg import solve_triangular, qr, qr_multiply, norm
+from scipy.sparse import isspmatrix
 from ._qrsolv import qrsolv
 
 from .optimize import Result, _check_unknown_options
@@ -477,10 +478,21 @@ class _LMFit(object):
 
         for self.iterations in range(maxiter):
             fjac = self.jacobian(x, self.fvec, fjac)
-            
-            fjacnorm = sqrt((fjac ** 2).sum(0))
-            qtf, r, ipvt = qr_multiply(fjac, self.fvec, pivoting=True,
-                overwrite_a=True, overwrite_c=True)
+
+            sparse_jacobian = isspmatrix(fjac)
+            dense_jacobian = not sparse_jacobian
+
+            if dense_jacobian:
+                # 2-norm for each column
+                fjacnorm = sqrt((fjac ** 2).sum(0))
+                qtf, r, ipvt = qr_multiply(fjac, self.fvec, pivoting=True,
+                                           overwrite_a=True, overwrite_c=True)
+            else:
+                # for sparse matrices, don't use QR updates
+                fjac_sq = fjac.copy()
+                fjac_sq.data **= 2
+                fjacnorm = sqrt(fjac.sum(0))
+                del fjac_sq
 
             if self.iterations == 0:
                 if diag is None:
