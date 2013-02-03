@@ -107,7 +107,7 @@ def least_squares(fun, x0, args=(), method='lm', jac=None, tol=None,
     if options is None:
         options = {}
 
-    if callback is not None and meth in ('lm', 'lm2'):
+    if callback is not None and meth in ('lm',):
         warn('Method %s does not accept callback.' % method,
              RuntimeWarning)
 
@@ -129,7 +129,8 @@ def least_squares(fun, x0, args=(), method='lm', jac=None, tol=None,
     if meth == 'lm':
         sol = _leastsq_minpack(fun, x0, args=args, jac=jac, **options)
     elif meth == 'lm2':
-        sol = _leastsq_lmfit(fun, x0, args=args, jac=jac, **options)
+        sol = _leastsq_lmfit(fun, x0, args=args, jac=jac, callback=callback,
+                             **options)
     else:
         raise ValueError('Unknown solver %s' % method)
 

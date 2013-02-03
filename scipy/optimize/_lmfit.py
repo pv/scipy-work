@@ -33,7 +33,7 @@ class FitError(Exception):
         Exception.__init__(self, message)
         self.exitcode = exitcode
 
-class Fit(object):
+class _LMFit(object):
     """ Least-Squares Fitting using Levenberg-Marquardt
 
     This class contains methods to minimize the sum of the squares 
@@ -42,9 +42,8 @@ class Fit(object):
     `func` that calculates the functions, and, optionally, the method
     `jacobian` to calculate its partial derivatives.
 
-    Parameters
+    Attributes
     ----------
-
     params : vector, length `N`
         contains the last successful set of parameters during fit.
         Useful if fit failed.
@@ -333,7 +332,9 @@ class Fit(object):
         x : vector, length `N`
             contains the least squares solution of the system 
             ``A x = b,    sqrt(par) D x = 0``,
-            for the output `par`. """
+            for the output `par`.
+
+        """
         dwarf = finfo(r.dtype).tiny
         # Compute and store in x the Gauss-Newton direction. If the
         # jacobian is rank-deficient, obtain a least squares solution.
@@ -392,12 +393,12 @@ class Fit(object):
                 paru = min(paru, par)
             par = max(parl, par + parc)
 
-    def plot(self, x, f, good):
-        """ plot intermediate results
+    def callback_func(self, x, f, good):
+        """Callback for intermediate results
 
         This method, which does nothing in its default implemenation,
         is called by the fitting algorithm for every new parameters tested,
-        and may be overwritten to plot the function while fitting.
+        and may be overwritten to e.g. plot the function while fitting.
 
         Parameters
         ----------
@@ -410,8 +411,7 @@ class Fit(object):
             the last estimate. """
         pass
 
-    def fit(self, x, ftol=1.49012e-8, xtol=1.49012e-8, gtol=0.0, maxfev=None,
-                epsfcn=None, factor=100, diagin=None, iterations=100):
+    def fit(self, x, ftol, xtol, gtol, maxfev, eps, factor, diag, maxiter):
         """ The Levenberg-Marquardt algorithm
 
         This method performs the actual Levenberg-Marquardt minimization
@@ -441,8 +441,8 @@ class Fit(object):
             orthogonality desired between the function vector and the
             columns of the Jacobian.
      
-        iterations : int, optional
-            is the maximum number of iterations.
+        maxiter : int, optional
+            is the maximum number of maxiter.
      
         factor : float, > 0
             used in determining the initial step bound. this bound is
@@ -451,15 +451,15 @@ class Fit(object):
             cases factor should lie in the interval 0.1 < x < 100.
             100 is a generally recommended value.
 
-        diagin : vector, length N, optional
+        diag : vector, length N, optional
             contains positive entries that serve as multiplicative
             scale factors for the variables.  
 
-        epsfcn : float, > 0, optional
+        eps : float, > 0, optional
             is an variable used in determining a suitable step length
             for the forward-difference approximation. This approximation
             assumes that the relative errors in the functions are of the
-            order of epsfcn. """
+            order of eps. """
         x = 1. * array(x)
         self.params = x
         self.nfev = 1
@@ -467,14 +467,14 @@ class Fit(object):
         fnorm = norm(self.fvec)
         par = 0
         epsmch = finfo(x.dtype).eps
-        if epsfcn is None:
-            epsfcn = epsmch
-        self.eps = epsfcn
+        if not eps:
+            eps = epsmch
+        self.eps = eps
         self.running = True
         self.exitcode = 0
         fjac = empty((len(self.fvec), len(x)), dtype=self.fvec.dtype, order="F")
 
-        for self.iterations in range(iterations):
+        for self.iterations in range(maxiter):
             fjac = self.jacobian(x, self.fvec, fjac)
             
             fjacnorm = sqrt((fjac ** 2).sum(0))
@@ -482,11 +482,11 @@ class Fit(object):
                 overwrite_a=True, overwrite_c=True)
 
             if self.iterations == 0:
-                if diagin is None:
+                if diag is None:
                     self.scale = fjacnorm.copy()
                     self.scale[self.scale == 0] = 1
                 else:
-                    self.scale = diagin
+                    self.scale = diag
                 xnorm = norm(self.scale * x)
                 delta = factor * xnorm
                 if delta == 0:
@@ -496,7 +496,7 @@ class Fit(object):
             if gnorm < gtol:
                 self.exitcode = 4
                 return x
-            if diagin is None: 
+            if diag is None: 
                 self.scale = maximum(self.scale, fjacnorm) 
             ratio = 0
             while ratio < 0.0001:
@@ -545,9 +545,9 @@ class Fit(object):
                     self.fvec = testf
                     fnorm = testfnorm
                     xnorm = norm(self.scale * x)
-                    self.plot(x, self.fvec, True)
+                    self.callback_func(x, self.fvec, True)
                 else:
-                    self.plot(testx, testf, False)
+                    self.callback_func(testx, testf, False)
                 c1 = (abs(actual_reduction) <= ftol and
                       predicted_reduction <= ftol and ratio <= 2)
                 c2 = delta <= (xtol * xnorm)
@@ -562,7 +562,8 @@ class Fit(object):
                 if delta < epsmch * xnorm:
                     self.exitcode = 7
                     raise FitError(7, "xtol=%f is too small, no further " 
-                        "improvement in the approximate solution is possible."                          % xtol)
+                        "improvement in the approximate solution is possible."
+                                   % xtol)
                 if (abs(actual_reduction) < epsmch and
                         predicted_reduction < epsmch and 0.5 * ratio < 1):
                     self.exitcode = 6
@@ -574,7 +575,7 @@ class Fit(object):
                         "Number of function evaluations has reached %d." %
                         self.nfev)
         self.exitcode = 9
-        raise FitError(9, "Number of iterations has reached %d." % iterations)
+        raise FitError(9, "Number of iterations has reached %d." % maxiter)
 
     def covar(self, x, eps=0):
         """ calculate the covariance matrix of the solution
@@ -610,28 +611,39 @@ class Fit(object):
         ret[j1, j2] = cov
         return ret
 
-def _leastsq_lmfit(func, x0, args=(), jac=None, full_output=0, col_deriv=0,
-                   compute_cov=True, **kwargs):
+def _leastsq_lmfit(func, x0, args=(), jac=None, col_deriv=0,
+                   compute_cov=True, callback=None, ftol=1.49012e-8,
+                   xtol=1.49012e-8, gtol=0.0, maxfev=None,
+                   eps=None, factor=100, diag=None, maxiter=100,
+                   **unknown_options):
     """
     Function equivalent to the class `Fit`
 
     This function is supposed to be a drop-in replacement for 
     `scipy.optimize.leastsq`. See the documentation there.
     """
-    class MyFit(Fit):
+    _check_unknown_options(unknown_options)
+
+    class MyFit(_LMFit):
         def func(self, x):
             return func(x, *args)
 
         if jac is not None:
             def jacobian(self, x, fvec, ret):
                 if col_deriv:
-                    return jac(x)
+                    return jac(x, *args)
                 else:
-                    return jac(x).T
+                    return jac(x, *args).T
+
+        if callback is not None:
+            def callback_func(self, x, f, good):
+                callback(x, f)
 
     fit = MyFit()
     try:
-        ret = fit.fit(x0, **kwargs)
+        ret = fit.fit(x0, ftol=ftol, xtol=xtol, gtol=gtol,
+                      maxfev=maxfev, eps=eps, factor=factor,
+                      diag=diag, maxiter=maxiter)
     except FitError as e:
         mesg = e.message
     except ValueError as e: # make the minpack tests happy
