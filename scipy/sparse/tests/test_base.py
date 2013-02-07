@@ -914,16 +914,17 @@ class _TestSlicingAssign:
 
     def test_slice_assign_2(self):
         n, m = (5, 10)
-        def _test_set(i, j, nitems):
-            msg = "%r ; %r ; %r" % (i, j, nitems)
+        def _test_set(i, j):
+            msg = "i=%r; j=%r" % (i, j)
             A = self.spmatrix((n, m))
             A[i, j] = 1
-            assert_almost_equal(A.sum(), nitems, err_msg=msg)
-            assert_almost_equal(A[i, j].todense(), 1, err_msg=msg)
-
+            B = np.zeros((n, m))
+            B[i, j] = 1
+            assert_array_almost_equal(A.todense(), B, err_msg=msg)
         # [i,1:2]
-        for i, j in [(2, slice(3)), (2, slice(5, -2)), (array(2), slice(5, -2))]:
-            _test_set(i, j, 3)
+        for i, j in [(2, slice(3)), (2, slice(None, 10, 4)), (2, slice(5, -2)),
+                     (array(2), slice(5, -2))]:
+            _test_set(i, j)
 
     def test_self_self_assignment(self):
         # Tests whether a row of one lil_matrix can be assigned to
@@ -1107,6 +1108,22 @@ class _TestFancyIndexing:
         assert_raises(IndexError, S.__getitem__, (I,J_bad))
 
 class _TestFancyIndexingAssign:
+    def test_fancy_indexing_set(self):
+        n, m = (5, 10)
+        def _test_set_slice(i, j):
+            A = self.spmatrix((n, m))
+            A[i, j] = 1
+            B = np.zeros((n, m))
+            B[i, j] = 1
+            assert_array_almost_equal(A.todense(), B)
+        # [1:2,1:2]
+        for i, j in [((2, 3, 4), slice(None, 10, 4)), 
+                     (np.arange(3), slice(5, -2)), 
+                     (slice(2, 5), slice(5, -2))]:
+            _test_set_slice(i, j)
+        for i, j in [(np.arange(3), np.arange(3)), ((0, 3, 4), (1, 2, 4))]:
+            _test_set_slice(i, j)
+
     def test_sequence_assignment(self):
         A = self.spmatrix((4,3))
         B = self.spmatrix(eye(3,4))
