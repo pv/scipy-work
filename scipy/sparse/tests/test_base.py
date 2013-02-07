@@ -1154,6 +1154,14 @@ class _TestFancyIndexingAssign:
             C[[0,1,2], [0,1,2]] = [4,5,6]
         assert_array_equal(A.A, B)
 
+        # both slices (2)
+        A = self.spmatrix((4, 3))
+        A[(1, 2, 3), (0, 1, 2)] = [1, 2, 3]
+        assert_almost_equal(A.sum(), 6)
+        B = np.zeros((4, 3))
+        B[(1, 2, 3), (0, 1, 2)] = [1, 2, 3]
+        assert_array_equal(A.todense(), B)
+
 class _TestFancyMultidim:
     def test_fancy_indexing_ndarray(self):
         sets = [
