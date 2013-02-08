@@ -991,19 +991,19 @@ class _TestSlicingAssign:
         # The next 6 commands should raise exceptions
         try:
             A[0,0] = list(range(100))
-        except ValueError:
+        except (ValueError, IndexError):
             caught += 1
         try:
             A[0,0] = arange(100)
-        except ValueError:
+        except (ValueError, IndexError):
             caught += 1
         try:
             A[0,:] = list(range(100))
-        except ValueError:
+        except (ValueError, IndexError):
             caught += 1
         try:
             A[:,1] = list(range(100))
-        except ValueError:
+        except (ValueError, IndexError):
             caught += 1
         try:
             A[:,1] = A.copy()
@@ -1107,6 +1107,7 @@ class _TestFancyIndexing:
         assert_raises(IndexError, S.__getitem__, (I_bad,J))
         assert_raises(IndexError, S.__getitem__, (I,J_bad))
 
+
 class _TestFancyIndexingAssign:
     def test_fancy_indexing_set(self):
         n, m = (5, 10)
@@ -1171,6 +1172,8 @@ class _TestFancyMultidim:
             (np.array([1, 2, 3]), np.array([[3], [4], [2]])),
             (np.array([[1, 2, 3], [3, 4, 2]]),
              np.array([[5, 6, 3], [2, 3, 1]])),
+            (np.array([[[1], [2], [3]], [[3], [4], [2]]]),
+             np.array([[[5], [6], [3]], [[2], [3], [1]]])),
         ]
 
         for I, J in sets:
@@ -1188,6 +1191,10 @@ class _TestFancyMultidim:
 
             assert_raises(IndexError, S.__getitem__, (I_bad,J))
             assert_raises(IndexError, S.__getitem__, (I,J_bad))
+
+            # This would generate 3-D arrays -- not supported
+            assert_raises(IndexError, S.__getitem__, ([I, I], slice(None)))
+            assert_raises(IndexError, S.__getitem__, (slice(None), [J, J]))
 
 class _TestFancyMultidimAssign:
     def test_fancy_assign_ndarray(self):
@@ -1207,8 +1214,22 @@ class _TestFancyMultidimAssign:
 
         I_bad = I + 5
         J_bad = J + 7
-        assert_raises(IndexError, S.__setitem__, (I_bad,J), C)
-        assert_raises(IndexError, S.__setitem__, (I,J_bad), C)
+        assert_raises(IndexError, S.__setitem__, (I_bad,J))
+        assert_raises(IndexError, S.__setitem__, (I,J_bad))
+
+    def test_fancy_indexing_multidim_set(self):
+        n, m = (5, 10)
+        def _test_set_slice(i, j):
+            A = self.spmatrix((n, m))
+            A[i, j] = 1
+            B = np.zeros((n, m))
+            B[i, j] = 1
+            assert_array_almost_equal(A.todense(), B)
+        # [[[1, 2], [1, 2]], [1, 2]]
+        for i, j in [(np.array([[1, 2], [1, 3]]), [1, 3]), 
+                        (np.array([0, 4]), [[0, 3], [1, 2]]),
+                        ([[1, 2, 3], [0, 2, 4]],  [[0, 4, 3], [4, 1, 2]])]:
+            _test_set_slice(i, j)
 
 
 class _TestArithmetic:
@@ -1740,6 +1761,14 @@ class TestDOK(sparse_test_class(slicing=False,
     def test_fancy_assign_ndarray(self):
         pass
 
+    @dec.knownfailureif(True, "known deficiency in DOK")
+    def test_fancy_indexing_set(self):
+        pass
+
+    @dec.knownfailureif(True, "known deficiency in DOK")
+    def test_fancy_indexing_multidim_set(self):
+        pass
+
 
 class TestLIL(sparse_test_class(fancy_multidim_assign=False,
                                 fancy_multidim_indexing=False)):
@@ -1850,30 +1879,6 @@ class TestLIL(sparse_test_class(fancy_multidim_assign=False,
         a = lil_matrix(np.ones((3,3)))
         a *= 2.
         a[0, :] = 0
-
-    ##
-    ## TODO: LIL fails the following tests by producing invalid results
-    ##
-
-    @dec.knownfailureif(True, "LIL bug")
-    def test_slice_assign_2(self):
-        pass
-
-    @dec.knownfailureif(True, "LIL bug")
-    def test_sequence_assignment(self):
-        pass
-
-    @dec.knownfailureif(True, "LIL bug")
-    def test_scalar_assign_2(self):
-        pass
-
-    @dec.knownfailureif(True, "LIL bug")
-    def test_slicing_2(self):
-        pass
-
-    @dec.knownfailureif(True, "LIL bug")
-    def test_set_slice(self):
-        pass
 
 
 class TestCOO(sparse_test_class(getset=False,
