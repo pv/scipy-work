@@ -124,6 +124,20 @@ if not release:
     finally:
         a.close()
 
+try:
+    from sphinx.setup_command import BuildDoc
+    HAVE_SPHINX = True
+except ImportError:
+    HAVE_SPHINX = False
+
+if HAVE_SPHINX:
+    class ScipyBuildDoc(BuildDoc):
+        """Run in-place build before Sphinx doc build"""
+        def run(self):
+            ret = subprocess.call([sys.executable, sys.argv[0], 'build_ext', '-i'])
+            if ret != 0:
+                raise RuntimeError("Building Scipy failed!")
+            BuildDoc.run(self)
 
 def configuration(parent_package='',top_path=None):
     from numpy.distutils.misc_util import Configuration
@@ -140,12 +154,16 @@ def configuration(parent_package='',top_path=None):
 
     return config
 
-
 def setup_package():
     from numpy.distutils.core import setup
 
     # Rewrite the version file everytime
     write_version_py()
+
+    if HAVE_SPHINX:
+        cmdclass = {'build_sphinx': ScipyBuildDoc}
+    else:
+        cmdclass = {}
 
     setup(
         name = 'scipy',
@@ -156,6 +174,7 @@ def setup_package():
         url = "http://www.scipy.org",
         download_url = "http://sourceforge.net/project/showfiles.php?group_id=27747&package_id=19531",
         license = 'BSD',
+        cmdclass=cmdclass,
         classifiers=[_f for _f in CLASSIFIERS.split('\n') if _f],
         platforms = ["Windows", "Linux", "Solaris", "Mac OS-X", "Unix"],
         configuration=configuration)
