@@ -34,7 +34,7 @@ static void error_handler(const char *reason, const char *file, int line, int gs
 
 void dump_mathieu()
 {
-    gsl_sf_result res_1, res_2;
+    gsl_sf_result res_1, res_2, res_3, res_4;
     int jm, jq, jx;
     FILE *f;
 
@@ -91,6 +91,49 @@ void dump_mathieu()
                 CALL_SF_FUNC(res_2, gsl_sf_mathieu_se, values_m2[jm], values_q[jq], values_x[jx]);
                 fprintf(f, "%d %.22g %.22g %.22g %.22g\n", values_m2[jm], values_q[jq],
                         values_x[jx], res_1.val, res_2.val);
+                fflush(f);
+            }
+        }
+    }
+    fclose(f);
+
+    /* mathieu_mc & mathieu_ms */
+    f = fopen("mathieu_mc_ms.txt", "w");
+    fprintf(f, "# m  q  x  Mc_m(1,q,x)  Ms_m(1,q,x)  Mc_m(2,q,x)  Ms_m(2,q,x)\n");
+    for (jm = 0; jm < nvalues_m2; ++jm) {
+        for (jq = 0; jq < nvalues_q; ++jq) {
+            for (jx = 0; jx < nvalues_x; ++jx) {
+
+                if (fabs(values_q[jq]) < 0.1) {
+                    /* Bogus results, GSL bug (version 1.15)?
+                     */
+                    continue;
+                }
+
+                if (fabs(values_x[jx]) > 20) {
+                    /* Bogus results, GSL bug (version 1.15)?
+                     */
+                    continue;
+                }
+
+                if (values_m2[jm] >= 10) {
+                    /* Bogus results, GSL bug (version 1.15)?
+                     */
+                    continue;
+                }
+
+                if (values_x[jx] < 0) {
+                    /* Bogus results, GSL bug (version 1.15)?
+                     */
+                    continue;
+                }
+
+                CALL_SF_FUNC(res_1, gsl_sf_mathieu_Mc, 1, values_m2[jm], values_q[jq], values_x[jx]);
+                CALL_SF_FUNC(res_2, gsl_sf_mathieu_Ms, 1, values_m2[jm], values_q[jq], values_x[jx]);
+                CALL_SF_FUNC(res_3, gsl_sf_mathieu_Mc, 2, values_m2[jm], values_q[jq], values_x[jx]);
+                CALL_SF_FUNC(res_4, gsl_sf_mathieu_Ms, 2, values_m2[jm], values_q[jq], values_x[jx]);
+                fprintf(f, "%d %.22g %.22g %.22g %.22g %.22g %.22g\n", values_m2[jm], values_q[jq],
+                        values_x[jx], res_1.val, res_2.val, res_3.val, res_4.val);
                 fflush(f);
             }
         }
