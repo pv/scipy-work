@@ -26,6 +26,14 @@ cdef extern from "cephes.h":
     double smirnov(int n, double e) nogil
     double smirnovi(int n, double p) nogil
 
+cdef extern from "specfun_wrappers.h":
+    int cem_wrap(double m, double q, double x, double *csf, double *csd) nogil
+    int sem_wrap(double m, double q, double x, double *csf, double *csd) nogil
+    int mcm1_wrap(double m, double q, double x, double *f1r, double *d1r) nogil
+    int msm1_wrap(double m, double q, double x, double *f1r, double *d1r) nogil
+    int mcm2_wrap(double m, double q, double x, double *f2r, double *d2r) nogil
+    int msm2_wrap(double m, double q, double x, double *f2r, double *d2r) nogil
+
 cdef extern from "Python.h":
     # Purposefully ignore the raised PyError --- assume the ufunc will collect it
     int PyErr_WarnEx_noerr "PyErr_WarnEx" (object, char *, int)
@@ -33,9 +41,8 @@ cdef extern from "Python.h":
 cdef inline void _legacy_cast_check(char *func_name, double x, double y) nogil:
     if <int>x != x or <int>y != y:
         with gil:
-            PyErr_WarnEx_noerr(RuntimeWarning,
-                               "floating point number truncated to an integer",
-                               1)
+            msg = b"scipy.special." + func_name + b": floating point number truncated to an integer"
+            PyErr_WarnEx_noerr(RuntimeWarning, msg, 1)
 
 cdef inline double bdtrc_unsafe(double k, double n, double p) nogil:
     _legacy_cast_check("bdtrc", k, n)
@@ -82,3 +89,21 @@ cdef inline double smirnov_unsafe(double n, double e) nogil:
 cdef inline double smirnovi_unsafe(double n, double p) nogil:
     _legacy_cast_check("smirnovi", n, 0)
     return smirnovi(<int>n, p)
+cdef inline int cem_wrap_unsafe(double m, double q, double x, double *csf, double *csd) nogil:
+    _legacy_cast_check("mathieu_cem", m, 0)
+    return cem_wrap(<int>m, q, x, csf, csd)
+cdef inline int sem_wrap_unsafe(double m, double q, double x, double *csf, double *csd) nogil:
+    _legacy_cast_check("mathieu_sem", m, 0)
+    return sem_wrap(<int>m, q, x, csf, csd)
+cdef inline int mcm1_wrap_unsafe(double m, double q, double x, double *f1r, double *d1r) nogil:
+    _legacy_cast_check("mathieu_modcem1", m, 0)
+    return mcm1_wrap(<int>m, q, x, f1r, d1r)
+cdef inline int msm1_wrap_unsafe(double m, double q, double x, double *f1r, double *d1r) nogil:
+    _legacy_cast_check("mathieu_modsem1", m, 0)
+    return msm1_wrap(<int>m, q, x, f1r, d1r)
+cdef inline int mcm2_wrap_unsafe(double m, double q, double x, double *f2r, double *d2r) nogil:
+    _legacy_cast_check("mathieu_modcem2", m, 0)
+    return mcm2_wrap(<int>m, q, x, f2r, d2r)
+cdef inline int msm2_wrap_unsafe(double m, double q, double x, double *f2r, double *d2r) nogil:
+    _legacy_cast_check("mathieu_modsem2", m, 0)
+    return msm2_wrap(<int>m, q, x, f2r, d2r)
