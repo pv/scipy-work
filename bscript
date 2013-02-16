@@ -173,16 +173,14 @@ def post_configure(context):
     if not (conf.env.HAS_BLAS and conf.env.HAS_LAPACK):
         raise waflib.Errors.ConfigurationError("You need blas and lapack")
 
-    blas_lapack.check_cblas(context)
-
     npymath_info = get_pkg_info("npymath")
     conf.parse_flags(npymath_info.cflags() + " " + npymath_info.libs(), "NPYMATH")
+
+    _generate_cython()
 
 @hooks.pre_build
 def pre_build(context):
     bld = context.waf_context
-
-    _generate_cython()
 
     context.register_category("gen_pymodule")
     bld(features="gen_pymodule",
