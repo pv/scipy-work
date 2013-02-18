@@ -277,8 +277,10 @@ class coo_matrix(_data_matrix):
             indices = np.empty(self.nnz, dtype=idx_dtype)
             data    = np.empty(self.nnz, dtype=upcast(self.dtype))
 
-            coo_tocsr(N, M, self.nnz, \
-                      self.col, self.row, self.data, \
+            coo_tocsr(N, M, self.nnz,
+                      self.col.astype(idx_dtype),
+                      self.row.astype(idx_dtype),
+                      self.data,
                       indptr, indices, data)
 
             A = csc_matrix((data, indices, indptr), shape=self.shape)
@@ -316,9 +318,13 @@ class coo_matrix(_data_matrix):
             indices = np.empty(self.nnz, dtype=idx_dtype)
             data    = np.empty(self.nnz, dtype=upcast(self.dtype))
 
-            coo_tocsr(M, N, self.nnz, \
-                      self.row, self.col, self.data, \
-                      indptr, indices, data)
+            coo_tocsr(M, N, self.nnz,
+                      self.row.astype(idx_dtype),
+                      self.col.astype(idx_dtype),
+                      self.data,
+                      indptr,
+                      indices,
+                      data)
 
             A = csr_matrix((data, indices, indptr), shape=self.shape)
             A.sum_duplicates()

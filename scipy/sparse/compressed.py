@@ -124,7 +124,8 @@ class _cs_matrix(_data_matrix):
             warn("indices array has non-integer dtype (%s)" \
                     % self.indices.dtype.name )
 
-        idx_dtype = get_index_dtype([self.indices], len(self.indptr))
+        idx_dtype = get_index_dtype((self.indptr, self.indices),
+                                    len(self.indptr))
         self.indptr  = np.asarray(self.indptr,  dtype=idx_dtype)
         self.indices = np.asarray(self.indices, dtype=idx_dtype)
         self.data    = to_native(self.data)
@@ -291,7 +292,8 @@ class _cs_matrix(_data_matrix):
         major_axis = self._swap((M,N))[0]
         other = self.__class__(other) #convert to this format
 
-        idx_dtype = get_index_dtype([self.indices, other.indices])
+        idx_dtype = get_index_dtype((self.indices, self.indptr,
+                                     other.indices, other.indptr))
         indptr = np.empty(major_axis + 1, dtype=idx_dtype)
 
         fn = getattr(sparsetools, self.format + '_matmat_pass1')
@@ -303,7 +305,9 @@ class _cs_matrix(_data_matrix):
            indptr)
 
         nnz = indptr[-1]
-        idx_dtype = get_index_dtype(nnz=nnz)
+        idx_dtype = get_index_dtype((self.indptr, self.indices,
+                                     other.indptr, other.indices),
+                                    nnz=nnz)
         indptr  = indptr.astype(idx_dtype)
         indices = np.empty(nnz, dtype=idx_dtype)
         data    = np.empty(nnz, dtype=upcast(self.dtype,other.dtype))
@@ -683,7 +687,9 @@ class _cs_matrix(_data_matrix):
         fn = getattr(sparsetools, self.format + op + self.format)
 
         maxnnz  = self.nnz + other.nnz
-        idx_dtype = get_index_dtype(nnz=maxnnz)
+        idx_dtype = get_index_dtype((self.indptr, self.indices,
+                                     other.indptr, other.indices),
+                                    nnz=maxnnz)
         indptr  = np.empty(self.indptr.shape, dtype=idx_dtype)
         indices = np.empty(maxnnz, dtype=idx_dtype)
         data    = np.empty(maxnnz, dtype=upcast(self.dtype,other.dtype))
