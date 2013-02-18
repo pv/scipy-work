@@ -28,7 +28,7 @@ from numpy import arange, zeros, array, dot, matrix, asmatrix, asarray, \
 import random
 from numpy.testing import assert_raises, assert_equal, assert_array_equal, \
         assert_array_almost_equal, assert_almost_equal, assert_, \
-        dec, TestCase, run_module_suite
+        dec, run_module_suite
 
 import scipy.linalg
 
@@ -39,10 +39,54 @@ from scipy.sparse import csc_matrix, csr_matrix, dok_matrix, \
 from scipy.sparse.sputils import supported_dtypes
 from scipy.sparse.linalg import splu, expm, inv
 
+from scipy.lib.decorator import decorator
 
 warnings.simplefilter('ignore', SparseEfficiencyWarning)
 warnings.simplefilter('ignore', ComplexWarning)
 
+def with_64bit_nnz_limit(nnz_limit=None, random=False):
+    """
+    Monkeypatch the nnz threshold at which scipy.sparse switches to
+    64-bit index arrays, or make it (pseudo-)random.
+
+    """
+    if nnz_limit is None:
+        nnz_limit = 10
+
+    if random:
+        counter = np.random.RandomState(seed=1234)
+        def new_get_index_dtype(arrays=(), nnz=None):
+            return (np.int32, np.int64)[counter.randint(2)]
+    else:
+        def new_get_index_dtype(arrays=(), nnz=None):
+            dtype = np.int32
+            if nnz is not None:
+                if nnz >= nnz_limit:
+                    dtype = np.int64
+            for arr in arrays:
+                arr = np.asarray(arr)
+                if arr.dtype > np.int32 or (np.issubdtype(arr.dtype, np.integer)
+                                            and np.any(arr >= nnz_limit)):
+                    dtype = np.int64
+            return dtype
+
+    @decorator
+    def deco(func, *a, **kw):
+        backup = []
+        modules = [scipy.sparse.bsr, scipy.sparse.coo, scipy.sparse.csc,
+                   scipy.sparse.csr, scipy.sparse.dia, scipy.sparse.dok,
+                   scipy.sparse.lil, scipy.sparse.sputils,
+                   scipy.sparse.compressed, scipy.sparse.construct]
+        try:
+            for mod in modules:
+                backup.append((mod, getattr(mod, 'get_index_dtype', None)))
+                setattr(mod, 'get_index_dtype', new_get_index_dtype)
+            return func(*a, **kw)
+        finally:
+            for mod, oldfunc in backup:
+                setattr(mod, 'get_index_dtype', oldfunc)
+
+    return deco
 
 #TODO check that spmatrix( ... , copy=X ) is respected
 #TODO test prune
@@ -50,7 +94,7 @@ warnings.simplefilter('ignore', ComplexWarning)
 class _TestCommon:
     """test common functionality shared by all sparse formats"""
 
-    def setUp(self):
+    def setup(self):
         self.dat = matrix([[1,0,0,2],[3,0,1,0],[0,2,0,0]],'d')
         self.datsp = self.spmatrix(self.dat)
 
@@ -433,11 +477,11 @@ class _TestCommon:
 
         #invalid exponents
         for exponent in [-1, 2.2, 1 + 3j]:
-            self.assertRaises( Exception, B.__pow__, exponent )
+            assert_raises(Exception, B.__pow__, exponent )
 
         #nonsquare matrix
         B = self.spmatrix(A[:3,:])
-        self.assertRaises( Exception, B.__pow__, 1 )
+        assert_raises(Exception, B.__pow__, 1 )
 
 
     def test_rmatvec(self):
@@ -1084,7 +1128,7 @@ class _Test2DSlicingRegression:
 class TestCSR(_TestCommon, _TestGetSet, _TestSolve,
         _TestInplaceArithmetic, _TestArithmetic,
         _TestHorizSlicing, _TestVertSlicing, _TestBothSlicing,
-        _TestFancyIndexing, _Test2DSlicingRegression, TestCase):
+        _TestFancyIndexing, _Test2DSlicingRegression):
     spmatrix = csr_matrix
 
     @dec.knownfailureif(True, "Fancy indexing is known to be broken for CSR" \
@@ -1207,7 +1251,7 @@ class TestCSR(_TestCommon, _TestGetSet, _TestSolve,
 class TestCSC(_TestCommon, _TestGetSet, _TestSolve,
         _TestInplaceArithmetic, _TestArithmetic,
         _TestHorizSlicing, _TestVertSlicing, _TestBothSlicing,
-        _TestFancyIndexing, _Test2DSlicingRegression, TestCase):
+        _TestFancyIndexing, _Test2DSlicingRegression):
     spmatrix = csc_matrix
 
     @dec.knownfailureif(True, "Fancy indexing is known to be broken for CSC" \
@@ -1304,7 +1348,7 @@ class TestCSC(_TestCommon, _TestGetSet, _TestSolve,
         assert_equal((asp + bsp).todense(), asp.todense() + bsp.todense())
 
 
-class TestDOK(_TestCommon, _TestGetSet, _TestSolve, TestCase):
+class TestDOK(_TestCommon, _TestGetSet, _TestSolve):
     spmatrix = dok_matrix
 
     def test_mult(self):
@@ -1553,8 +1597,7 @@ class TestDOK(_TestCommon, _TestGetSet, _TestSolve, TestCase):
 
 class TestLIL( _TestCommon, _TestHorizSlicing, _TestVertSlicing,
         _TestBothSlicing, _TestGetSet, _TestSolve,
-        _TestArithmetic, _TestInplaceArithmetic, _TestFancyIndexing,
-        TestCase):
+        _TestArithmetic, _TestInplaceArithmetic, _TestFancyIndexing):
     spmatrix = lil_matrix
 
     B = lil_matrix((4,3))
@@ -1733,7 +1776,7 @@ class TestLIL( _TestCommon, _TestHorizSlicing, _TestVertSlicing,
         a[0, :] = 0
 
 
-class TestCOO(_TestCommon, TestCase):
+class TestCOO(_TestCommon):
     spmatrix = coo_matrix
     def test_constructor1(self):
         """unsorted triplet format"""
@@ -1781,7 +1824,7 @@ class TestCOO(_TestCommon, TestCase):
         assert_array_equal(coo.todense(),mat.reshape(1,-1))
 
 
-class TestDIA(_TestCommon, _TestArithmetic, TestCase):
+class TestDIA(_TestCommon, _TestArithmetic):
     spmatrix = dia_matrix
 
     def test_constructor1(self):
@@ -1794,7 +1837,7 @@ class TestDIA(_TestCommon, _TestArithmetic, TestCase):
         assert_equal(dia_matrix( (data,offsets), shape=(4,4)).todense(), D)
 
 
-class TestBSR(_TestCommon, _TestArithmetic, _TestInplaceArithmetic, TestCase):
+class TestBSR(_TestCommon, _TestArithmetic, _TestInplaceArithmetic):
     spmatrix = bsr_matrix
 
     def test_constructor1(self):
@@ -1865,6 +1908,114 @@ class TestBSR(_TestCommon, _TestArithmetic, _TestInplaceArithmetic, TestCase):
         x = arange(A.shape[1]*6).reshape(-1,6)
         assert_equal(A*x, A.todense()*x)
 
+
+class Test64Bit(object):
+
+    TEST_CLASSES = [TestBSR, TestCOO, TestCSC, TestCSR, TestDIA,
+                    # lil/dok->other conversion operations have get_index_dtype
+                    TestDOK, TestLIL
+                    ]
+
+    MAT_CLASSES = [bsr_matrix, coo_matrix, csc_matrix, csr_matrix, dia_matrix]
+
+    # The following features are missing, so skip the tests:
+    SKIP_TESTS = {
+        'test_expm': 'expm for 64-bit indices not available',
+        'test_solve': 'linsolve for 64-bit indices not available'
+    }
+
+    def _create_some_matrix(self, mat_cls, m, n):
+        return mat_cls(np.random.rand(m, n))
+
+    def _compare_index_dtype(self, m, dtype):
+        dtype = np.dtype(dtype)
+        if isinstance(m, csc_matrix) or isinstance(m, csr_matrix) \
+               or isinstance(m, bsr_matrix):
+            return (m.indices.dtype == dtype) and (m.indptr.dtype == dtype)
+        elif isinstance(m, coo_matrix):
+            return (m.row.dtype == dtype) and (m.col.dtype == dtype)
+        elif isinstance(m, dia_matrix):
+            return (m.offsets.dtype == dtype)
+        else:
+            raise ValueError("matrix %r has no integer indices" % (m,))
+
+    def test_decorator_nnz_limit(self):
+        # Test that the with_64bit_nnz_limit decorator works
+
+        @with_64bit_nnz_limit(nnz_limit=10)
+        def check(mat_cls):
+            if mat_cls is csr_matrix or mat_cls is bsr_matrix:
+                m = mat_cls(np.random.rand(8, 1))
+            else:
+                m = mat_cls(np.random.rand(9, 1))
+            assert_(self._compare_index_dtype(m, np.int32))
+            m = mat_cls(np.random.rand(10, 1))
+            assert_(self._compare_index_dtype(m, np.int64))
+
+        for mat_cls in self.MAT_CLASSES:
+            yield check, mat_cls
+
+    def test_decorator_nnz_random(self):
+        # Test that the with_64bit_nnz_limit decorator works (2)
+
+        @with_64bit_nnz_limit(random=True)
+        def check(mat_cls):
+            seen_32 = False
+            seen_64 = False
+            for k in range(100):
+                m = self._create_some_matrix(mat_cls, 9, 9)
+                seen_32 = seen_32 or self._compare_index_dtype(m, np.int32)
+                seen_64 = seen_64 or self._compare_index_dtype(m, np.int64)
+                if seen_32 and seen_64:
+                    break
+            else:
+                raise AssertionError("both 32 and 64 bit indices not seen")
+
+        for mat_cls in self.MAT_CLASSES:
+            yield check, mat_cls
+
+    def test_resiliency_limit(self):
+        # Resiliency test, to check that sparse matrices deal reasonably
+        # with varying index data types.
+
+        @with_64bit_nnz_limit(nnz_limit=10)
+        def check(cls, method_name):
+            instance = cls()
+            if hasattr(instance, 'setup'):
+                instance.setup()
+            try:
+                getattr(instance, method_name)()
+            finally:
+                if hasattr(instance, 'teardown'):
+                    instance.teardown()
+
+        for cls in self.TEST_CLASSES:
+            for method_name in dir(cls):
+                if method_name.startswith('test_'):
+                    msg = self.SKIP_TESTS.get(method_name)
+                    yield dec.skipif(msg, msg)(check), cls, method_name
+
+    @dec.skipif(True, "doesn't work")
+    def test_resiliency_random(self):
+        # Resiliency test, to check that sparse matrices deal reasonably
+        # with varying index data types.
+
+        @with_64bit_nnz_limit(random=True)
+        def check(cls, method_name):
+            instance = cls()
+            if hasattr(instance, 'setUp'):
+                instance.setUp()
+            try:
+                getattr(instance, method_name)()
+            finally:
+                if hasattr(instance, 'teardown'):
+                    instance.teardown()
+
+        for cls in self.TEST_CLASSES:
+            for method_name in dir(cls):
+                if method_name.startswith('test_'):
+                    msg = self.SKIP_TESTS.get(method_name)
+                    yield dec.skipif(msg, msg)(check), cls, method_name
 
 if __name__ == "__main__":
     run_module_suite()
