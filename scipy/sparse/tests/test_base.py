@@ -748,7 +748,7 @@ class _TestGetSet:
             C[0,1] = 1
             C[3,0] = 4
             C[3,0] = 9
-        assert_array_equal(A.A, B)
+        assert_array_equal(A.toarray(), B)
 
 
 class _TestSolve:
@@ -910,7 +910,7 @@ class _TestSlicingAssign:
             C[3:4,0] = 9
             C[0,4:] = 1
             C[3::-1,4:] = 9
-        assert_array_equal(A.A, B)
+        assert_array_equal(A.toarray(), B)
 
     def test_slice_assign_2(self):
         n, m = (5, 10)
@@ -1153,7 +1153,7 @@ class _TestFancyIndexingAssign:
         B = np.zeros((3,3))
         for C in [A, B]:
             C[[0,1,2], [0,1,2]] = [4,5,6]
-        assert_array_equal(A.A, B)
+        assert_array_equal(A.toarray(), B)
 
         # both slices (2)
         A = self.spmatrix((4, 3))
