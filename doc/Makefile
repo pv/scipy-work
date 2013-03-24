@@ -11,8 +11,6 @@ PAPER         =
 
 FILES=
 
-NEED_AUTOSUMMARY = $(shell $(PYTHON) -c 'import sphinx; print sphinx.__version__ < "0.7" and "1" or ""')
-
 # Internal variables.
 PAPEROPT_a4     = -D latex_paper_size=a4
 PAPEROPT_letter = -D latex_paper_size=letter
@@ -98,24 +96,14 @@ dist-build:
 # Basic Sphinx generation rules for different formats
 #------------------------------------------------------------------------------
 
-generate: build/generate-stamp
-build/generate-stamp: $(wildcard source/*.rst)
-	mkdir -p build
-ifeq ($(NEED_AUTOSUMMARY),1)
-	$(PYTHON) \
-		./sphinxext/autosummary_generate.py source/*.rst \
-		-p dump.xml -o source/generated 
-endif
-	touch build/generate-stamp
-
-html: generate
+html:
 	mkdir -p build/html build/doctrees
 	$(SPHINXBUILD) -b html $(ALLSPHINXOPTS) build/html $(FILES)
 	$(PYTHON) postprocess.py html build/html/*.html
 	@echo
 	@echo "Build finished. The HTML pages are in build/html."
 
-pickle: generate
+pickle:
 	mkdir -p build/pickle build/doctrees
 	$(SPHINXBUILD) -b pickle $(ALLSPHINXOPTS) build/pickle $(FILES)
 	@echo
@@ -125,7 +113,7 @@ pickle: generate
 
 web: pickle
 
-htmlhelp: generate
+htmlhelp:
 	mkdir -p build/htmlhelp build/doctrees
 	$(SPHINXBUILD) -b htmlhelp $(ALLSPHINXOPTS) build/htmlhelp $(FILES)
 	@echo
@@ -136,7 +124,7 @@ htmlhelp-build: htmlhelp build/htmlhelp/scipy.chm
 %.chm: %.hhp
 	-hhc.exe $^
 
-latex: generate
+latex:
 	mkdir -p build/latex build/doctrees
 	$(SPHINXBUILD) -b latex $(ALLSPHINXOPTS) build/latex $(FILES)
 	$(PYTHON) postprocess.py tex build/latex/*.tex
@@ -151,13 +139,13 @@ coverage: build
 	$(SPHINXBUILD) -b coverage $(ALLSPHINXOPTS) build/coverage $(FILES)
 	@echo "Coverage finished; see c.txt and python.txt in build/coverage"
 
-changes: generate
+changes:
 	mkdir -p build/changes build/doctrees
 	$(SPHINXBUILD) -b changes $(ALLSPHINXOPTS) build/changes $(FILES)
 	@echo
 	@echo "The overview file is in build/changes."
 
-linkcheck: generate
+linkcheck:
 	mkdir -p build/linkcheck build/doctrees
 	$(SPHINXBUILD) -b linkcheck $(ALLSPHINXOPTS) build/linkcheck $(FILES)
 	@echo
