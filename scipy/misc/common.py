@@ -328,7 +328,7 @@ def central_diff_weights(Np, ndiv=1):
     w = product(arange(1,ndiv+1),axis=0)*linalg.inv(X)[ndiv]
     return w
 
-def derivative(func, x0, dx=1.0, n=1, args=(), order=3):
+def derivative(func, x0, dx=2e-08, n=1, args=(), order=3):
     """
     Find the n-th derivative of a function at a point.
 
@@ -341,7 +341,7 @@ def derivative(func, x0, dx=1.0, n=1, args=(), order=3):
         Input function.
     x0 : float
         The point at which `n`-th derivative is found.
-    dx : int, optional
+    dx : float, optional
         Spacing.
     n : int, optional
         Order of the derivative. Default is 1.
@@ -352,7 +352,9 @@ def derivative(func, x0, dx=1.0, n=1, args=(), order=3):
 
     Notes
     -----
-    Decreasing the step size too small can result in round-off error.
+    Note that you should choose ``dx`` according to the function at hand.
+    Making the step size too small can result in round-off error. The default
+    value is reasonable if your function varies on length scale of 1.0.
 
     Examples
     --------
