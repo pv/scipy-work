@@ -104,18 +104,12 @@ pygments_style = 'sphinx'
 # HTML output
 # -----------------------------------------------------------------------------
 
-# The style sheet to use for HTML and HTML Help pages. A file of that name
-# must exist either in Sphinx' static/ path, or in one of the custom paths
-# given in html_static_path.
-html_style = 'scipy.css'
+html_theme = 'scipy'
+html_theme_path = ["_theme"]
 
 # The name for this set of Sphinx documents.  If None, it defaults to
 # "<project> v<release> documentation".
 html_title = "%s v%s Reference Guide (DRAFT)" % (project, version)
-
-# The name of an image file (within the static path) to place at the top of
-# the sidebar.
-html_logo = '_static/scipyshiny_small.png'
 
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
@@ -132,15 +126,6 @@ html_last_updated_fmt = '%b %d, %Y'
 # If true, SmartyPants will be used to convert quotes and dashes to
 # typographically correct entities.
 #html_use_smartypants = True
-
-# Custom sidebar templates, maps document names to template names.
-html_sidebars = {
-    'index': 'indexsidebar.html'
-}
-
-# Additional templates that should be rendered to pages, maps page names to
-# template names.
-html_additional_pages = {}
 
 # If false, no module index is generated.
 html_use_modindex = True
