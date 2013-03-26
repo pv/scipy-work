@@ -82,7 +82,7 @@ def assert_func_equal(func, results, points, rtol=None, atol=None,
     data = np.c_[points, results]
     fdata = FuncData(func, data, list(range(npoints)), list(range(npoints, data.shape[1])),
                      rtol=rtol, atol=atol, param_filter=param_filter,
-                     knownfailure=knownfailure, nan_ok=nan_ok)
+                     knownfailure=knownfailure, nan_ok=nan_ok, vectorized=vectorized)
     fdata.check()
 
 class FuncData(object):
@@ -118,7 +118,7 @@ class FuncData(object):
 
     def __init__(self, func, data, param_columns, result_columns,
                  rtol=None, atol=None, param_filter=None, knownfailure=None,
-                 dataname=None, nan_ok=False):
+                 dataname=None, nan_ok=False, vectorized=True):
         self.func = func
         self.data = data
         self.dataname = dataname
@@ -135,6 +135,7 @@ class FuncData(object):
         self.param_filter = param_filter
         self.knownfailure = knownfailure
         self.nan_ok = nan_ok
+        self.vectorized = vectorized
 
     def get_tolerances(self, dtype):
         info = np.finfo(dtype)
@@ -180,7 +181,11 @@ class FuncData(object):
         wanted = tuple([data[:,j] for j in self.result_columns])
 
         # Evaluate
-        got = self.func(*params)
+        if self.vectorized:
+            got = self.func(*params)
+        else:
+            got = np.asarray([self.func(*tuple([params[i][j] for i in range(len(params))]))
+                              for j in range(len(params[0]))])
         if not isinstance(got, tuple):
             got = (got,)
 

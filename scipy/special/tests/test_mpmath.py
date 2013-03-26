@@ -561,3 +561,19 @@ def test_systematic_binom():
                         mpmath.binomial,
                         [Arg(), Arg()],
                         dps=400)
+
+# XXX --- missing functions
+
+@xslow
+def test_systematic_legenp():
+    def lpnm(n, m, z):
+        if m > n:
+            return 0.0
+        return sc.lpmn(m, n, z)[0][-1,-1]
+
+    assert_mpmath_equal(lpnm,
+                        mpmath.legenp,
+                        [IntArg(0, 100), IntArg(0, 100), Arg()],
+                        dps=400)
+
+# XXX --- missing functions
