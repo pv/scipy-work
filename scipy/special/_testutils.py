@@ -223,6 +223,7 @@ class FuncData(object):
 
             if self.nan_ok:
                 bad_j &= ~nan_x
+                bad_j &= ~nan_y
 
             if np.any(bad_j):
                 # Some bad results: inform what, where, and how bad

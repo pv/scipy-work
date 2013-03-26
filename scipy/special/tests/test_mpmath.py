@@ -572,8 +572,8 @@ def test_systematic_legenp():
         return sc.lpmn(m, n, z)[0][-1,-1]
 
     assert_mpmath_equal(lpnm,
-                        mpmath.legenp,
+                        _exception_to_nan(mpmath.legenp),
                         [IntArg(0, 100), IntArg(0, 100), Arg()],
-                        dps=400)
+                        n=800, dps=20)
 
 # XXX --- missing functions
