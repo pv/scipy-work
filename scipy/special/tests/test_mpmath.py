@@ -4,10 +4,15 @@ Test Scipy functions versus mpmath, if available.
 """
 from __future__ import division, print_function, absolute_import
 
+import sys
 import re
+import os
+
+import nose
 import numpy as np
 from numpy.testing import dec
 import scipy.special as sc
+from scipy.lib.six import reraise
 
 from scipy.special._testutils import FuncData, assert_func_equal
 
@@ -274,3 +279,285 @@ def test_beta():
             rtol=1e-10)
     finally:
         mpmath.mp.dps, mpmath.mp.prec = old_dps, old_prec
+
+
+#------------------------------------------------------------------------------
+# Machinery for systematic tests
+#------------------------------------------------------------------------------
+
+class Arg(object):
+    def __init__(self, a=-np.inf, b=np.inf, inclusive_a=True, inclusive_b=True):
+        self.a = a
+        self.b = b
+        self.inclusive_a = inclusive_a
+        self.inclusive_b = inclusive_b
+        if self.a == -np.inf:
+            self.a = -np.finfo(float).max
+        if self.b == np.inf:
+            self.b = np.finfo(float).max
+
+    def values(self, n):
+        v1 = np.linspace(-1, 1, n//4)
+        v2 = np.linspace(-10, 10, n//4)
+        v3 = np.linspace(-self.a, self.b, n//4)
+        if self.a >= 0 and self.b >= 0:
+            v4 = np.logspace(-30, np.log10(self.b), n//4)
+        elif self.a < 0 and self.b >= 0:
+            v4 = np.r_[
+                np.logspace(-30, np.log10(self.b), n//8),
+                -np.logspace(-30, np.log10(-self.a), n//8)
+                ]
+        else:
+            v4 = np.r_[
+                -np.logspace(-30, np.log10(-self.b), n//8)
+                ]
+        v = np.r_[v1, v2, v3, v4]
+        if self.inclusive_a:
+            v = v[v >= self.a]
+        else:
+            v = v[v > self.a]
+        if self.inclusive_b:
+            v = v[v <= self.b]
+        else:
+            v = v[v < self.b]
+        return v
+
+
+class ComplexArg(object):
+    def __init__(self, a=-np.inf, b=np.inf):
+        self.real = Arg(a.real, b.real)
+        self.imag = Arg(a.imag, b.imag)
+    def values(self, n):
+        m = int(np.sqrt(n)) + 1
+        x = self.real.values(m)
+        y = self.imag.values(m)
+        return (x[:,None] + 1j*y[None,:]).ravel()
+
+
+class IntArg(object):
+    def __init__(self, a, b):
+        self.a = a
+        self.b = b
+    def values(self, n):
+        m = (self.b - self.a)
+        v = np.arange(self.a, self.b, 1 + int(m//n))
+        return v
+
+
+class MpmathData(object):
+    def __init__(self, scipy_func, mpmath_func, arg_spec, name=None,
+                 dps=None, prec=None, n=5000, rtol=1e-10, atol=0):
+        self.scipy_func = scipy_func
+        self.mpmath_func = mpmath_func
+        self.arg_spec = arg_spec
+        self.dps = dps
+        self.prec = prec
+        self.n = n
+        self.rtol = rtol
+        self.atol = atol
+        self.is_complex = any([isinstance(arg, ComplexArg) for arg in self.arg_spec])
+        if not name or name == '<lambda>':
+            name = getattr(scipy_func, '__name__', None)
+        if not name or name == '<lambda>':
+            name =  getattr(mpmath_func, '__name__', None)
+        self.name = name
+
+    def check(self):
+        mpmath_check('0.17')(lambda: None)()
+
+        np.random.seed(1234)
+
+        # Generate values for the arguments
+        num_args = len(self.arg_spec)
+        m = int(self.n**(1./num_args)) + 3
+
+        argvals = []
+        for arg in self.arg_spec:
+            argvals.append(arg.values(m))
+
+        argarr = np.array(np.broadcast_arrays(*np.ix_(*argvals))).reshape(num_args, -1).T
+
+        # Check
+        old_dps, old_prec = mpmath.mp.dps, mpmath.mp.prec
+        try:
+            if self.dps is not None:
+                dps_list = [self.dps]
+            else:
+                dps_list = [mpmath.mp.dps]
+            if self.prec is not None:
+                mpmath.mp.prec = self.prec
+
+            if np.issubdtype(argarr.dtype, np.complexfloating):
+                mptype = complex
+            else:
+                def mptype(x):
+                    if abs(x.imag) != 0:
+                        return np.nan
+                    else:
+                        return float(x)
+
+            # try out different dps until one (or none) works
+            for j, dps in enumerate(dps_list):
+                mpmath.mp.dps = dps
+
+                try:
+                    assert_func_equal(self.scipy_func,
+                                      lambda *a: mptype(self.mpmath_func(*a)),
+                                      argarr,
+                                      vectorized=False,
+                                      rtol=self.rtol, atol=self.atol,
+                                      nan_ok=True)
+                    break
+                except AssertionError:
+                    if j >= len(dps_list)-1:
+                        reraise(*sys.exc_info())
+        finally:
+            mpmath.mp.dps, mpmath.mp.prec = old_dps, old_prec
+
+    def __repr__(self):
+        if self.is_complex:
+            return "<MpmathData: %s (complex)>" % (self.name,)
+        else:
+            return "<MpmathData: %s>" % (self.name,)
+
+def assert_mpmath_equal(*a, **kw):
+    d = MpmathData(*a, **kw)
+    d.check()
+
+def xslow(func):
+    if 'SCIPY_TEST_XSLOW' not in os.environ:
+        def wrap(*a, **kw):
+            raise nose.SkipTest("Extremely slow test --- set environment "
+                                "variable SCIPY_TEST_XSLOW to enable")
+        wrap.__name__ = func.__name__
+        return wrap
+    else:
+        return dec.slow(func)
+
+#------------------------------------------------------------------------------
+# Systematic tests
+#------------------------------------------------------------------------------
+
+@xslow
+def test_systematic_airyai():
+    assert_mpmath_equal(lambda z: sc.airy(z)[0],
+                        mpmath.airyai,
+                        [Arg()])
+
+@xslow
+def test_systematic_airyai_complex():
+    assert_mpmath_equal(lambda z: sc.airy(z)[0],
+                        mpmath.airyai,
+                        [ComplexArg()])
+
+@xslow
+def test_systematic_airyai_prime():
+    assert_mpmath_equal(lambda z: sc.airy(z)[1], lambda z:
+                        mpmath.airyai(z, derivative=1),
+                        [Arg()])
+
+@xslow
+def test_systematic_airyai_prime_complex():
+    assert_mpmath_equal(lambda z: sc.airy(z)[1], lambda z:
+                        mpmath.airyai(z, derivative=1),
+                        [ComplexArg()])
+
+@xslow
+def test_systematic_airybi():
+    assert_mpmath_equal(lambda z: sc.airy(z)[2], lambda z:
+                        mpmath.airybi(z),
+                        [Arg()])
+
+@xslow
+def test_systematic_airybi_complex():
+    assert_mpmath_equal(lambda z: sc.airy(z)[2], lambda z:
+                        mpmath.airybi(z),
+                        [ComplexArg()])
+
+@xslow
+def test_systematic_airybi_prime():
+    assert_mpmath_equal(lambda z: sc.airy(z)[3], lambda z:
+                        mpmath.airybi(z, derivative=1),
+                        [Arg()])
+
+@xslow
+def test_systematic_airybi_prime_complex():
+    assert_mpmath_equal(lambda z: sc.airy(z)[3], lambda z:
+                        mpmath.airybi(z, derivative=1),
+                        [ComplexArg()])
+
+@xslow
+def test_systematic_bei():
+    assert_mpmath_equal(sc.bei,
+                        lambda z: mpmath.bei(0, z),
+                        [Arg(-2e3, 2e3)],
+                        rtol=1e-9)
+
+@xslow
+def test_systematic_ber():
+    assert_mpmath_equal(sc.ber,
+                        lambda z: mpmath.ber(0, z),
+                        [Arg(-2e3, 2e3)],
+                        rtol=1e-9)
+
+@xslow
+def test_systematic_bernoulli():
+    assert_mpmath_equal(lambda n: sc.bernoulli(int(n))[int(n)],
+                        lambda n: float(mpmath.bernoulli(int(n))),
+                        [IntArg(0, 300)],
+                        rtol=1e-9)
+
+def _exception_to_nan(func):
+    def wrap(*a, **kw):
+        try:
+            return func(*a, **kw)
+        except:
+            return np.nan
+    return wrap
+
+@xslow
+def test_systematic_besseli():
+    assert_mpmath_equal(sc.iv,
+                        _exception_to_nan(mpmath.besseli),
+                        [Arg(a=0), Arg(-1e9, 1e9)],
+                        rtol=1e-9)
+
+@xslow
+def test_systematic_besseli_complex():
+    assert_mpmath_equal(sc.iv,
+                        mpmath.besseli,
+                        [Arg(), ComplexArg()],
+                        rtol=1e-9)
+
+@xslow
+def test_systematic_besselj():
+    assert_mpmath_equal(sc.jv,
+                        mpmath.besselj,
+                        [Arg(), Arg()],
+                        rtol=1e-9)
+
+@xslow
+def test_systematic_besselj_complex():
+    assert_mpmath_equal(sc.jv,
+                        mpmath.besselj,
+                        [Arg(), ComplexArg()],
+                        rtol=1e-9)
+
+@xslow
+def test_systematic_beta():
+    assert_mpmath_equal(sc.beta,
+                        mpmath.beta,
+                        [Arg(), Arg()])
+
+@xslow
+def test_systematic_betainc():
+    assert_mpmath_equal(sc.betainc,
+                        mpmath.betainc,
+                        [Arg(), Arg()])
+
+@xslow
+def test_systematic_binom():
+    assert_mpmath_equal(sc.binom,
+                        mpmath.binomial,
+                        [Arg(), Arg()],
+                        dps=400)
