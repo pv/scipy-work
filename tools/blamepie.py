@@ -17,7 +17,8 @@ import fnmatch
 import numpy as np
 
 INCLUDE_EXTENSIONS = ['.py', '.pyx', '.pxd',
-                      '.c', '.h', '.cpp', '.hpp', '.cxx', '.hxx',
+                      '.c', '.h', '.cpp', '.hpp',
+                      '.cxx', '.hxx', '.cc', '.hh',
                       '.f', '.f90', '.c.src', '.f.src']
 
 EXTRA_IGNORE = [
@@ -56,6 +57,12 @@ EXTRA_IGNORE = [
     'scipy/special/mach/*.f',
     'scipy/special/specfun/*.f',
     'scipy/stats/statlib/*.f',
+    'scipy/weave/blitz/blitz/*.h',
+    'scipy/weave/blitz/blitz/*.cc',
+    'scipy/weave/blitz/blitz/*.cpp',
+    'scipy/weave/blitz/blitz/*/*.h',
+    'scipy/weave/blitz/blitz/*/*.cc',
+    'scipy/weave/blitz/blitz/*/*.cpp',
 ]
 
 AUTHOR_ALIASES = {
