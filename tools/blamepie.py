@@ -41,7 +41,6 @@ EXTERNAL_SOURCES = [
     'scipy/optimize/slsqp/*.f',
     'scipy/optimize/tnc/*.c',
     'scipy/optimize/tnc/*.h',
-    'scipy/sparse/tnc/*.c',
     'scipy/sparse/linalg/isolve/iterative/*.f.src',
     'scipy/sparse/linalg/dsolve/SuperLU/SRC/*.c',
     'scipy/sparse/linalg/dsolve/SuperLU/SRC/*.h',
