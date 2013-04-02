@@ -70,6 +70,7 @@ AUTHOR_ALIASES = {
     'josef': 'Josef Perktold',
     'josef-pktd': 'Josef Perktold',
     'Travis E. Oliphant': 'Travis Oliphant',
+    'warren.weckesser': 'Warren Weckesser',
 }
 
 def _is_extension_ok(fn):
@@ -146,6 +147,8 @@ def main():
     import matplotlib.pyplot as plt
     plt.gcf().set_size_inches(8, 8)
     plt.pie(counts, labels=authors)
+    plt.margins(0.2, 0.2)
+    plt.title('SciPy: %.1f kLOC' % (counts.sum()/1000.))
     plt.axis('equal')
     plt.savefig('blamepie.png', dpi=90)
 
