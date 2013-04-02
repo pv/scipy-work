@@ -21,7 +21,9 @@ INCLUDE_EXTENSIONS = ['.py', '.pyx', '.pxd',
                       '.cxx', '.hxx', '.cc', '.hh',
                       '.f', '.f90', '.c.src', '.f.src']
 
-EXTRA_IGNORE = [
+EXTERNAL_NAME = '[external]'
+
+EXTERNAL_SOURCES = [
     'scipy/fftpack/src/dfftpack/*.f',
     'scipy/fftpack/src/fftpack/*.f',
     'scipy/integrate/dop/*.f',
@@ -73,20 +75,17 @@ AUTHOR_ALIASES = {
     'warren.weckesser': 'Warren Weckesser',
 }
 
-def _is_extension_ok(fn):
+def is_extension_ok(fn):
     for ext in INCLUDE_EXTENSIONS:
         if fn.endswith(ext):
             return True
     return False
 
-def _is_ignore_ok(fn):
-    for pattern in EXTRA_IGNORE:
+def is_external(fn):
+    for pattern in EXTERNAL_SOURCES:
         if fnmatch.fnmatch(fn, pattern):
-            return False
-    return True
-
-def is_filename_ok(fn):
-    return _is_extension_ok(fn) and _is_ignore_ok(fn)
+            return True
+    return False
 
 def main():
     p = argparse.ArgumentParser(usage=__doc__.strip())
@@ -101,7 +100,8 @@ def main():
     file_list = [x.strip() for x in out.splitlines() if x.strip()]
 
     # Filter only approved extensions
-    file_list = [fn for fn in file_list if is_filename_ok(fn)]
+    file_list = [fn for fn in file_list if is_extension_ok(fn)]
+    external_src = set([fn for fn in file_list if is_external(fn)])
 
     # Generate blame output
     author_counts = {}
@@ -110,6 +110,15 @@ def main():
         i = ((j + 1) * 40) // len(file_list)
         sys.stderr.write("\r[" + "."*i + " "*(40 - i) + "] " + fn[:35] + " "*max(0, 35 - len(fn)))
         sys.stderr.flush()
+
+        if fn in external_src:
+            with open(fn, 'rb') as f:
+                n = len(f.readlines())
+            if EXTERNAL_NAME in author_counts:
+                author_counts[EXTERNAL_NAME] += n
+            else:
+                author_counts[EXTERNAL_NAME] = n
+            continue
 
         p = subprocess.Popen(['git', 'blame', '-M', '-C', '-w', fn],
                              stdout=subprocess.PIPE)
