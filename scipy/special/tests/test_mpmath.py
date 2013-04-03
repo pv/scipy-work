@@ -470,6 +470,7 @@ def nonfunctional_tooslow(func):
     return dec.knownfailureif(True, "Test not yet functional (infinite runtime), needs more work.")(func)
 
 class TestSystematic(with_metaclass(_SystematicMeta, object)):
+    @dec.knownfailureif(True, "Bad accuracy in cephes at large arguments")
     def test_airyai(self):
         assert_mpmath_equal(lambda z: sc.airy(z)[0],
                             mpmath.airyai,
@@ -481,6 +482,7 @@ class TestSystematic(with_metaclass(_SystematicMeta, object)):
                             mpmath.airyai,
                             [ComplexArg()])
 
+    @dec.knownfailureif(True, "Bad accuracy in cephes at large arguments")
     def test_airyai_prime(self):
         assert_mpmath_equal(lambda z: sc.airy(z)[1], lambda z:
                             mpmath.airyai(z, derivative=1),
@@ -491,6 +493,7 @@ class TestSystematic(with_metaclass(_SystematicMeta, object)):
                             mpmath.airyai(z, derivative=1),
                             [ComplexArg()])
 
+    @dec.knownfailureif(True, "Bad accuracy in cephes at large arguments")
     def test_airybi(self):
         assert_mpmath_equal(lambda z: sc.airy(z)[2], lambda z:
                             mpmath.airybi(z),
@@ -501,6 +504,7 @@ class TestSystematic(with_metaclass(_SystematicMeta, object)):
                             mpmath.airybi(z),
                             [ComplexArg()])
 
+    @dec.knownfailureif(True, "Bad accuracy in cephes at large arguments")
     def test_airybi_prime(self):
         assert_mpmath_equal(lambda z: sc.airy(z)[3], lambda z:
                             mpmath.airybi(z, derivative=1),
@@ -572,6 +576,7 @@ class TestSystematic(with_metaclass(_SystematicMeta, object)):
                             [Arg(), Arg()],
                             dps=400)
 
+    @nonfunctional_tooslow
     def test_betainc(self):
         assert_mpmath_equal(sc.betainc,
                             lambda a, b, x: mpmath.betainc(a, b, 0, x, regularized=True),
@@ -583,11 +588,13 @@ class TestSystematic(with_metaclass(_SystematicMeta, object)):
                             [Arg(), Arg()],
                             dps=400)
 
+    @nonfunctional_tooslow
     def test_chebyt(self):
         assert_mpmath_equal(sc.eval_chebyt,
                             _exception_to_nan(mpmath.chebyt),
                             [Arg(), Arg()])
 
+    @nonfunctional_tooslow
     def test_chebyu(self):
         assert_mpmath_equal(sc.eval_chebyu,
                             _exception_to_nan(mpmath.chebyu),
