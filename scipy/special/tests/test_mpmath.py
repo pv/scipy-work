@@ -683,6 +683,7 @@ class TestSystematic(with_metaclass(_SystematicMeta, object)):
                             _exception_to_nan(mpmath.erfc),
                             [Arg()])
 
+    @nonfunctional_tooslow
     def test_erfc_complex(self):
         assert_mpmath_equal(sc.erfc,
                             _exception_to_nan(mpmath.erfc),
@@ -693,6 +694,7 @@ class TestSystematic(with_metaclass(_SystematicMeta, object)):
                             mpmath.erfi,
                             [Arg()])
 
+    @nonfunctional_tooslow
     def test_erfi_complex(self):
         assert_mpmath_equal(sc.erfi,
                             mpmath.erfi,
@@ -703,6 +705,7 @@ class TestSystematic(with_metaclass(_SystematicMeta, object)):
                             mpmath.eulernum,
                             [IntArg(1, 100)])
 
+    @nonfunctional_tooslow
     def test_expint(self):
         assert_mpmath_equal(sc.expn,
                             _exception_to_nan(mpmath.expint),
