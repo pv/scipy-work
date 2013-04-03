@@ -1,3 +1,4 @@
+
 """
 Test Scipy functions versus mpmath, if available.
 
@@ -16,6 +17,8 @@ from scipy.lib.six import reraise, with_metaclass
 from scipy.lib.decorator import decorator
 
 from scipy.special._testutils import FuncData, assert_func_equal
+
+from numpy import pi
 
 try:
     import mpmath
@@ -432,17 +435,6 @@ def assert_mpmath_equal(*a, **kw):
     d = MpmathData(*a, **kw)
     d.check()
 
-@decorator
-def xslow(func, *a, **kw):
-    if 'SCIPY_TEST_XSLOW' not in os.environ:
-        raise nose.SkipTest("Extremely slow test --- set environment "
-                            "variable SCIPY_TEST_XSLOW to enable")
-    return func(*a, **kw)
-
-def not_xslow(func):
-    func._not_xslow = True
-    return func
-
 class _SystematicMeta(type):
     """
     Metaclass which decorates all test methods with
@@ -458,8 +450,6 @@ class _SystematicMeta(type):
             if name.startswith('test_'):
                 item = dec.slow(item)
                 item = mpmath_check('0.17')(item)
-                if not getattr(item, '_not_xslow', None):
-                    item = xslow(item)
                 dct[name] = item
         return type.__new__(cls, cls_name, bases, dct)
 
@@ -476,6 +466,9 @@ def _exception_to_nan(func):
 # Systematic tests
 #------------------------------------------------------------------------------
 
+def nonfunctional_tooslow(func):
+    return dec.knownfailureif(True, "Test not yet functional (infinite runtime), needs more work.")(func)
+
 class TestSystematic(with_metaclass(_SystematicMeta, object)):
     def test_airyai(self):
         assert_mpmath_equal(lambda z: sc.airy(z)[0],
@@ -483,7 +476,6 @@ class TestSystematic(with_metaclass(_SystematicMeta, object)):
                             [Arg()],
                             atol=1e-30)
 
-    @not_xslow
     def test_airyai_complex(self):
         assert_mpmath_equal(lambda z: sc.airy(z)[0],
                             mpmath.airyai,
@@ -494,7 +486,6 @@ class TestSystematic(with_metaclass(_SystematicMeta, object)):
                             mpmath.airyai(z, derivative=1),
                             [Arg()])
 
-    @not_xslow
     def test_airyai_prime_complex(self):
         assert_mpmath_equal(lambda z: sc.airy(z)[1], lambda z:
                             mpmath.airyai(z, derivative=1),
@@ -505,7 +496,6 @@ class TestSystematic(with_metaclass(_SystematicMeta, object)):
                             mpmath.airybi(z),
                             [Arg()])
 
-    @not_xslow
     def test_airybi_complex(self):
         assert_mpmath_equal(lambda z: sc.airy(z)[2], lambda z:
                             mpmath.airybi(z),
@@ -516,7 +506,6 @@ class TestSystematic(with_metaclass(_SystematicMeta, object)):
                             mpmath.airybi(z, derivative=1),
                             [Arg()])
 
-    @not_xslow
     def test_airybi_prime_complex(self):
         assert_mpmath_equal(lambda z: sc.airy(z)[3], lambda z:
                             mpmath.airybi(z, derivative=1),
@@ -534,7 +523,6 @@ class TestSystematic(with_metaclass(_SystematicMeta, object)):
                             [Arg(-2e3, 2e3)],
                             rtol=1e-9)
 
-    @not_xslow
     def test_bernoulli(self):
         assert_mpmath_equal(lambda n: sc.bernoulli(int(n))[int(n)],
                             lambda n: float(mpmath.bernoulli(int(n))),
@@ -547,8 +535,15 @@ class TestSystematic(with_metaclass(_SystematicMeta, object)):
                                                                           zeroprec=600,
                                                                           infprec=600)),
                             [Arg(a=0), Arg(-1e9, 1e9)],
+                            rtol=1e-9, atol=1e-300, n=100)
+        assert_mpmath_equal(sc.iv,
+                            _exception_to_nan(lambda v, z: mpmath.besseli(v, z,
+                                                                          zeroprec=600,
+                                                                          infprec=600)),
+                            [Arg(a=0), Arg(-1e2, 1e2)],
                             rtol=1e-9, atol=1e-300)
 
+    @nonfunctional_tooslow
     def test_besseli_complex(self):
         assert_mpmath_equal(sc.iv,
                             _exception_to_nan(lambda v, z: mpmath.besseli(v, z,
@@ -557,12 +552,14 @@ class TestSystematic(with_metaclass(_SystematicMeta, object)):
                             [Arg(), ComplexArg()],
                             rtol=1e-9, atol=1e-300)
 
+    @nonfunctional_tooslow
     def test_besselj(self):
         assert_mpmath_equal(sc.jv,
                             lambda v, z: mpmath.besselj(v, z, zeroprec=600, infprec=600),
                             [Arg(), Arg()],
                             rtol=1e-9)
 
+    @nonfunctional_tooslow
     def test_besselj_complex(self):
         assert_mpmath_equal(sc.jv,
                             lambda v, z: mpmath.besselj(v, z, zeroprec=600, infprec=600),
@@ -577,18 +574,292 @@ class TestSystematic(with_metaclass(_SystematicMeta, object)):
 
     def test_betainc(self):
         assert_mpmath_equal(sc.betainc,
-                            lambda a, b, x: mpmath.betainc(a, b, 0, x, regularized=True,
-                                                           zeroprec=600, infprec=600),
+                            lambda a, b, x: mpmath.betainc(a, b, 0, x, regularized=True),
                             [Arg(), Arg(), Arg()])
 
-    @not_xslow
     def test_binom(self):
         assert_mpmath_equal(sc.binom,
                             mpmath.binomial,
                             [Arg(), Arg()],
                             dps=400)
 
-    # XXX --- missing functions
+    def test_chebyt(self):
+        assert_mpmath_equal(sc.eval_chebyt,
+                            _exception_to_nan(mpmath.chebyt),
+                            [Arg(), Arg()])
+
+    def test_chebyu(self):
+        assert_mpmath_equal(sc.eval_chebyu,
+                            _exception_to_nan(mpmath.chebyu),
+                            [Arg(), Arg()])
+
+    def test_chi(self):
+        def chi(x):
+            return sc.shichi(x)[1]
+        assert_mpmath_equal(chi,
+                            mpmath.chi,
+                            [Arg()])
+
+    def test_ci(self):
+        def ci(x):
+            return sc.sici(x)[1]
+        assert_mpmath_equal(ci,
+                            mpmath.ci,
+                            [Arg()])
+
+    def test_digamma(self):
+        assert_mpmath_equal(sc.digamma,
+                            _exception_to_nan(mpmath.digamma),
+                            [Arg()])
+
+    def test_digamma_complex(self):
+        assert_mpmath_equal(sc.digamma,
+                            _exception_to_nan(mpmath.digamma),
+                            [ComplexArg()])
+
+    def test_e1(self):
+        assert_mpmath_equal(sc.exp1,
+                            mpmath.e1,
+                            [Arg()])
+
+    def test_e1_complex(self):
+        assert_mpmath_equal(sc.exp1,
+                            mpmath.e1,
+                            [ComplexArg()])
+
+    def test_ei(self):
+        assert_mpmath_equal(sc.expi,
+                            mpmath.ei,
+                            [Arg()])
+
+    def test_ei_complex(self):
+        assert_mpmath_equal(sc.expi,
+                            mpmath.ei,
+                            [ComplexArg()])
+
+    def test_ellipe(self):
+        assert_mpmath_equal(sc.ellipe,
+                            mpmath.ellipe,
+                            [Arg()])
+
+    def test_ellipf(self):
+        assert_mpmath_equal(sc.ellipeinc,
+                            mpmath.ellipf,
+                            [Arg(), Arg(), Arg()])
+
+    def test_ellipk(self):
+        assert_mpmath_equal(sc.ellipk,
+                            mpmath.ellipk,
+                            [Arg()])
+        assert_mpmath_equal(sc.ellipkm1,
+                            mpmath.ellipk,
+                            [Arg()])
+
+    @nonfunctional_tooslow
+    def test_ellipfun(self):
+        assert_mpmath_equal(sc.ellipj,
+                            mpmath.ellipfun,
+                            [Arg()])
+
+    def test_erf(self):
+        assert_mpmath_equal(sc.erf,
+                            mpmath.erf,
+                            [Arg()])
+
+    def test_erf_complex(self):
+        assert_mpmath_equal(sc.erf,
+                            mpmath.erf,
+                            [ComplexArg()])
+
+    def test_erfc(self):
+        assert_mpmath_equal(sc.erfc,
+                            _exception_to_nan(mpmath.erfc),
+                            [Arg()])
+
+    def test_erfc_complex(self):
+        assert_mpmath_equal(sc.erfc,
+                            _exception_to_nan(mpmath.erfc),
+                            [ComplexArg()])
+
+    def test_erfi(self):
+        assert_mpmath_equal(sc.erfi,
+                            mpmath.erfi,
+                            [Arg()])
+
+    def test_erfi_complex(self):
+        assert_mpmath_equal(sc.erfi,
+                            mpmath.erfi,
+                            [ComplexArg()])
+
+    def test_eulernum(self):
+        assert_mpmath_equal(sc.euler,
+                            mpmath.eulernum,
+                            [IntArg(1, 100)])
+
+    def test_expint(self):
+        assert_mpmath_equal(sc.expn,
+                            _exception_to_nan(mpmath.expint),
+                            [Arg(), Arg()])
+
+    def test_fresnels(self):
+        def fresnels(x):
+            return sc.fresnel(x)[0]
+        assert_mpmath_equal(fresnels,
+                            mpmath.fresnels,
+                            [Arg()])
+
+    def test_fresnelc(self):
+        def fresnelc(x):
+            return sc.fresnel(x)[1]
+        assert_mpmath_equal(fresnelc,
+                            mpmath.fresnelc,
+                            [Arg()])
+
+    def test_gamma(self):
+        assert_mpmath_equal(sc.gamma,
+                            _exception_to_nan(mpmath.gamma),
+                            [Arg()])
+
+    def test_gammainc(self):
+        assert_mpmath_equal(sc.gammainc,
+                            _exception_to_nan(mpmath.gammainc),
+                            [Arg(), Arg()])
+
+    @nonfunctional_tooslow
+    def test_gegenbauer(self):
+        assert_mpmath_equal(sc.eval_gegenbauer,
+                            mpmath.gegenbauer,
+                            [Arg(), Arg(), Arg()])
+        assert_mpmath_equal(sc.eval_gegenbauer,
+                            mpmath.gegenbauer,
+                            [IntArg(0, 100), Arg(), Arg()])
+
+    def test_hankel1(self):
+        assert_mpmath_equal(sc.hankel1,
+                            _exception_to_nan(mpmath.hankel1),
+                            [Arg(), Arg()])
+
+    def test_hankel2(self):
+        assert_mpmath_equal(sc.hankel2,
+                            _exception_to_nan(mpmath.hankel2),
+                            [Arg(), Arg()])
+
+    @nonfunctional_tooslow
+    def test_hermite(self):
+        assert_mpmath_equal(sc.eval_hermite,
+                            mpmath.hermite,
+                            [Arg(), Arg()])
+
+    # hurwitz: same as zeta
+
+    def test_hyp0f1(self):
+        assert_mpmath_equal(sc.hyp0f1,
+                            _exception_to_nan(mpmath.hyp0f1),
+                            [Arg(), Arg()])
+
+    def test_hyp0f1_complex(self):
+        assert_mpmath_equal(sc.hyp0f1,
+                            _exception_to_nan(mpmath.hyp0f1),
+                            [Arg(), ComplexArg()])
+
+    def test_hyp1f1(self):
+        assert_mpmath_equal(sc.hyp1f1,
+                            _exception_to_nan(mpmath.hyp1f1),
+                            [Arg(), Arg(), Arg()])
+
+    def test_hyp1f1_complex(self):
+        assert_mpmath_equal(lambda a, b, x: sc.hyp1f1(a.real, b.real, x),
+                            lambda a, b, x: mpmath.hyp1f1(a.real, b.real, x),
+                            [Arg(), Arg(), ComplexArg()])
+
+    def test_hyp1f2(self):
+        def hyp1f2(a, b, c, x):
+            v, err = sc.hyp2f0(a, b, c, x, 1)
+            if abs(err) > max(1, abs(v)) * 1e-7:
+                return np.nan
+            return v
+        assert_mpmath_equal(sc.hyp1f2,
+                            _exception_to_nan(mpmath.hyp1f2),
+                            [Arg(), Arg(), Arg(), Arg()])
+
+    def test_hyp2f0(self):
+        def hyp2f0(a, b, c, x):
+            v, err = sc.hyp2f0(a, b, c, x, 1)
+            if abs(err) > max(1, abs(v)) * 1e-7:
+                return np.nan
+            return v
+        assert_mpmath_equal(hyp2f0,
+                            _exception_to_nan(mpmath.hyp2f0),
+                            [Arg(), Arg(), Arg()])
+
+    def test_hyp2f1(self):
+        assert_mpmath_equal(sc.hyp2f1,
+                            mpmath.hyp2f1,
+                            [Arg(), Arg(), Arg(), Arg()])
+
+    def test_hyp2f1_complex(self):
+        assert_mpmath_equal(sc.hyp2f1,
+                            mpmath.hyp2f1,
+                            [Arg(), Arg(), Arg(), Arg()])
+
+    @nonfunctional_tooslow
+    def test_hyperu(self):
+        assert_mpmath_equal(sc.hyperu,
+                            _exception_to_nan(mpmath.hyperu),
+                            [Arg(), Arg(), Arg()])
+
+    def test_j0(self):
+        assert_mpmath_equal(sc.j0,
+                            mpmath.j0,
+                            [Arg()])
+
+    def test_j1(self):
+        assert_mpmath_equal(sc.j1,
+                            mpmath.j1,
+                            [Arg()])
+
+    @nonfunctional_tooslow
+    def test_jacobi(self):
+        assert_mpmath_equal(sc.eval_jacobi,
+                            _exception_to_nan(mpmath.jacobi),
+                            [Arg(), Arg(), Arg(), Arg()])
+        assert_mpmath_equal(sc.eval_jacobi,
+                            _exception_to_nan(mpmath.jacobi),
+                            [IntArg(), Arg(), Arg(), Arg()])
+
+    @nonfunctional_tooslow
+    def test_kei(self):
+        assert_mpmath_equal(sc.kei,
+                            lambda x: mpmath.kei(0, x),
+                            [Arg()])
+
+    @nonfunctional_tooslow
+    def test_ker(self):
+        assert_mpmath_equal(sc.ker,
+                            lambda x: mpmath.ker(0, x),
+                            [Arg()])
+
+    def test_laguerre(self):
+        assert_mpmath_equal(sc.eval_laguerre,
+                            mpmath.laguerre,
+                            [Arg(), Arg(), Arg(), Arg()])
+        assert_mpmath_equal(sc.eval_laguerre,
+                            mpmath.laguerre,
+                            [IntArg(), Arg(), Arg(), Arg()])
+
+    def test_lambertw(self):
+        assert_mpmath_equal(lambda x, k: sc.lambertw(x, int(k)),
+                            lambda x, k: mpmath.lambertw(x, int(k)),
+                            [Arg(), IntArg(0, 10)])
+
+    @nonfunctional_tooslow
+    def test_legendre(self):
+        assert_mpmath_equal(sc.eval_legendre,
+                            mpmath.legendre,
+                            [Arg(), Arg()])
+        assert_mpmath_equal(sc.eval_legendre,
+                            mpmath.legendre,
+                            [IntArg(), Arg()])
 
     def test_legenp(self):
         def lpnm(n, m, z):
@@ -632,4 +903,107 @@ class TestSystematic(with_metaclass(_SystematicMeta, object)):
                             legenp,
                             [IntArg(0, 100), IntArg(0, 100), ComplexArg()])
 
-    # XXX --- missing functions
+
+    def test_legenq(self):
+        def lqnm(n, m, z):
+            if m > n:
+                return 0.0
+            return sc.lqmn(m, n, z)[0][-1,-1]
+
+        def legenq(n, m, z):
+            if abs(z) < 1e-15:
+                # mpmath has bad performance here
+                return np.nan
+            return mpmath.legenq(n, m, z, zeroprec=600, infprec=600)
+
+        assert_mpmath_equal(lqnm,
+                            legenq,
+                            [IntArg(0, 100), IntArg(0, 100), Arg()])
+
+    def test_legenq_complex(self):
+        def lqnm(n, m, z):
+            if m > n:
+                return 0.0
+            return sc.lqmn(m, n, z)[0][-1,-1]
+
+        def legenq(n, m, z):
+            if abs(z) < 1e-15:
+                # mpmath has bad performance here
+                return np.nan
+            return mpmath.legenq(n, m, z, zeroprec=600, infprec=600)
+
+        assert_mpmath_equal(lqnm,
+                            legenq,
+                            [IntArg(0, 100), IntArg(0, 100), ComplexArg()])
+
+    @nonfunctional_tooslow
+    def test_pcfd(self):
+        def pcfd(v, x):
+            return sc.pbdv(v, x)[0]
+        assert_mpmath_equal(pcfd,
+                            mpmath.pcfd,
+                            [Arg(), Arg()])
+
+    @nonfunctional_tooslow
+    def test_pcfv(self):
+        def pcfv(v, x):
+            return sc.pbvv(v, x)[0]
+        assert_mpmath_equal(pcfv,
+                            mpmath.pcfv,
+                            [Arg(), Arg()])
+
+    @nonfunctional_tooslow
+    def test_pcfw(self):
+        def pcfw(a, x):
+            return sc.pbwa(a, x)[0]
+        assert_mpmath_equal(pcfw,
+                            mpmath.pcfw,
+                            [Arg(), Arg()])
+
+    def test_polygamma(self):
+        assert_mpmath_equal(sc.polygamma,
+                            mpmath.polygamma,
+                            [IntArg(0, 100), Arg()])
+
+    def test_rgamma(self):
+        assert_mpmath_equal(sc.rgamma,
+                            mpmath.rgamma,
+                            [Arg()])
+
+    def test_rf(self):
+        assert_mpmath_equal(sc.poch,
+                            mpmath.rf,
+                            [Arg(), Arg()])
+
+    def test_shi(self):
+        def shi(x):
+            return sc.shichi(x)[0]
+        assert_mpmath_equal(shi,
+                            mpmath.shi,
+                            [Arg()])
+
+    def test_si(self):
+        def si(x):
+            return sc.sici(x)[0]
+        assert_mpmath_equal(si,
+                            mpmath.si,
+                            [Arg()])
+
+    def test_spherharm(self):
+        def spherharm(l, m, theta, phi):
+            return sc.sph_harm(m, l, theta, phi)
+        assert_mpmath_equal(spherharm,
+                            mpmath.spherharm,
+                            [IntArg(0, 100), IntArg(0, 100),
+                             Arg(a=0, b=2*pi), Arg(a=0, b=pi)])
+
+    @nonfunctional_tooslow
+    def test_struve(self):
+        assert_mpmath_equal(sc.struve,
+                            mpmath.struveh,
+                            [Arg(), Arg()])
+
+    def test_zeta(self):
+        assert_mpmath_equal(sc.zeta,
+                            _exception_to_nan(mpmath.zeta),
+                            [Arg(), Arg()])
