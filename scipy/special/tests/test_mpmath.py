@@ -301,9 +301,9 @@ class Arg(object):
             self.b = np.finfo(float).max/2
 
     def values(self, n):
-        n1 = 3 + int(0.5*n)
-        n2 = 3 + int(0.2*n)
-        n3 = 2 + max(1, n - n1 - n2)
+        n1 = max(3, int(0.5*n))
+        n2 = max(3, int(0.3*n))
+        n3 = max(2, n - n1 - n2)
 
         v1 = np.linspace(-1, 1, n1)
         v2 = np.linspace(-10, 10, n2)
@@ -759,6 +759,8 @@ class TestSystematic(with_metaclass(_SystematicMeta, object)):
         assert_mpmath_equal(sc.eval_gegenbauer,
                             _exception_to_nan(mpmath.gegenbauer),
                             [Arg(-1e3, 1e3), Arg(), Arg()])
+
+    def test_gegenbauer_int(self):
         assert_mpmath_equal(lambda n, a, x: sc.eval_gegenbauer(int(n), a, x),
                             _exception_to_nan(mpmath.gegenbauer),
                             [IntArg(0, 100), Arg(), Arg()])
@@ -807,13 +809,13 @@ class TestSystematic(with_metaclass(_SystematicMeta, object)):
     def test_hyp1f1(self):
         assert_mpmath_equal(_inf_to_nan(sc.hyp1f1),
                             _exception_to_nan(lambda a, b, x: mpmath.hyp1f1(a, b, x, **HYPERKW)),
-                            [Arg(), Arg(), Arg()],
-                            n=1000)
+                            [Arg(-1e5, 1e5), Arg(-1e5, 1e5), Arg()],
+                            n=2000)
 
     def test_hyp1f1_complex(self):
         assert_mpmath_equal(_inf_to_nan(lambda a, b, x: sc.hyp1f1(a.real, b.real, x)),
                             _exception_to_nan(lambda a, b, x: mpmath.hyp1f1(a, b, x, **HYPERKW)),
-                            [Arg(), Arg(), ComplexArg()],
+                            [Arg(-1e3, 1e3), Arg(-1e3, 1e3), ComplexArg()],
                             n=2000)
 
     def test_hyp1f2(self):
@@ -843,10 +845,12 @@ class TestSystematic(with_metaclass(_SystematicMeta, object)):
                             _exception_to_nan(lambda a, b, c, x: mpmath.hyp2f1(a, b, c, x, **HYPERKW)),
                             [Arg(), Arg(), Arg(), Arg()])
 
+    @nonfunctional_tooslow
     def test_hyp2f1_complex(self):
+        # Scipy's hyp2f1 seems to have performance and accuracy problems
         assert_mpmath_equal(lambda a, b, c, x: sc.hyp2f1(a.real, b.real, c.real, x),
                             _exception_to_nan(lambda a, b, c, x: mpmath.hyp2f1(a, b, c, x, **HYPERKW)),
-                            [Arg(), Arg(), Arg(), ComplexArg()],
+                            [Arg(-1e2, 1e2), Arg(-1e2, 1e2), Arg(-1e2, 1e2), ComplexArg()],
                             n=10)
 
     def test_hyperu(self):
@@ -925,7 +929,7 @@ class TestSystematic(with_metaclass(_SystematicMeta, object)):
             if abs(z) < 1e-15:
                 # mpmath has bad performance here
                 return np.nan
-            return mpmath.legenp(n, m, z, zeroprec=600, infprec=600)
+            return _exception_to_nan(mpmath.legenp)(n, m, z, **HYPERKW)
 
         assert_mpmath_equal(lpnm,
                             legenp,
@@ -945,8 +949,7 @@ class TestSystematic(with_metaclass(_SystematicMeta, object)):
             if abs(z) < 1e-15:
                 # mpmath has bad performance here
                 return np.nan
-            return mpmath.legenp(int(n.real), int(m.real),
-                                 z, zeroprec=600, infprec=600)
+            return _exception_to_nan(mpmath.legenp)(int(n.real), int(m.real), **HYPERKW)
 
         assert_mpmath_equal(lpnm,
                             legenp,
@@ -955,65 +958,61 @@ class TestSystematic(with_metaclass(_SystematicMeta, object)):
 
     def test_legenq(self):
         def lqnm(n, m, z):
-            if m > n:
-                return 0.0
             return sc.lqmn(m, n, z)[0][-1,-1]
 
         def legenq(n, m, z):
             if abs(z) < 1e-15:
                 # mpmath has bad performance here
                 return np.nan
-            return mpmath.legenq(n, m, z, zeroprec=600, infprec=600)
+            return _exception_to_nan(mpmath.legenq)(n, m, z, type=2)
 
         assert_mpmath_equal(lqnm,
                             legenq,
                             [IntArg(0, 100), IntArg(0, 100), Arg()])
 
+    @nonfunctional_tooslow
     def test_legenq_complex(self):
         def lqnm(n, m, z):
-            if m > n:
-                return 0.0
-            return sc.lqmn(m, n, z)[0][-1,-1]
+            return sc.lqmn(int(m.real), int(n.real), z)[0][-1,-1]
 
         def legenq(n, m, z):
             if abs(z) < 1e-15:
                 # mpmath has bad performance here
                 return np.nan
-            return mpmath.legenq(int(n.real), int(m.real),
-                                 z, zeroprec=600, infprec=600)
+            return _exception_to_nan(mpmath.legenq)(int(n.real), int(m.real), z, type=2)
 
         assert_mpmath_equal(lqnm,
                             legenq,
-                            [IntArg(0, 100), IntArg(0, 100), ComplexArg()])
+                            [IntArg(0, 100), IntArg(0, 100), ComplexArg()],
+                            n=100)
 
-    @nonfunctional_tooslow
     def test_pcfd(self):
         def pcfd(v, x):
             return sc.pbdv(v, x)[0]
         assert_mpmath_equal(pcfd,
-                            mpmath.pcfd,
+                            _exception_to_nan(lambda v, x: mpmath.pcfd(v, x, **HYPERKW)),
                             [Arg(), Arg()])
 
-    @nonfunctional_tooslow
     def test_pcfv(self):
+        raise nose.SkipTest("XXX: wrong function???")
+
         def pcfv(v, x):
             return sc.pbvv(v, x)[0]
         assert_mpmath_equal(pcfv,
-                            mpmath.pcfv,
+                            _exception_to_nan(lambda v, x: mpmath.pcfv(v, x, **HYPERKW)),
                             [Arg(), Arg()])
 
-    @nonfunctional_tooslow
     def test_pcfw(self):
         def pcfw(a, x):
             return sc.pbwa(a, x)[0]
         assert_mpmath_equal(pcfw,
-                            mpmath.pcfw,
-                            [Arg(), Arg()])
+                            _exception_to_nan(lambda v, x: mpmath.pcfw(v, x, **HYPERKW)),
+                            [Arg(), Arg()], dps=50)
 
     def test_polygamma(self):
         assert_mpmath_equal(sc.polygamma,
-                            _exception_to_nan(mpmath.polygamma),
-                            [IntArg(0, 100), Arg()])
+                            _exception_to_nan(lambda n, v: mpmath.polygamma(n, v)),
+                            [IntArg(0, 1000), Arg()], n=1000)
 
     def test_rgamma(self):
         assert_mpmath_equal(sc.rgamma,
@@ -1030,14 +1029,16 @@ class TestSystematic(with_metaclass(_SystematicMeta, object)):
             return sc.shichi(x)[0]
         assert_mpmath_equal(shi,
                             mpmath.shi,
-                            [Arg()])
+                            [Arg()],
+                            n=3000)
 
     def test_si(self):
         def si(x):
             return sc.sici(x)[0]
         assert_mpmath_equal(si,
                             mpmath.si,
-                            [Arg()])
+                            [Arg()],
+                            n=3000)
 
     def test_spherharm(self):
         def spherharm(l, m, theta, phi):
@@ -1048,16 +1049,15 @@ class TestSystematic(with_metaclass(_SystematicMeta, object)):
                             mpmath.spherharm,
                             [IntArg(0, 100), IntArg(0, 100),
                              Arg(a=0, b=2*pi), Arg(a=0, b=pi)],
-                            atol=1e-13)
+                            atol=1e-13, n=6000)
 
-    @nonfunctional_tooslow
     def test_struve(self):
         assert_mpmath_equal(sc.struve,
-                            _exception_to_nan(mpmath.struveh),
-                            [Arg(), Arg()])
+                            _exception_to_nan(lambda v, x: mpmath.struveh(v, x, **HYPERKW)),
+                            [Arg(-1e30, 1e30), Arg()],
+                            n=2000)
 
-    @nonfunctional_tooslow
     def test_zeta(self):
         assert_mpmath_equal(sc.zeta,
                             _exception_to_nan(mpmath.zeta),
-                            [Arg(), Arg()])
+                            [Arg(), Arg()], n=1000)
