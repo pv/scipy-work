@@ -230,8 +230,8 @@ class FuncData(object):
                 msg = [""]
                 msg.append("Max |adiff|: %g" % diff.max())
                 msg.append("Max |rdiff|: %g" % rdiff.max())
-                msg.append("Bad results for the following points (in output %d):"
-                           % output_num)
+                msg.append("Bad results (%d out of %d) for the following points (in output %d):"
+                           % (np.sum(bad_j), bad_j.size, output_num,))
                 for j in np.where(bad_j)[0]:
                     j = int(j)
                     fmt = lambda x: "%30s" % np.array2string(x[j], precision=18)
