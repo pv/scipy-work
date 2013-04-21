@@ -42,6 +42,10 @@ else:
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
 
+# Theme
+html_theme = 'scipy'
+html_theme_path = ['_theme']
+
 # The suffix of source filenames.
 source_suffix = '.rst'
 
@@ -109,6 +113,20 @@ pygments_style = 'sphinx'
 # given in html_static_path.
 html_style = 'scipy.css'
 
+html_theme = 'scipy'
+html_theme_path = ['_theme']
+
+if 'docs-scipy-org' in tags:
+    # Build for docs.scipy.org website
+    html_theme_options = {
+        "edit_link": "true",
+        "rootlinks": [("http://scipy.org/", "Scipy.org"),
+                      ("http://docs.scipy.org/", "Docs")]
+    }
+else:
+    # Other build
+    html_theme_options = {}
+
 # The name for this set of Sphinx documents.  If None, it defaults to
 # "<project> v<release> documentation".
 html_title = "%s v%s Reference Guide (DRAFT)" % (project, version)
@@ -160,7 +178,13 @@ html_file_suffix = '.html'
 htmlhelp_basename = 'scipy'
 
 # Pngmath should try to align formulas properly
+pngmath_latex_preamble = r"""
+\usepackage{color}
+\definecolor{textgray}{RGB}{51,51,51}
+\color{textgray}
+"""
 pngmath_use_preview = True
+pngmath_dvipng_args = ['-gamma 1.5', '-D 96', '-bg Transparent']
 
 
 # -----------------------------------------------------------------------------
@@ -285,19 +309,21 @@ import scipy as sp
 np.random.seed(123)
 """
 plot_include_source = True
-plot_formats = [('png', 100), 'pdf']
+plot_formats = [('png', 96), 'pdf']
 plot_html_show_formats = False
 
 import math
 phi = (math.sqrt(5) + 1)/2
 
+font_size = 13*72/96.0  # 13 px
+
 plot_rcparams = {
-    'font.size': 8,
-    'axes.titlesize': 8,
-    'axes.labelsize': 8,
-    'xtick.labelsize': 8,
-    'ytick.labelsize': 8,
-    'legend.fontsize': 8,
+    'font.size': font_size,
+    'axes.titlesize': font_size,
+    'axes.labelsize': font_size,
+    'xtick.labelsize': font_size,
+    'ytick.labelsize': font_size,
+    'legend.fontsize': font_size,
     'figure.figsize': (3*phi, 3),
     'figure.subplot.bottom': 0.2,
     'figure.subplot.left': 0.2,
