@@ -949,7 +949,6 @@ class TestSystematic(with_metaclass(_SystematicMeta, object)):
                             mpmath.ei,
                             [Arg()])
 
-    @knownfailure_overridable("picks the wrong branch of logarithm at real axis (Trac #1442)")
     def test_ei_complex(self):
         assert_mpmath_equal(sc.expi,
                             mpmath.ei,
