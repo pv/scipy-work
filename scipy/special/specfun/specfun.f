@@ -9184,7 +9184,7 @@ C
         A0=CDABS(Z)
         IF (A0.EQ.0.0D0) THEN
            CE1=(1.0D+300,0.0D0)
-        ELSE IF (A0.LE.10.0.OR.X.LT.0.0.AND.A0.LT.20.0) THEN
+        ELSE IF (A0.LE.5.0.OR.X.LT.0.0.AND.A0.LT.30.0) THEN
            CE1=(1.0D0,0.0D0)
            CR=(1.0D0,0.0D0)
            DO 10 K=1,150
@@ -9200,12 +9200,27 @@ C             Careful on the branch cut -- avoid signed zeros
               CE1=-EL-CDLOG(Z)+Z*CE1
            ENDIF
         ELSE
-           CT0=(0.0D0,0.0D0)
-           DO 20 K=120,1,-1
-              CT0=K/(1.0D0+K/(Z+CT0))
+C          Continued fraction http://dlmf.nist.gov/6.9
+C
+C                           1     1     1     2     2     3     3
+C          E1 = exp(-z) * ----- ----- ----- ----- ----- ----- ----- ...
+C                         Z +   1 +   Z +   1 +   Z +   1 +   Z +
+           ZC=0D0
+           ZD=1/Z
+           ZDC=1*ZD
+           ZC=ZC + ZDC
+           DO 20 K=1,500
+              ZD=1/(ZD*K + 1)
+              ZDC=(1*ZD - 1)*ZDC
+              ZC=ZC + ZDC
+
+              ZD=1/(ZD*K + Z)
+              ZDC=(Z*ZD - 1)*ZDC
+              ZC=ZC + ZDC
+
+              IF (CDABS(ZDC).LE.CDABS(ZC)*1.0D-15.AND.K.GT.20) GO TO 25
 20         CONTINUE
-           CT=1.0D0/(Z+CT0)
-           CE1=CDEXP(-Z)*CT
+25         CE1=CDEXP(-Z)*ZC
            IF (X.LE.0.0.AND.DIMAG(Z).EQ.0.0) CE1=CE1-PI*(0.0D0,1.0D0)
         ENDIF
         RETURN

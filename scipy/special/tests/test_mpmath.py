@@ -938,21 +938,31 @@ class TestSystematic(with_metaclass(_SystematicMeta, object)):
                             mpmath.e1,
                             [Arg()])
 
-    @knownfailure_overridable("issues at very large arguments near imaginary axis (absolute tolerance OK, relative tolerance not)")
     def test_e1_complex(self):
         assert_mpmath_equal(sc.exp1,
                             mpmath.e1,
-                            [ComplexArg()])
+                            [ComplexArg()],
+                            rtol=1e-9)
+
+        # Check cross-over reqion
+        assert_mpmath_equal(sc.exp1,
+                            mpmath.e1,
+                            (np.linspace(-50, 50, 200)[:,None] 
+                             + np.r_[0,np.logspace(-3, 2, 21)]*1j
+                             ).ravel(),
+                            rtol=1e-9)
 
     def test_ei(self):
         assert_mpmath_equal(sc.expi,
                             mpmath.ei,
-                            [Arg()])
+                            [Arg()],
+                            rtol=1e-9)
 
     def test_ei_complex(self):
         assert_mpmath_equal(sc.expi,
                             mpmath.ei,
-                            [ComplexArg()])
+                            [ComplexArg()],
+                            rtol=1e-9)
 
     def test_ellipe(self):
         assert_mpmath_equal(sc.ellipe,
