@@ -61,7 +61,7 @@ double struve_l(double v, double x)
             return 0.0;
         }
     }
-    else if (fabs(x) > 25.0) {
+    else if (fabs(x) > 10.0) {
         return struve_asymp_large_z(v, x, 0);
     }
     else {

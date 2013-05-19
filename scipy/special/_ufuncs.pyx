@@ -1440,7 +1440,7 @@ cdef extern from "_ufuncs_defs.h":
 cdef extern from "_ufuncs_defs.h":
     cdef int _func_modified_fresnel_plus_wrap "modified_fresnel_plus_wrap"(double, double complex *, double complex *) nogil
 cdef extern from "_ufuncs_defs.h":
-    cdef double _func_modstruve_wrap "modstruve_wrap"(double, double) nogil
+    cdef double _func_struve_l "struve_l"(double, double) nogil
 cdef extern from "_ufuncs_defs.h":
     cdef double _func_nbdtr "nbdtr"(int, int, double) nogil
 from _legacy cimport nbdtr_unsafe as _func_nbdtr_unsafe
@@ -1574,7 +1574,7 @@ cdef extern from "_ufuncs_defs.h":
 cdef extern from "_ufuncs_defs.h":
     cdef double _func_cdft2_wrap "cdft2_wrap"(double, double) nogil
 cdef extern from "_ufuncs_defs.h":
-    cdef double _func_struve_wrap "struve_wrap"(double, double) nogil
+    cdef double _func_struve_h "struve_h"(double, double) nogil
 cdef extern from "_ufuncs_defs.h":
     cdef double _func_tandg "tandg"(double) nogil
 cdef extern from "_ufuncs_defs.h":
@@ -5919,9 +5919,9 @@ ufunc_modstruve_types[2] = <char>NPY_FLOAT
 ufunc_modstruve_types[3] = <char>NPY_DOUBLE
 ufunc_modstruve_types[4] = <char>NPY_DOUBLE
 ufunc_modstruve_types[5] = <char>NPY_DOUBLE
-ufunc_modstruve_ptr[2*0] = <void*>_func_modstruve_wrap
+ufunc_modstruve_ptr[2*0] = <void*>_func_struve_l
 ufunc_modstruve_ptr[2*0+1] = <void*>(<char*>"modstruve")
-ufunc_modstruve_ptr[2*1] = <void*>_func_modstruve_wrap
+ufunc_modstruve_ptr[2*1] = <void*>_func_struve_l
 ufunc_modstruve_ptr[2*1+1] = <void*>(<char*>"modstruve")
 ufunc_modstruve_data[0] = &ufunc_modstruve_ptr[2*0]
 ufunc_modstruve_data[1] = &ufunc_modstruve_ptr[2*1]
@@ -7419,9 +7419,9 @@ ufunc_struve_types[2] = <char>NPY_FLOAT
 ufunc_struve_types[3] = <char>NPY_DOUBLE
 ufunc_struve_types[4] = <char>NPY_DOUBLE
 ufunc_struve_types[5] = <char>NPY_DOUBLE
-ufunc_struve_ptr[2*0] = <void*>_func_struve_wrap
+ufunc_struve_ptr[2*0] = <void*>_func_struve_h
 ufunc_struve_ptr[2*0+1] = <void*>(<char*>"struve")
-ufunc_struve_ptr[2*1] = <void*>_func_struve_wrap
+ufunc_struve_ptr[2*1] = <void*>_func_struve_h
 ufunc_struve_ptr[2*1+1] = <void*>(<char*>"struve")
 ufunc_struve_data[0] = &ufunc_struve_ptr[2*0]
 ufunc_struve_data[1] = &ufunc_struve_ptr[2*1]

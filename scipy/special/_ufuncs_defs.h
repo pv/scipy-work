@@ -143,7 +143,8 @@ npy_int msm2_wrap(npy_double, npy_double, npy_double, npy_double *, npy_double *
 npy_int sem_wrap(npy_double, npy_double, npy_double, npy_double *, npy_double *);
 npy_int modified_fresnel_minus_wrap(npy_double, npy_cdouble *, npy_cdouble *);
 npy_int modified_fresnel_plus_wrap(npy_double, npy_cdouble *, npy_cdouble *);
-npy_double modstruve_wrap(npy_double, npy_double);
+#include "misc.h"
+npy_double struve_l(npy_double, npy_double);
 npy_double nbdtr(npy_int, npy_int, npy_double);
 npy_double nbdtrc(npy_int, npy_int, npy_double);
 npy_double nbdtri(npy_int, npy_int, npy_double);
@@ -198,7 +199,7 @@ npy_double spence(npy_double);
 npy_double cdft1_wrap(npy_double, npy_double);
 npy_double cdft3_wrap(npy_double, npy_double);
 npy_double cdft2_wrap(npy_double, npy_double);
-npy_double struve_wrap(npy_double, npy_double);
+npy_double struve_h(npy_double, npy_double);
 npy_double tandg(npy_double);
 npy_double tukeylambdacdf(npy_double, npy_double);
 npy_double y0(npy_double);
