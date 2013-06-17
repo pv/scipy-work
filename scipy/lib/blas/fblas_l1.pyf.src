@@ -258,7 +258,7 @@ end function <prefix2>dot
 subroutine <prefix2c>dotu(xy,n,x,offx,incx,y,offy,incy)
 
   <ftype2c> intent(out) :: xy
-  fortranname w<prefix2c>dotu
+  fortranname <prefix2c>dotu
   
   callstatement (*f2py_func)(&xy,&n,x+offx,&incx,y+offy,&incy)
   callprotoargument <ctype2c>*,int*,<ctype2c>*,int*,<ctype2c>*,int*
@@ -284,7 +284,7 @@ end subroutine <prefix2c>dotu
 subroutine <prefix2c>dotc(xy,n,x,offx,incx,y,offy,incy)
 
   <ftype2c> intent (out) :: xy
-  fortranname w<prefix2c>dotc
+  fortranname <prefix2c>dotc
 
   callstatement (*f2py_func)(&xy,&n,x+offx,&incx,y+offy,&incy)
   callprotoargument <ctype2c>*,int*,<ctype2c>*,int*,<ctype2c>*,int*
@@ -346,11 +346,7 @@ function <prefix3>asum(n,x,offx,incx) result (s)
 end function <prefix3>asum
 
 function i<prefix>amax(n,x,offx,incx) result(k)
-
-  ! This is to avoid Fortran wrappers.
-  integer i<prefix>amax,k
-  fortranname F_FUNC(i<prefix>amax,I<S,D,C,Z>AMAX)
-  intent(c) i<prefix>amax
+  integer i<prefix>amax
 
   callstatement i<prefix>amax_return_value = (*f2py_func)(&n,x+offx,&incx) - 1
   callprotoargument int*,<ctype>*,int*

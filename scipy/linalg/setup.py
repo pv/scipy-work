@@ -3,13 +3,10 @@ from __future__ import division, print_function, absolute_import
 
 from os.path import join
 
-from scipy._build_utils import needs_g77_abi_wrapper
-
-
 def configuration(parent_package='',top_path=None):
-    from numpy.distutils.system_info import get_info, NotFoundError
-
+    from numpy.distutils.system_info import NotFoundError
     from numpy.distutils.misc_util import Configuration
+    from scipy._build_utils import get_info
 
     config = Configuration('linalg',parent_package,top_path)
 
@@ -24,10 +21,7 @@ def configuration(parent_package='',top_path=None):
         print(('ATLAS version: %s' % atlas_version))
 
     # fblas:
-    if needs_g77_abi_wrapper(lapack_opt):
-        sources = ['fblas.pyf.src', join('src', 'fblaswrap_veclib_c.c')],
-    else:
-        sources = ['fblas.pyf.src', join('src', 'fblaswrap.f')]
+    sources = ['fblas.pyf.src'],
 
     # Note: `depends` needs to include fblaswrap(_veclib) for both files to be
     # included by "python setup.py sdist"

@@ -7,17 +7,7 @@ def pre_build(context):
     default_builder = context.default_builder
 
     def builder(extension):
-        # FIXME: detect this properly
-        if sys.platform == "darwin":
-            use_c_calling = True
-        else:
-            use_c_calling = False
         sources = extension.sources[:]
-        if use_c_calling:
-            sources.append("ARPACK/FWRAPPERS/veclib_cabi_f.f")
-            sources.append("ARPACK/FWRAPPERS/veclib_cabi_c.c")
-        else:
-            sources.append("ARPACK/FWRAPPERS/dummy.f")
         return default_builder(extension,
                                features="c fc cstlib pyext bento",
                                source=sources,

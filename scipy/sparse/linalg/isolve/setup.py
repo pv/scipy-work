@@ -8,13 +8,10 @@ from distutils.dep_util import newer_group, newer
 from glob import glob
 from os.path import join
 
-from scipy._build_utils import needs_g77_abi_wrapper
-
-
 def configuration(parent_package='',top_path=None):
-    from numpy.distutils.system_info import get_info, NotFoundError
-
+    from numpy.distutils.system_info import NotFoundError
     from numpy.distutils.misc_util import Configuration
+    from scipy._build_utils import get_info
 
     config = Configuration('isolve',parent_package,top_path)
 
@@ -35,19 +32,11 @@ def configuration(parent_package='',top_path=None):
 #               'SORREVCOM.f.src'
                ]
 
-    if needs_g77_abi_wrapper(lapack_opt):
-        methods += [join('FWRAPPERS', 'veclib_cabi_f.f'),
-                    join('FWRAPPERS', 'veclib_cabi_c.c')]
-    else:
-        methods += [join('FWRAPPERS', 'dummy.f')]
-
     Util = ['STOPTEST2.f.src','getbreak.f.src']
     sources = Util + methods + ['_iterative.pyf.src']
     config.add_extension('_iterative',
                          sources=[join('iterative', x) for x in sources],
                          extra_info=lapack_opt,
-                         depends=[join('iterative', 'FWRAPPERS', x) for x in
-                         ['veclib_cabi_f.f', 'veclib_cabi_c.c', 'dummy.f']]
                          )
 
     config.add_data_dir('tests')
