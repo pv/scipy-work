@@ -50,16 +50,16 @@
 
       complex function wcladiv(x, y)
       complex x, y, z
-      
-      call cladiv(z, x, y)
+
+      call veclib_cladiv(x, y, z)
       wcladiv = z
       return
       end
 
       double complex function wzladiv(x, y)
       double complex x, y, z
-      
-      call zladiv(z, x, y)
+
+      call veclib_zladiv(x, y, z)
       wzladiv = z
       return
       end
