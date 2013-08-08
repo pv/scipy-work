@@ -1480,8 +1480,8 @@ class TestSystematic(with_metaclass(_SystematicMeta, object)):
         assert_mpmath_equal(sc.struve,
                             _exception_to_nan(lambda v, x: mpmath.struveh(v, x)),
                             [Arg(-1e3, 1e3), Arg(0, 1e3)],
-                            dps=50,
-                            rtol=1e-12)
+                            dps=150,
+                            rtol=1e-8)
 
     def test_zeta(self):
         assert_mpmath_equal(sc.zeta,
