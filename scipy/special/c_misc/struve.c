@@ -40,6 +40,7 @@
 
 static double struve_power_series(double v, double x, int is_h, double *err);
 static double struve_asymp_large_z(double v, double z, int is_h, double *err);
+static double struve_h_bessel_series(double v, double z, double *err);
 static double bessel_y(double v, double x);
 static double bessel_i(double v, double x);
 static double bessel_j(double v, double x);
@@ -58,7 +59,7 @@ double struve_l(double v, double z)
 
 static double struve_hl(double v, double z, int is_h)
 {
-    double value[2], err[2];
+    double value[3], err[3];
     int n;
 
     if (z < 0) {
@@ -103,9 +104,20 @@ static double struve_hl(double v, double z, int is_h)
         return value[1];
     }
 
-    /* Return the better of the two, if it is acceptable */
+    if (is_h && fabs(z) < fabs(v) + 20) {
+        value[2] = struve_h_bessel_series(v, z, &err[2]);
+        if (err[2] < GOOD_EPS * fabs(value[2])) {
+            return value[2];
+        }
+    }
+    else {
+        err[2] = NPY_INFINITY;
+    }
+
+    /* Return the best of the three, if it is acceptable */
     n = 0;
     if (err[1] < err[n]) n = 1;
+    if (err[2] < err[n]) n = 2;
     if (err[n] < ACCEPTABLE_EPS * fabs(value[n]) || err[n] < ACCEPTABLE_ATOL) {
         return value[n];
     }
@@ -153,6 +165,43 @@ static double struve_power_series(double v, double z, int is_h, double *err)
             break;
         }
     }
+    *err = fabs(term) + fabs(maxterm) * 1e-16;
+    return sum;
+}
+
+
+/*
+ * Bessel series for Struve H
+ * http://dlmf.nist.gov/11.4.19
+ */
+static double struve_h_bessel_series(double v, double z, double *err)
+{
+    int n, sgn;
+    double term, cterm, sum, maxterm;
+
+    if (v < 0) {
+        /* Works less reliably in this region */
+        *err = NPY_INFINITY;
+        return NPY_NAN;
+    }
+    
+    sum = 0;
+    maxterm = 0;
+
+    cterm = sqrt(z / (2*M_PI));
+
+    for (n = 0; n < MAXITER; ++n) {
+        term = cterm * bessel_j(n + v + 0.5, z) / (n + 0.5);
+        sum += term;
+        if (fabs(term) > maxterm) {
+            maxterm = fabs(term);
+        }
+        if (fabs(term) < SUM_EPS * fabs(sum) || term == 0 || !npy_isfinite(sum)) {
+            break;
+        }
+        cterm *= z/2 / (n + 1);
+    }
+
     *err = fabs(term) + fabs(maxterm) * 1e-16;
     return sum;
 }
