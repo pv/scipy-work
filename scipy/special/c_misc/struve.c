@@ -8,6 +8,15 @@
  *
  * - power series
  * - asymptotic large-z expansion
+ * - asymptotic large-v expansion
+ *
+ * Rounding error is estimated based on the largest term in the sum.
+ *
+ * Looking at the error in the asymptotic expansion, one finds that
+ * it's not worth trying it out unless
+ *
+ *     |z| > { 0.7 * |v| + 12,   v < 0
+ *           { 0.8 * |v| + 12,   v > 0
  *
  * References
  * ----------
@@ -23,7 +32,9 @@
 
 #define MAXITER 10000
 #define SUM_EPS 1e-16
-#define ACCEPTABLE_EPS 1e-9
+#define GOOD_EPS 1e-12
+#define ACCEPTABLE_EPS 1e-7
+#define ACCEPTABLE_ATOL 1e-300
 
 #define MIN(a, b) ((a) < (b) ? (a) : (b))
 
@@ -32,30 +43,33 @@ static double struve_asymp_large_z(double v, double z, int is_h, double *err);
 static double bessel_y(double v, double x);
 static double bessel_i(double v, double x);
 static double bessel_j(double v, double x);
-static double struve_asymp_large_z_log_error_est(double v, double z, int is_h);
 static double struve_hl(double v, double x, int is_h);
+extern double polevl ( double x, void *P, int N );
 
-double struve_h(double v, double x)
+double struve_h(double v, double z)
 {
-    return struve_hl(v, x, 1);
+    return struve_hl(v, z, 1);
 }
 
-double struve_l(double v, double x)
+double struve_l(double v, double z)
 {
-    return struve_hl(v, x, 0);
+    return struve_hl(v, z, 0);
 }
 
-static double struve_hl(double v, double x, int is_h)
+static double struve_hl(double v, double z, int is_h)
 {
-    double value, err;
+    double value[2], err[2];
     int n;
 
-    if (x < 0) {
+    if (z < 0) {
         return NPY_NAN;
     }
-    else if (x == 0) {
-        if (v <= -1) {
-            return NPY_INFINITY;
+    else if (z == 0) {
+        if (v < -1) {
+            return gammasgn(v + 1.5) * NPY_INFINITY;
+        }
+        else if (v == -1) {
+            return 2 / sqrt(M_PI) / Gamma(0.5);
         }
         else {
             return 0;
@@ -65,23 +79,41 @@ static double struve_hl(double v, double x, int is_h)
     n = -v - 0.5;
     if (n == -v - 0.5 && n > 0) {
         if (is_h) {
-            return (n % 2 == 0 ? 1 : -1) * bessel_j(n + 0.5, x);
+            return (n % 2 == 0 ? 1 : -1) * bessel_j(n + 0.5, z);
         }
         else {
-            return bessel_i(n + 0.5, x);
+            return bessel_i(n + 0.5, z);
         }
     }
 
-    //if (struve_asymp_large_z_log_error_est(v, x, is_h) < log(ACCEPTABLE_EPS) +
-    //5) {
-    value = struve_asymp_large_z(v, x, is_h, &err);
-    if (err < ACCEPTABLE_EPS * fabs(value)) {
-        return value;
+    if ((v >= 0 && z >= 0.8*fabs(v) + 12) ||
+        (v < 0 && z >= 0.7*fabs(v) + 12)) {
+        /* Worth trying the asymptotic expansion */
+        value[0] = struve_asymp_large_z(v, z, is_h, &err[0]);
+        if (err[0] < GOOD_EPS * fabs(value[0])) {
+            return value[0];
+        }
+    }
+    else {
+        err[0] = NPY_INFINITY;
     }
 
-    value = struve_power_series(v, x, is_h, &err);
-    if (err < ACCEPTABLE_EPS * fabs(value)) {
-        return value;
+    value[1] = struve_power_series(v, z, is_h, &err[1]);
+    if (err[1] < GOOD_EPS * fabs(value[1])) {
+        return value[1];
+    }
+
+    /* Return the better of the two, if it is acceptable */
+    n = 0;
+    if (err[1] < err[n]) n = 1;
+    if (err[n] < ACCEPTABLE_EPS * fabs(value[n]) || err[n] < ACCEPTABLE_ATOL) {
+        return value[n];
+    }
+
+    /* Maybe it really is an overflow? */
+    if (!npy_isfinite(value[1])) {
+        sf_error("struve", SF_ERROR_OVERFLOW, "overflow in series");
+        return value[1];
     }
 
     sf_error("struve", SF_ERROR_NO_RESULT, "total loss of precision");
@@ -90,48 +122,41 @@ static double struve_hl(double v, double x, int is_h)
 
 
 /*
- * The large-z asymptotic series [1] converges for |z| >> 1 provided
+ * Power series for Struve H and L
+ * http://dlmf.nist.gov/11.2.1
  *
- *     |z| > f(v)
- *
- * An approximat condition follows from the asymptotic series error
- * estimate. The terms in the asymptotic series stop decreasing roughly at
- *
- *     k ~ m = z/2
- *
- * Using the term T_m as the error estimate and requiring |T_m| < 1e-9 |T_0|
- * gives the approximate threshold expression used below.
- *
+ * Starts to converge roughly at |n| > |z|
  */
-static double struve_asymp_large_z_log_error_est(double v, double z, int is_h)
+static double struve_power_series(double v, double z, int is_h, double *err)
 {
-    double log_error, log_term0, log_bessel;
-
-    if (z < 1) {
-        /* The error estimate is not valid, see [1]:(11.6.1) */
-        return NPY_INFINITY;
-    }
-
-    if (v == 0) {
-        log_error = - z*log(fabs(z))/2 + z*log(z)/2 - z;
-    }
-    else {
-        log_error = v*log(fabs(v)) - v*log(fabs(2*v - z)) + v*log(2) - z*log(fabs(z))/2 + z*log(fabs(2*v - z))/2 - z;
-    }
-    log_term0 = -log(sqrt(M_PI)) - lgam(v + 0.5) + (v - 1) * log(z/2);
+    int n, sgn;
+    double term, sum, maxterm;
 
     if (is_h) {
-        log_bessel = -.5*log(z);
+        sgn = -1;
     }
     else {
-        log_bessel = log(fabs(bessel_i(v, z)));
+        sgn = 1;
     }
-    if (log_bessel > log_term0) {
-        log_error = MIN(log_error, log_term0 - log_bessel);
-    }
+    
+    term = 2 / sqrt(M_PI) * exp(-lgam(v + 1.5) + (v + 1)*log(z/2)) * gammasgn(v + 1.5);
+    sum = term;
+    maxterm = 0;
 
-    return log_error;
+    for (n = 0; n < MAXITER; ++n) {
+        term *= sgn * z*z / (3 + 2*n) / (3 + 2*n + 2*v);
+        sum += term;
+        if (fabs(term) > maxterm) {
+            maxterm = fabs(term);
+        }
+        if (fabs(term) < SUM_EPS * fabs(sum) || term == 0 || !npy_isfinite(sum)) {
+            break;
+        }
+    }
+    *err = fabs(term) + fabs(maxterm) * 1e-16;
+    return sum;
 }
+
 
 /*
  * Large-z expansion for Struve H and L
@@ -140,7 +165,7 @@ static double struve_asymp_large_z_log_error_est(double v, double z, int is_h)
 static double struve_asymp_large_z(double v, double z, int is_h, double *err)
 {
     int n, sgn, maxiter;
-    double term, sum;
+    double term, sum, maxterm;
     double m;
 
     if (is_h) {
@@ -151,7 +176,7 @@ static double struve_asymp_large_z(double v, double z, int is_h, double *err)
     }
 
     /* Asymptotic expansion divergenge point */
-    m = v + z/2;
+    m = z/2;
     if (m <= 0) {
         maxiter = 0;
     }
@@ -169,9 +194,14 @@ static double struve_asymp_large_z(double v, double z, int is_h, double *err)
     /* Evaluate sum */
     term = -sgn / sqrt(M_PI) * exp(-lgam(v + 0.5) + (v - 1) * log(z/2)) * gammasgn(v + 0.5);
     sum = term;
+    maxterm = 0;
+
     for (n = 0; n < maxiter; ++n) {
         term *= sgn * (1 + 2*n) * (1 + 2*n - 2*v) / (z*z);
         sum += term;
+        if (fabs(term) > maxterm) {
+            maxterm = fabs(term);
+        }
         if (fabs(term) < SUM_EPS * fabs(sum) || term == 0 || !npy_isfinite(sum)) {
             break;
         }
@@ -184,43 +214,11 @@ static double struve_asymp_large_z(double v, double z, int is_h, double *err)
         sum += bessel_i(v, z);
     }
 
-    *err = fabs(term);
+    *err = fabs(term) + fabs(maxterm) * 1e-16;
 
     return sum;
 }
 
-
-/*
- * Power series for Struve H and L
- * http://dlmf.nist.gov/11.2.1
- *
- * Starts to converge roughly at |n| > |z|
- */
-static double struve_power_series(double v, double z, int is_h, double *err)
-{
-    int n, sgn;
-    double term, sum;
-
-    if (is_h) {
-        sgn = -1;
-    }
-    else {
-        sgn = 1;
-    }
-    
-    sum = 0;
-    term = 2 / sqrt(M_PI) * exp(-lgam(v + 1.5) + (v + 1)*log(z/2)) * gammasgn(v + 1.5);
-
-    for (n = 0; n < MAXITER; ++n) {
-        sum += term;
-        term *= sgn * z*z / (3 + 2*n) / (3 + 2*n + 2*v);
-        if (fabs(term) < SUM_EPS * fabs(sum) || term == 0 || !npy_isfinite(sum)) {
-            break;
-        }
-    }
-    *err = fabs(term);
-    return sum;
-}
 
 static double bessel_y(double v, double x)
 {
