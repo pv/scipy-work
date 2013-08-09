@@ -7,16 +7,35 @@
  * We use three expansions for the Struve function discussed in [1]:
  *
  * - power series
+ * - expansion in Bessel functions
  * - asymptotic large-z expansion
- * - asymptotic large-v expansion
  *
- * Rounding error is estimated based on the largest term in the sum.
+ * Rounding errors are estimated based on the largest terms in the sums.
+ *
+ * (i)
  *
  * Looking at the error in the asymptotic expansion, one finds that
- * it's not worth trying it out unless
+ * it's not worth trying it out unless |z| ~> 0.7 * |v| + 12.
  *
- *     |z| > { 0.7 * |v| + 12,   v < 0
- *           { 0.8 * |v| + 12,   v > 0
+ * (ii)
+ *
+ * The Bessel function expansion tends to fail for |z| >~ |v| and is not tried
+ * there.
+ *
+ * For Struve H it covers the quadrant v > z where the power series tends to
+ * fail to produce reasonable results due to loss of precision.
+ *
+ * (iii)
+ *
+ * The three expansions together cover for Struve H the region z > 0, v real.
+ *
+ * (iv)
+ *
+ * For Struve L there remains a difficult region around v < 0, z ~ -0.7 v >> 1,
+ * where none of the three expansions converges.
+ *
+ * This implementation returns NAN in this region.
+ *
  *
  * References
  * ----------
@@ -40,7 +59,7 @@
 
 static double struve_power_series(double v, double x, int is_h, double *err);
 static double struve_asymp_large_z(double v, double z, int is_h, double *err);
-static double struve_h_bessel_series(double v, double z, double *err);
+static double struve_bessel_series(double v, double z, int is_h, double *err);
 static double bessel_y(double v, double x);
 static double bessel_i(double v, double x);
 static double bessel_j(double v, double x);
@@ -87,8 +106,7 @@ static double struve_hl(double v, double z, int is_h)
         }
     }
 
-    if ((v >= 0 && z >= 0.8*fabs(v) + 12) ||
-        (v < 0 && z >= 0.7*fabs(v) + 12)) {
+    if (z >= 0.7*fabs(v) + 12) {
         /* Worth trying the asymptotic expansion */
         value[0] = struve_asymp_large_z(v, z, is_h, &err[0]);
         if (err[0] < GOOD_EPS * fabs(value[0])) {
@@ -104,8 +122,8 @@ static double struve_hl(double v, double z, int is_h)
         return value[1];
     }
 
-    if (is_h && fabs(z) < fabs(v) + 20) {
-        value[2] = struve_h_bessel_series(v, z, &err[2]);
+    if (fabs(z) < fabs(v) + 20) {
+        value[2] = struve_bessel_series(v, z, is_h, &err[2]);
         if (err[2] < GOOD_EPS * fabs(value[2])) {
             return value[2];
         }
@@ -129,7 +147,7 @@ static double struve_hl(double v, double z, int is_h)
     }
 
     sf_error("struve", SF_ERROR_NO_RESULT, "total loss of precision");
-    return 1234;
+    return NPY_NAN;
 }
 
 
@@ -171,15 +189,15 @@ static double struve_power_series(double v, double z, int is_h, double *err)
 
 
 /*
- * Bessel series for Struve H
+ * Bessel series
  * http://dlmf.nist.gov/11.4.19
  */
-static double struve_h_bessel_series(double v, double z, double *err)
+static double struve_bessel_series(double v, double z, int is_h, double *err)
 {
     int n, sgn;
     double term, cterm, sum, maxterm;
 
-    if (v < 0) {
+    if (is_h && v < 0) {
         /* Works less reliably in this region */
         *err = NPY_INFINITY;
         return NPY_NAN;
@@ -191,7 +209,14 @@ static double struve_h_bessel_series(double v, double z, double *err)
     cterm = sqrt(z / (2*M_PI));
 
     for (n = 0; n < MAXITER; ++n) {
-        term = cterm * bessel_j(n + v + 0.5, z) / (n + 0.5);
+        if (is_h) {
+            term = cterm * bessel_j(n + v + 0.5, z) / (n + 0.5);
+            cterm *= z/2 / (n + 1);
+        }
+        else {
+            term = cterm * bessel_i(n + v + 0.5, z) / (n + 0.5);
+            cterm *= -z/2 / (n + 1);
+        }
         sum += term;
         if (fabs(term) > maxterm) {
             maxterm = fabs(term);
@@ -199,7 +224,6 @@ static double struve_h_bessel_series(double v, double z, double *err)
         if (fabs(term) < SUM_EPS * fabs(sum) || term == 0 || !npy_isfinite(sum)) {
             break;
         }
-        cterm *= z/2 / (n + 1);
     }
 
     *err = fabs(term) + fabs(maxterm) * 1e-16;
