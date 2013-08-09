@@ -141,7 +141,7 @@ static double struve_hl(double v, double z, int is_h)
     }
 
     /* Maybe it really is an overflow? */
-    if (!npy_isfinite(value[1])) {
+    if (!npy_isinf(value[1])) {
         sf_error("struve", SF_ERROR_OVERFLOW, "overflow in series");
         return value[1];
     }

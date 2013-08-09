@@ -1477,13 +1477,25 @@ class TestSystematic(with_metaclass(_SystematicMeta, object)):
                             dps=150)
 
     def test_struveh(self):
-        assert_mpmath_equal(sc.struve,
+        def func(v, z):
+            x = sc.struve(v, z)
+            if np.isnan(x):
+                return 1234.0
+            return x
+
+        assert_mpmath_equal(func,
                             _exception_to_nan(lambda v, x: mpmath.struveh(v, x)),
                             [Arg(-1e3, 1e3), Arg(0, 1e3)],
                             rtol=1e-8)
 
     def test_struvel(self):
-        assert_mpmath_equal(sc.modstruve,
+        def func(v, z):
+            x = sc.modstruve(v, z)
+            if np.isnan(x):
+                return 1234.0
+            return x
+
+        assert_mpmath_equal(func,
                             _exception_to_nan(lambda v, x: mpmath.struvel(v, x)),
                             [Arg(-1e3, 1e3), Arg(0, 1e3)],
                             rtol=1e-8)
