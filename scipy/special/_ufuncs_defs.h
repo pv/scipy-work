@@ -1,6 +1,8 @@
 #ifndef UFUNCS_PROTO_H
 #define UFUNCS_PROTO_H 1
 #include "misc.h"
+npy_double hyp_0f1_power_series(npy_double, npy_double, npy_double *);
+npy_double hyp_1f2_power_series(npy_double, npy_double, npy_double, npy_double, npy_double *);
 npy_double struve_asymp_large_z(npy_double, npy_double, npy_int, npy_double *);
 npy_double struve_bessel_series(npy_double, npy_double, npy_int, npy_double *);
 npy_double struve_power_series(npy_double, npy_double, npy_int, npy_double *);
@@ -85,9 +87,10 @@ npy_cdouble cbesh_wrap1(npy_double, npy_cdouble);
 npy_cdouble cbesh_wrap1_e(npy_double, npy_cdouble);
 npy_cdouble cbesh_wrap2(npy_double, npy_cdouble);
 npy_cdouble cbesh_wrap2_e(npy_double, npy_cdouble);
+npy_double hyp_0f1(npy_double, npy_double);
 npy_double hyp1f1_wrap(npy_double, npy_double, npy_double);
 npy_cdouble chyp1f1_wrap(npy_double, npy_double, npy_cdouble);
-npy_double onef2(npy_double, npy_double, npy_double, npy_double, npy_double *);
+npy_double hyp_1f2(npy_double, npy_double, npy_double, npy_double);
 npy_double hyp2f0(npy_double, npy_double, npy_double, npy_int, npy_double *);
 npy_double hyp2f1(npy_double, npy_double, npy_double, npy_double);
 npy_cdouble chyp2f1_wrap(npy_double, npy_double, npy_double, npy_cdouble);

@@ -138,18 +138,35 @@ cdef void loop_i_ddddd_dd_As_ddddd_dd(char **args, np.npy_intp *dims, np.npy_int
         op1 += steps[6]
     sf_error.check_fpe(func_name)
 
-cdef void loop_D_dD__As_dD_D(char **args, np.npy_intp *dims, np.npy_intp *steps, void *data) nogil:
+cdef void loop_d_dd__As_dd_d(char **args, np.npy_intp *dims, np.npy_intp *steps, void *data) nogil:
     cdef np.npy_intp i, n = dims[0]
     cdef void *func = (<void**>data)[0]
     cdef char *func_name = <char*>(<void**>data)[1]
     cdef char *ip0 = args[0], *ip1 = args[1], *op0 = args[2]
-    cdef double complex ov0
+    cdef double ov0
     for i in range(n):
-        ov0 = (<double complex(*)(double, double complex) nogil>func)(<double>(<double*>ip0)[0], <double complex>(<double complex*>ip1)[0])
-        (<double complex *>op0)[0] = <double complex>ov0
+        ov0 = (<double(*)(double, double) nogil>func)(<double>(<double*>ip0)[0], <double>(<double*>ip1)[0])
+        (<double *>op0)[0] = <double>ov0
         ip0 += steps[0]
         ip1 += steps[1]
         op0 += steps[2]
+    sf_error.check_fpe(func_name)
+
+cdef void loop_d_dd_d_As_dd_dd(char **args, np.npy_intp *dims, np.npy_intp *steps, void *data) nogil:
+    cdef np.npy_intp i, n = dims[0]
+    cdef void *func = (<void**>data)[0]
+    cdef char *func_name = <char*>(<void**>data)[1]
+    cdef char *ip0 = args[0], *ip1 = args[1], *op0 = args[2], *op1 = args[3]
+    cdef double ov0
+    cdef double ov1
+    for i in range(n):
+        ov0 = (<double(*)(double, double, double *) nogil>func)(<double>(<double*>ip0)[0], <double>(<double*>ip1)[0], &ov1)
+        (<double *>op0)[0] = <double>ov0
+        (<double *>op1)[0] = <double>ov1
+        ip0 += steps[0]
+        ip1 += steps[1]
+        op0 += steps[2]
+        op1 += steps[3]
     sf_error.check_fpe(func_name)
 
 cdef void loop_i_d_dd_As_d_dd(char **args, np.npy_intp *dims, np.npy_intp *steps, void *data) nogil:
@@ -347,27 +364,21 @@ cdef void loop_d_dd__As_ff_f(char **args, np.npy_intp *dims, np.npy_intp *steps,
         op0 += steps[2]
     sf_error.check_fpe(func_name)
 
-cdef void loop_i_dd_dddd_As_ff_ffff(char **args, np.npy_intp *dims, np.npy_intp *steps, void *data) nogil:
+cdef void loop_d_dd_d_As_ff_ff(char **args, np.npy_intp *dims, np.npy_intp *steps, void *data) nogil:
     cdef np.npy_intp i, n = dims[0]
     cdef void *func = (<void**>data)[0]
     cdef char *func_name = <char*>(<void**>data)[1]
-    cdef char *ip0 = args[0], *ip1 = args[1], *op0 = args[2], *op1 = args[3], *op2 = args[4], *op3 = args[5]
+    cdef char *ip0 = args[0], *ip1 = args[1], *op0 = args[2], *op1 = args[3]
     cdef double ov0
     cdef double ov1
-    cdef double ov2
-    cdef double ov3
     for i in range(n):
-        (<int(*)(double, double, double *, double *, double *, double *) nogil>func)(<double>(<float*>ip0)[0], <double>(<float*>ip1)[0], &ov0, &ov1, &ov2, &ov3)
+        ov0 = (<double(*)(double, double, double *) nogil>func)(<double>(<float*>ip0)[0], <double>(<float*>ip1)[0], &ov1)
         (<float *>op0)[0] = <float>ov0
         (<float *>op1)[0] = <float>ov1
-        (<float *>op2)[0] = <float>ov2
-        (<float *>op3)[0] = <float>ov3
         ip0 += steps[0]
         ip1 += steps[1]
         op0 += steps[2]
         op1 += steps[3]
-        op2 += steps[4]
-        op3 += steps[5]
     sf_error.check_fpe(func_name)
 
 cdef void loop_i_dd_dd_As_dd_dd(char **args, np.npy_intp *dims, np.npy_intp *steps, void *data) nogil:
@@ -711,25 +722,6 @@ cdef void loop_d_d__As_d_d(char **args, np.npy_intp *dims, np.npy_intp *steps, v
         op0 += steps[1]
     sf_error.check_fpe(func_name)
 
-cdef void loop_d_dddd_d_As_ffff_ff(char **args, np.npy_intp *dims, np.npy_intp *steps, void *data) nogil:
-    cdef np.npy_intp i, n = dims[0]
-    cdef void *func = (<void**>data)[0]
-    cdef char *func_name = <char*>(<void**>data)[1]
-    cdef char *ip0 = args[0], *ip1 = args[1], *ip2 = args[2], *ip3 = args[3], *op0 = args[4], *op1 = args[5]
-    cdef double ov0
-    cdef double ov1
-    for i in range(n):
-        ov0 = (<double(*)(double, double, double, double, double *) nogil>func)(<double>(<float*>ip0)[0], <double>(<float*>ip1)[0], <double>(<float*>ip2)[0], <double>(<float*>ip3)[0], &ov1)
-        (<float *>op0)[0] = <float>ov0
-        (<float *>op1)[0] = <float>ov1
-        ip0 += steps[0]
-        ip1 += steps[1]
-        ip2 += steps[2]
-        ip3 += steps[3]
-        op0 += steps[4]
-        op1 += steps[5]
-    sf_error.check_fpe(func_name)
-
 cdef void loop_d_iid__As_llf_f(char **args, np.npy_intp *dims, np.npy_intp *steps, void *data) nogil:
     cdef np.npy_intp i, n = dims[0]
     cdef void *func = (<void**>data)[0]
@@ -935,36 +927,37 @@ cdef void loop_d_ld__As_lf_f(char **args, np.npy_intp *dims, np.npy_intp *steps,
         op0 += steps[2]
     sf_error.check_fpe(func_name)
 
-cdef void loop_d_id__As_ld_d(char **args, np.npy_intp *dims, np.npy_intp *steps, void *data) nogil:
+cdef void loop_D_dD__As_dD_D(char **args, np.npy_intp *dims, np.npy_intp *steps, void *data) nogil:
     cdef np.npy_intp i, n = dims[0]
     cdef void *func = (<void**>data)[0]
     cdef char *func_name = <char*>(<void**>data)[1]
     cdef char *ip0 = args[0], *ip1 = args[1], *op0 = args[2]
-    cdef double ov0
+    cdef double complex ov0
     for i in range(n):
-        if <int>(<long*>ip0)[0] == (<long*>ip0)[0]:
-            ov0 = (<double(*)(int, double) nogil>func)(<int>(<long*>ip0)[0], <double>(<double*>ip1)[0])
-        else:
-            sf_error.error(func_name, sf_error.DOMAIN, "invalid input argument")
-            ov0 = <double>NPY_NAN
-        (<double *>op0)[0] = <double>ov0
+        ov0 = (<double complex(*)(double, double complex) nogil>func)(<double>(<double*>ip0)[0], <double complex>(<double complex*>ip1)[0])
+        (<double complex *>op0)[0] = <double complex>ov0
         ip0 += steps[0]
         ip1 += steps[1]
         op0 += steps[2]
     sf_error.check_fpe(func_name)
 
-cdef void loop_d_dd__As_dd_d(char **args, np.npy_intp *dims, np.npy_intp *steps, void *data) nogil:
+cdef void loop_d_dddd_d_As_ffff_ff(char **args, np.npy_intp *dims, np.npy_intp *steps, void *data) nogil:
     cdef np.npy_intp i, n = dims[0]
     cdef void *func = (<void**>data)[0]
     cdef char *func_name = <char*>(<void**>data)[1]
-    cdef char *ip0 = args[0], *ip1 = args[1], *op0 = args[2]
+    cdef char *ip0 = args[0], *ip1 = args[1], *ip2 = args[2], *ip3 = args[3], *op0 = args[4], *op1 = args[5]
     cdef double ov0
+    cdef double ov1
     for i in range(n):
-        ov0 = (<double(*)(double, double) nogil>func)(<double>(<double*>ip0)[0], <double>(<double*>ip1)[0])
-        (<double *>op0)[0] = <double>ov0
+        ov0 = (<double(*)(double, double, double, double, double *) nogil>func)(<double>(<float*>ip0)[0], <double>(<float*>ip1)[0], <double>(<float*>ip2)[0], <double>(<float*>ip3)[0], &ov1)
+        (<float *>op0)[0] = <float>ov0
+        (<float *>op1)[0] = <float>ov1
         ip0 += steps[0]
         ip1 += steps[1]
-        op0 += steps[2]
+        ip2 += steps[2]
+        ip3 += steps[3]
+        op0 += steps[4]
+        op1 += steps[5]
     sf_error.check_fpe(func_name)
 
 cdef void loop_i_d_DD_As_f_FF(char **args, np.npy_intp *dims, np.npy_intp *steps, void *data) nogil:
@@ -998,6 +991,29 @@ cdef void loop_d_ddd__As_ddd_d(char **args, np.npy_intp *dims, np.npy_intp *step
         op0 += steps[3]
     sf_error.check_fpe(func_name)
 
+cdef void loop_i_dd_dddd_As_ff_ffff(char **args, np.npy_intp *dims, np.npy_intp *steps, void *data) nogil:
+    cdef np.npy_intp i, n = dims[0]
+    cdef void *func = (<void**>data)[0]
+    cdef char *func_name = <char*>(<void**>data)[1]
+    cdef char *ip0 = args[0], *ip1 = args[1], *op0 = args[2], *op1 = args[3], *op2 = args[4], *op3 = args[5]
+    cdef double ov0
+    cdef double ov1
+    cdef double ov2
+    cdef double ov3
+    for i in range(n):
+        (<int(*)(double, double, double *, double *, double *, double *) nogil>func)(<double>(<float*>ip0)[0], <double>(<float*>ip1)[0], &ov0, &ov1, &ov2, &ov3)
+        (<float *>op0)[0] = <float>ov0
+        (<float *>op1)[0] = <float>ov1
+        (<float *>op2)[0] = <float>ov2
+        (<float *>op3)[0] = <float>ov3
+        ip0 += steps[0]
+        ip1 += steps[1]
+        op0 += steps[2]
+        op1 += steps[3]
+        op2 += steps[4]
+        op3 += steps[5]
+    sf_error.check_fpe(func_name)
+
 cdef void loop_i_D_DDDD_As_D_DDDD(char **args, np.npy_intp *dims, np.npy_intp *steps, void *data) nogil:
     cdef np.npy_intp i, n = dims[0]
     cdef void *func = (<void**>data)[0]
@@ -1018,6 +1034,24 @@ cdef void loop_i_D_DDDD_As_D_DDDD(char **args, np.npy_intp *dims, np.npy_intp *s
         op1 += steps[2]
         op2 += steps[3]
         op3 += steps[4]
+    sf_error.check_fpe(func_name)
+
+cdef void loop_d_id__As_ld_d(char **args, np.npy_intp *dims, np.npy_intp *steps, void *data) nogil:
+    cdef np.npy_intp i, n = dims[0]
+    cdef void *func = (<void**>data)[0]
+    cdef char *func_name = <char*>(<void**>data)[1]
+    cdef char *ip0 = args[0], *ip1 = args[1], *op0 = args[2]
+    cdef double ov0
+    for i in range(n):
+        if <int>(<long*>ip0)[0] == (<long*>ip0)[0]:
+            ov0 = (<double(*)(int, double) nogil>func)(<int>(<long*>ip0)[0], <double>(<double*>ip1)[0])
+        else:
+            sf_error.error(func_name, sf_error.DOMAIN, "invalid input argument")
+            ov0 = <double>NPY_NAN
+        (<double *>op0)[0] = <double>ov0
+        ip0 += steps[0]
+        ip1 += steps[1]
+        op0 += steps[2]
     sf_error.check_fpe(func_name)
 
 cdef void loop_g_g__As_g_g(char **args, np.npy_intp *dims, np.npy_intp *steps, void *data) nogil:
@@ -1062,6 +1096,10 @@ cdef void loop_d_ld__As_ld_d(char **args, np.npy_intp *dims, np.npy_intp *steps,
         op0 += steps[2]
     sf_error.check_fpe(func_name)
 
+cdef extern from "_ufuncs_defs.h":
+    cdef double _func_hyp_0f1_power_series "hyp_0f1_power_series"(double, double, double *) nogil
+cdef extern from "_ufuncs_defs.h":
+    cdef double _func_hyp_1f2_power_series "hyp_1f2_power_series"(double, double, double, double, double *) nogil
 from lambertw cimport lambertw_scalar as _func_lambertw_scalar
 ctypedef double complex _proto_lambertw_scalar_t(double complex, long, double) nogil
 cdef _proto_lambertw_scalar_t *_proto_lambertw_scalar_t_var = &_func_lambertw_scalar
@@ -1362,11 +1400,13 @@ cdef extern from "_ufuncs_defs.h":
 cdef extern from "_ufuncs_defs.h":
     cdef double complex _func_cbesh_wrap2_e "cbesh_wrap2_e"(double, double complex) nogil
 cdef extern from "_ufuncs_defs.h":
+    cdef double _func_hyp_0f1 "hyp_0f1"(double, double) nogil
+cdef extern from "_ufuncs_defs.h":
     cdef double _func_hyp1f1_wrap "hyp1f1_wrap"(double, double, double) nogil
 cdef extern from "_ufuncs_defs.h":
     cdef double complex _func_chyp1f1_wrap "chyp1f1_wrap"(double, double, double complex) nogil
 cdef extern from "_ufuncs_defs.h":
-    cdef double _func_onef2 "onef2"(double, double, double, double, double *) nogil
+    cdef double _func_hyp_1f2 "hyp_1f2"(double, double, double, double) nogil
 cdef extern from "_ufuncs_defs.h":
     cdef double _func_hyp2f0 "hyp2f0"(double, double, double, int, double *) nogil
 from _legacy cimport hyp2f0_unsafe as _func_hyp2f0_unsafe
@@ -1661,6 +1701,58 @@ cdef extern from "_ufuncs_defs.h":
     cdef double _func_zeta "zeta"(double, double) nogil
 cdef extern from "_ufuncs_defs.h":
     cdef double _func_zetac "zetac"(double) nogil
+cdef np.PyUFuncGenericFunction ufunc__hyp_0f1_power_series_loops[2]
+cdef void *ufunc__hyp_0f1_power_series_ptr[4]
+cdef void *ufunc__hyp_0f1_power_series_data[2]
+cdef char ufunc__hyp_0f1_power_series_types[8]
+cdef char *ufunc__hyp_0f1_power_series_doc = (
+    "Function for testing hyp0f1")
+ufunc__hyp_0f1_power_series_loops[0] = <np.PyUFuncGenericFunction>loop_d_dd_d_As_ff_ff
+ufunc__hyp_0f1_power_series_loops[1] = <np.PyUFuncGenericFunction>loop_d_dd_d_As_dd_dd
+ufunc__hyp_0f1_power_series_types[0] = <char>NPY_FLOAT
+ufunc__hyp_0f1_power_series_types[1] = <char>NPY_FLOAT
+ufunc__hyp_0f1_power_series_types[2] = <char>NPY_FLOAT
+ufunc__hyp_0f1_power_series_types[3] = <char>NPY_FLOAT
+ufunc__hyp_0f1_power_series_types[4] = <char>NPY_DOUBLE
+ufunc__hyp_0f1_power_series_types[5] = <char>NPY_DOUBLE
+ufunc__hyp_0f1_power_series_types[6] = <char>NPY_DOUBLE
+ufunc__hyp_0f1_power_series_types[7] = <char>NPY_DOUBLE
+ufunc__hyp_0f1_power_series_ptr[2*0] = <void*>_func_hyp_0f1_power_series
+ufunc__hyp_0f1_power_series_ptr[2*0+1] = <void*>(<char*>"_hyp_0f1_power_series")
+ufunc__hyp_0f1_power_series_ptr[2*1] = <void*>_func_hyp_0f1_power_series
+ufunc__hyp_0f1_power_series_ptr[2*1+1] = <void*>(<char*>"_hyp_0f1_power_series")
+ufunc__hyp_0f1_power_series_data[0] = &ufunc__hyp_0f1_power_series_ptr[2*0]
+ufunc__hyp_0f1_power_series_data[1] = &ufunc__hyp_0f1_power_series_ptr[2*1]
+_hyp_0f1_power_series = np.PyUFunc_FromFuncAndData(ufunc__hyp_0f1_power_series_loops, ufunc__hyp_0f1_power_series_data, ufunc__hyp_0f1_power_series_types, 2, 2, 2, 0, "_hyp_0f1_power_series", ufunc__hyp_0f1_power_series_doc, 0)
+
+cdef np.PyUFuncGenericFunction ufunc__hyp_1f2_power_series_loops[2]
+cdef void *ufunc__hyp_1f2_power_series_ptr[4]
+cdef void *ufunc__hyp_1f2_power_series_data[2]
+cdef char ufunc__hyp_1f2_power_series_types[12]
+cdef char *ufunc__hyp_1f2_power_series_doc = (
+    "Function for testing hyp1f2")
+ufunc__hyp_1f2_power_series_loops[0] = <np.PyUFuncGenericFunction>loop_d_dddd_d_As_ffff_ff
+ufunc__hyp_1f2_power_series_loops[1] = <np.PyUFuncGenericFunction>loop_d_dddd_d_As_dddd_dd
+ufunc__hyp_1f2_power_series_types[0] = <char>NPY_FLOAT
+ufunc__hyp_1f2_power_series_types[1] = <char>NPY_FLOAT
+ufunc__hyp_1f2_power_series_types[2] = <char>NPY_FLOAT
+ufunc__hyp_1f2_power_series_types[3] = <char>NPY_FLOAT
+ufunc__hyp_1f2_power_series_types[4] = <char>NPY_FLOAT
+ufunc__hyp_1f2_power_series_types[5] = <char>NPY_FLOAT
+ufunc__hyp_1f2_power_series_types[6] = <char>NPY_DOUBLE
+ufunc__hyp_1f2_power_series_types[7] = <char>NPY_DOUBLE
+ufunc__hyp_1f2_power_series_types[8] = <char>NPY_DOUBLE
+ufunc__hyp_1f2_power_series_types[9] = <char>NPY_DOUBLE
+ufunc__hyp_1f2_power_series_types[10] = <char>NPY_DOUBLE
+ufunc__hyp_1f2_power_series_types[11] = <char>NPY_DOUBLE
+ufunc__hyp_1f2_power_series_ptr[2*0] = <void*>_func_hyp_1f2_power_series
+ufunc__hyp_1f2_power_series_ptr[2*0+1] = <void*>(<char*>"_hyp_1f2_power_series")
+ufunc__hyp_1f2_power_series_ptr[2*1] = <void*>_func_hyp_1f2_power_series
+ufunc__hyp_1f2_power_series_ptr[2*1+1] = <void*>(<char*>"_hyp_1f2_power_series")
+ufunc__hyp_1f2_power_series_data[0] = &ufunc__hyp_1f2_power_series_ptr[2*0]
+ufunc__hyp_1f2_power_series_data[1] = &ufunc__hyp_1f2_power_series_ptr[2*1]
+_hyp_1f2_power_series = np.PyUFunc_FromFuncAndData(ufunc__hyp_1f2_power_series_loops, ufunc__hyp_1f2_power_series_data, ufunc__hyp_1f2_power_series_types, 2, 4, 2, 0, "_hyp_1f2_power_series", ufunc__hyp_1f2_power_series_doc, 0)
+
 cdef np.PyUFuncGenericFunction ufunc__lambertw_loops[2]
 cdef void *ufunc__lambertw_ptr[4]
 cdef void *ufunc__lambertw_data[2]
@@ -4643,6 +4735,28 @@ ufunc_hankel2e_data[0] = &ufunc_hankel2e_ptr[2*0]
 ufunc_hankel2e_data[1] = &ufunc_hankel2e_ptr[2*1]
 hankel2e = np.PyUFunc_FromFuncAndData(ufunc_hankel2e_loops, ufunc_hankel2e_data, ufunc_hankel2e_types, 2, 2, 1, 0, "hankel2e", ufunc_hankel2e_doc, 0)
 
+cdef np.PyUFuncGenericFunction ufunc_hyp0f1_loops[2]
+cdef void *ufunc_hyp0f1_ptr[4]
+cdef void *ufunc_hyp0f1_data[2]
+cdef char ufunc_hyp0f1_types[6]
+cdef char *ufunc_hyp0f1_doc = (
+    "y=hyp0f1(b,x) returns y with the hypergeometric function 0F1 in y")
+ufunc_hyp0f1_loops[0] = <np.PyUFuncGenericFunction>loop_d_dd__As_ff_f
+ufunc_hyp0f1_loops[1] = <np.PyUFuncGenericFunction>loop_d_dd__As_dd_d
+ufunc_hyp0f1_types[0] = <char>NPY_FLOAT
+ufunc_hyp0f1_types[1] = <char>NPY_FLOAT
+ufunc_hyp0f1_types[2] = <char>NPY_FLOAT
+ufunc_hyp0f1_types[3] = <char>NPY_DOUBLE
+ufunc_hyp0f1_types[4] = <char>NPY_DOUBLE
+ufunc_hyp0f1_types[5] = <char>NPY_DOUBLE
+ufunc_hyp0f1_ptr[2*0] = <void*>_func_hyp_0f1
+ufunc_hyp0f1_ptr[2*0+1] = <void*>(<char*>"hyp0f1")
+ufunc_hyp0f1_ptr[2*1] = <void*>_func_hyp_0f1
+ufunc_hyp0f1_ptr[2*1+1] = <void*>(<char*>"hyp0f1")
+ufunc_hyp0f1_data[0] = &ufunc_hyp0f1_ptr[2*0]
+ufunc_hyp0f1_data[1] = &ufunc_hyp0f1_ptr[2*1]
+hyp0f1 = np.PyUFunc_FromFuncAndData(ufunc_hyp0f1_loops, ufunc_hyp0f1_data, ufunc_hyp0f1_types, 2, 2, 1, 0, "hyp0f1", ufunc_hyp0f1_doc, 0)
+
 cdef np.PyUFuncGenericFunction ufunc_hyp1f1_loops[4]
 cdef void *ufunc_hyp1f1_ptr[8]
 cdef void *ufunc_hyp1f1_data[4]
@@ -4687,30 +4801,28 @@ hyp1f1 = np.PyUFunc_FromFuncAndData(ufunc_hyp1f1_loops, ufunc_hyp1f1_data, ufunc
 cdef np.PyUFuncGenericFunction ufunc_hyp1f2_loops[2]
 cdef void *ufunc_hyp1f2_ptr[4]
 cdef void *ufunc_hyp1f2_data[2]
-cdef char ufunc_hyp1f2_types[12]
+cdef char ufunc_hyp1f2_types[10]
 cdef char *ufunc_hyp1f2_doc = (
     "(y,err)=hyp1f2(a,b,c,x) returns (y,err) with the hypergeometric function 1F2 in y and an error estimate in err.")
-ufunc_hyp1f2_loops[0] = <np.PyUFuncGenericFunction>loop_d_dddd_d_As_ffff_ff
-ufunc_hyp1f2_loops[1] = <np.PyUFuncGenericFunction>loop_d_dddd_d_As_dddd_dd
+ufunc_hyp1f2_loops[0] = <np.PyUFuncGenericFunction>loop_d_dddd__As_ffff_f
+ufunc_hyp1f2_loops[1] = <np.PyUFuncGenericFunction>loop_d_dddd__As_dddd_d
 ufunc_hyp1f2_types[0] = <char>NPY_FLOAT
 ufunc_hyp1f2_types[1] = <char>NPY_FLOAT
 ufunc_hyp1f2_types[2] = <char>NPY_FLOAT
 ufunc_hyp1f2_types[3] = <char>NPY_FLOAT
 ufunc_hyp1f2_types[4] = <char>NPY_FLOAT
-ufunc_hyp1f2_types[5] = <char>NPY_FLOAT
+ufunc_hyp1f2_types[5] = <char>NPY_DOUBLE
 ufunc_hyp1f2_types[6] = <char>NPY_DOUBLE
 ufunc_hyp1f2_types[7] = <char>NPY_DOUBLE
 ufunc_hyp1f2_types[8] = <char>NPY_DOUBLE
 ufunc_hyp1f2_types[9] = <char>NPY_DOUBLE
-ufunc_hyp1f2_types[10] = <char>NPY_DOUBLE
-ufunc_hyp1f2_types[11] = <char>NPY_DOUBLE
-ufunc_hyp1f2_ptr[2*0] = <void*>_func_onef2
+ufunc_hyp1f2_ptr[2*0] = <void*>_func_hyp_1f2
 ufunc_hyp1f2_ptr[2*0+1] = <void*>(<char*>"hyp1f2")
-ufunc_hyp1f2_ptr[2*1] = <void*>_func_onef2
+ufunc_hyp1f2_ptr[2*1] = <void*>_func_hyp_1f2
 ufunc_hyp1f2_ptr[2*1+1] = <void*>(<char*>"hyp1f2")
 ufunc_hyp1f2_data[0] = &ufunc_hyp1f2_ptr[2*0]
 ufunc_hyp1f2_data[1] = &ufunc_hyp1f2_ptr[2*1]
-hyp1f2 = np.PyUFunc_FromFuncAndData(ufunc_hyp1f2_loops, ufunc_hyp1f2_data, ufunc_hyp1f2_types, 2, 4, 2, 0, "hyp1f2", ufunc_hyp1f2_doc, 0)
+hyp1f2 = np.PyUFunc_FromFuncAndData(ufunc_hyp1f2_loops, ufunc_hyp1f2_data, ufunc_hyp1f2_types, 2, 4, 1, 0, "hyp1f2", ufunc_hyp1f2_doc, 0)
 
 cdef np.PyUFuncGenericFunction ufunc_hyp2f0_loops[4]
 cdef void *ufunc_hyp2f0_ptr[8]
