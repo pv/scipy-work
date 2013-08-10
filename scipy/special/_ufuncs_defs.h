@@ -1,5 +1,9 @@
 #ifndef UFUNCS_PROTO_H
 #define UFUNCS_PROTO_H 1
+#include "misc.h"
+npy_double struve_asymp_large_z(npy_double, npy_double, npy_int, npy_double *);
+npy_double struve_bessel_series(npy_double, npy_double, npy_int, npy_double *);
+npy_double struve_power_series(npy_double, npy_double, npy_int, npy_double *);
 #include "amos_wrappers.h"
 npy_int airy_wrap(npy_double, npy_double *, npy_double *, npy_double *, npy_double *);
 npy_int cairy_wrap(npy_cdouble, npy_cdouble *, npy_cdouble *, npy_cdouble *, npy_cdouble *);
@@ -143,7 +147,6 @@ npy_int msm2_wrap(npy_double, npy_double, npy_double, npy_double *, npy_double *
 npy_int sem_wrap(npy_double, npy_double, npy_double, npy_double *, npy_double *);
 npy_int modified_fresnel_minus_wrap(npy_double, npy_cdouble *, npy_cdouble *);
 npy_int modified_fresnel_plus_wrap(npy_double, npy_cdouble *, npy_cdouble *);
-#include "misc.h"
 npy_double struve_l(npy_double, npy_double);
 npy_double nbdtr(npy_int, npy_int, npy_double);
 npy_double nbdtrc(npy_int, npy_int, npy_double);
