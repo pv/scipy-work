@@ -817,7 +817,7 @@ add_newdoc("scipy.special", "hyp1f2",
 
 add_newdoc("scipy.special", "hyp0f1",
     """
-    y=hyp0f1(a,b,c,x) returns y with the hypergeometric function 0F1 in y
+    y=hyp0f1(b,x) returns y with the hypergeometric function 0F1 in y
     """)
 
 add_newdoc("scipy.special", "hyp2f0",

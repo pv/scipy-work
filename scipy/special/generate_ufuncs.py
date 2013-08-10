@@ -101,8 +101,8 @@ hyperu -- hypU_wrap: ddd->d                                -- specfun_wrappers.h
 hyp2f0 -- hyp2f0: dddi*d->d, hyp2f0_unsafe: dddd*d->d      -- cephes.h, _legacy.pxd
 hyp1f2 -- hyp_1f2: dddd->d                                 -- misc.h
 _hyp_1f2_power_series -- hyp_1f2_power_series: dddd*d->d   -- misc.h
-hyp0f1 -- hyp_0f1: dddd->d                                 -- misc.h
-_hyp_0f1_power_series -- hyp_0f1_power_series: dddd*d->d   -- misc.h
+hyp0f1 -- hyp_0f1: dd->d                                   -- misc.h
+_hyp_0f1_power_series -- hyp_0f1_power_series: dd*d->d     -- misc.h
 hyp3f0 -- threef0: dddd*d->d                               -- cephes.h
 betainc -- incbet: ddd->d                                  -- cephes.h
 betaincinv -- incbi: ddd->d                                -- cephes.h
