@@ -97,9 +97,10 @@
 
 #define MIN(a, b) ((a) < (b) ? (a) : (b))
 
-static double struve_power_series(double v, double x, int is_h, double *err);
-static double struve_asymp_large_z(double v, double z, int is_h, double *err);
-static double struve_bessel_series(double v, double z, int is_h, double *err);
+double struve_power_series(double v, double x, int is_h, double *err);
+double struve_asymp_large_z(double v, double z, int is_h, double *err);
+double struve_bessel_series(double v, double z, int is_h, double *err);
+
 static double bessel_y(double v, double x);
 static double bessel_i(double v, double x);
 static double bessel_j(double v, double x);
@@ -201,7 +202,7 @@ static double struve_hl(double v, double z, int is_h)
  *
  * Starts to converge roughly at |n| > |z|
  */
-static double struve_power_series(double v, double z, int is_h, double *err)
+double struve_power_series(double v, double z, int is_h, double *err)
 {
     int n, sgn;
     double term, sum, maxterm;
@@ -256,7 +257,7 @@ static double struve_power_series(double v, double z, int is_h, double *err)
  * Bessel series
  * http://dlmf.nist.gov/11.4.19
  */
-static double struve_bessel_series(double v, double z, int is_h, double *err)
+double struve_bessel_series(double v, double z, int is_h, double *err)
 {
     int n, sgn;
     double term, cterm, sum, maxterm;
@@ -299,7 +300,7 @@ static double struve_bessel_series(double v, double z, int is_h, double *err)
  * Large-z expansion for Struve H and L
  * http://dlmf.nist.gov/11.6.1
  */
-static double struve_asymp_large_z(double v, double z, int is_h, double *err)
+double struve_asymp_large_z(double v, double z, int is_h, double *err)
 {
     int n, sgn, maxiter;
     double term, sum, maxterm;
