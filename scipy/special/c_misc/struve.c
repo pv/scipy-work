@@ -225,13 +225,13 @@ double struve_power_series(double v, double z, int is_h, double *err)
     double2_init(&c2v, 2*v);
 
     for (n = 0; n < MAXITER; ++n) {
-        // cdiv = (3 + 2*n) * (3 + 2*n + 2*v));
+        /* cdiv = (3 + 2*n) * (3 + 2*n + 2*v)) */
         double2_init(&cdiv, 3 + 2*n);
         double2_init(&ctmp, 3 + 2*n);
         double2_add(&ctmp, &c2v, &ctmp);
         double2_mul(&cdiv, &ctmp, &cdiv);
 
-        // cterm *= z2 / cdiv
+        /* cterm *= z2 / cdiv */
         double2_mul(&cterm, &z2, &cterm);
         double2_div(&cterm, &cdiv, &cterm);
 

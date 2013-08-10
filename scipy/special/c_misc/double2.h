@@ -1,7 +1,7 @@
 /*
  * 2-double floating point numbers
  *
- * Almost 2 times the precision of double, by using N doubles.
+ * Almost 2 times the precision of double, by using 2 doubles.
  */
 
 /*
