@@ -15,7 +15,7 @@
  * ``struve_convergence.py`` plots the convergence regions of the different
  * expansions.
  *
- * (i)
+* (i)
  *
  * Looking at the error in the asymptotic expansion, one finds that
  * it's not worth trying it out unless |z| ~> 0.7 * |v| + 12.

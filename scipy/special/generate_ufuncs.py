@@ -99,7 +99,10 @@ hyp2f1 -- hyp2f1: dddd->d, chyp2f1_wrap: dddD->D           -- cephes.h, specfun_
 hyp1f1 -- hyp1f1_wrap: ddd->d, chyp1f1_wrap: ddD->D        -- specfun_wrappers.h
 hyperu -- hypU_wrap: ddd->d                                -- specfun_wrappers.h
 hyp2f0 -- hyp2f0: dddi*d->d, hyp2f0_unsafe: dddd*d->d      -- cephes.h, _legacy.pxd
-hyp1f2 -- onef2: dddd*d->d                                 -- cephes.h
+hyp1f2 -- hyp_1f2: dddd->d                                 -- misc.h
+_hyp_1f2_power_series -- hyp_1f2_power_series: dddd*d->d   -- misc.h
+hyp0f1 -- hyp_0f1: dddd->d                                 -- misc.h
+_hyp_0f1_power_series -- hyp_0f1_power_series: dddd*d->d   -- misc.h
 hyp3f0 -- threef0: dddd*d->d                               -- cephes.h
 betainc -- incbet: ddd->d                                  -- cephes.h
 betaincinv -- incbi: ddd->d                                -- cephes.h

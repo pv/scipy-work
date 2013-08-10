@@ -815,6 +815,11 @@ add_newdoc("scipy.special", "hyp1f2",
     (y,err)=hyp1f2(a,b,c,x) returns (y,err) with the hypergeometric function 1F2 in y and an error estimate in err.
     """)
 
+add_newdoc("scipy.special", "hyp0f1",
+    """
+    y=hyp0f1(a,b,c,x) returns y with the hypergeometric function 0F1 in y
+    """)
+
 add_newdoc("scipy.special", "hyp2f0",
     """
     (y,err)=hyp2f0(a,b,x,type) returns (y,err) with the hypergeometric function 2F0 in y and an error estimate in err.  The input type determines a convergence factor and
@@ -1587,4 +1592,15 @@ add_newdoc("scipy.special", "_struve_bessel_series",
     """
     Function for testing struve & modstruve
     """)
+
+add_newdoc("scipy.special", "_hyp_1f2_power_series",
+    """
+    Function for testing hyp1f2
+    """)
+
+add_newdoc("scipy.special", "_hyp_0f1_power_series",
+    """
+    Function for testing hyp0f1
+    """)
+
 
