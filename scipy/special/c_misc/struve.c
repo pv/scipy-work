@@ -31,10 +31,16 @@
  *
  * (iv)
  *
- * For Struve L there remains a difficult region around v < 0, z ~ -0.7 v >> 1,
- * where none of the three expansions converges.
+ * The power series is evaluated in double-double precision. This fixes accuracy
+ * issues in Struve H for |v| << |z| before the asymptotic expansion kicks in.
+ * Moreover, it improves the Struve L behavior for negative v.
  *
- * This implementation returns NAN in this region.
+ * (iv)
+ *
+ * For Struve L there remains a difficult region around v < 0, z ~ -0.7 v >> 1,
+ * where all the expansions have convergence problems.
+ *
+ * This implementation returns NAN in this region for large -v.
  *
  *
  * References
@@ -52,7 +58,7 @@
 #include "double2.h"
 
 #define MAXITER 10000
-#define SUM_EPS 1e-16
+#define SUM_EPS 1e-100   /* be sure we are in the tail of the sum */
 #define GOOD_EPS 1e-12
 #define ACCEPTABLE_EPS 1e-7
 #define ACCEPTABLE_ATOL 1e-300
@@ -80,7 +86,7 @@ double struve_l(double v, double z)
 
 static double struve_hl(double v, double z, int is_h)
 {
-    double value[3], err[3];
+    double value[3], err[3], tmp;
     int n;
 
     if (z < 0) {
@@ -108,8 +114,8 @@ static double struve_hl(double v, double z, int is_h)
         }
     }
 
+    /* Try the asymptotic expansion */
     if (z >= 0.7*fabs(v) + 12) {
-        /* Worth trying the asymptotic expansion */
         value[0] = struve_asymp_large_z(v, z, is_h, &err[0]);
         if (err[0] < GOOD_EPS * fabs(value[0])) {
             return value[0];
@@ -119,11 +125,13 @@ static double struve_hl(double v, double z, int is_h)
         err[0] = NPY_INFINITY;
     }
 
+    /* Try power series */
     value[1] = struve_power_series(v, z, is_h, &err[1]);
     if (err[1] < GOOD_EPS * fabs(value[1])) {
         return value[1];
     }
 
+    /* Try bessel series */
     if (fabs(z) < fabs(v) + 20) {
         value[2] = struve_bessel_series(v, z, is_h, &err[2]);
         if (err[2] < GOOD_EPS * fabs(value[2])) {
@@ -143,11 +151,13 @@ static double struve_hl(double v, double z, int is_h)
     }
 
     /* Maybe it really is an overflow? */
-    if (!npy_isinf(value[1])) {
+    tmp = -lgam(v + 1.5) + (v + 1)*log(z/2);
+    if (tmp > 700) {
         sf_error("struve", SF_ERROR_OVERFLOW, "overflow in series");
-        return value[1];
+        return NPY_INFINITY * gammasgn(v + 1.5);
     }
 
+    /* Failure */
     sf_error("struve", SF_ERROR_NO_RESULT, "total loss of precision");
     return NPY_NAN;
 }
@@ -163,7 +173,6 @@ static double struve_power_series(double v, double z, int is_h, double *err)
 {
     int n, sgn;
     double term, sum, maxterm;
-    double xterm, xsum;
     double2_t cterm, csum, cdiv, z2, c2v, ctmp, ctmp2;
 
     if (is_h) {
@@ -182,9 +191,6 @@ static double struve_power_series(double v, double z, int is_h, double *err)
     double2_init(&z2, sgn*z*z);
     double2_init(&c2v, 2*v);
 
-    xterm = term;
-    xsum = term;
-
     for (n = 0; n < MAXITER; ++n) {
         // cdiv = (3 + 2*n) * (3 + 2*n + 2*v));
         double2_init(&cdiv, 3 + 2*n);
@@ -201,11 +207,6 @@ static double struve_power_series(double v, double z, int is_h, double *err)
         term = double2_double(&cterm);
         sum = double2_double(&csum);
 
-        xterm *= sgn*z*z / (3 + 2*n) / (3 + 2*n + 2*v);
-        xsum += xterm;
-
-        printf("%4d %.25g %.25g\n", n, term/sum);
-
         if (fabs(term) > maxterm) {
             maxterm = fabs(term);
         }
@@ -213,7 +214,8 @@ static double struve_power_series(double v, double z, int is_h, double *err)
             break;
         }
     }
-    *err = fabs(term) + fabs(maxterm) * 1e-16;
+
+    *err = fabs(term) + fabs(maxterm) * 1e-22;
     return sum;
 }
 
