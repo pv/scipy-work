@@ -49,6 +49,8 @@
 #include "amos_wrappers.h"
 #include "misc.h"
 
+#include "double2.h"
+
 #define MAXITER 10000
 #define SUM_EPS 1e-16
 #define GOOD_EPS 1e-12
@@ -161,6 +163,8 @@ static double struve_power_series(double v, double z, int is_h, double *err)
 {
     int n, sgn;
     double term, sum, maxterm;
+    double xterm, xsum;
+    double2_t cterm, csum, cdiv, z2, c2v, ctmp, ctmp2;
 
     if (is_h) {
         sgn = -1;
@@ -173,9 +177,35 @@ static double struve_power_series(double v, double z, int is_h, double *err)
     sum = term;
     maxterm = 0;
 
+    double2_init(&cterm, term);
+    double2_init(&csum, sum);
+    double2_init(&z2, sgn*z*z);
+    double2_init(&c2v, 2*v);
+
+    xterm = term;
+    xsum = term;
+
     for (n = 0; n < MAXITER; ++n) {
-        term *= sgn * z*z / (3 + 2*n) / (3 + 2*n + 2*v);
-        sum += term;
+        // cdiv = (3 + 2*n) * (3 + 2*n + 2*v));
+        double2_init(&cdiv, 3 + 2*n);
+        double2_init(&ctmp, 3 + 2*n);
+        double2_add(&ctmp, &c2v, &ctmp);
+        double2_mul(&cdiv, &ctmp, &cdiv);
+
+        // cterm *= z2 / cdiv
+        double2_mul(&cterm, &z2, &cterm);
+        double2_div(&cterm, &cdiv, &cterm);
+
+        double2_add(&csum, &cterm, &csum);
+
+        term = double2_double(&cterm);
+        sum = double2_double(&csum);
+
+        xterm *= sgn*z*z / (3 + 2*n) / (3 + 2*n + 2*v);
+        xsum += xterm;
+
+        printf("%4d %.25g %.25g\n", n, term/sum);
+
         if (fabs(term) > maxterm) {
             maxterm = fabs(term);
         }
