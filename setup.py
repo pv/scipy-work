@@ -175,6 +175,14 @@ def configuration(parent_package='',top_path=None):
     return config
 
 def setup_package():
+    # Bump open file limit to workaround bug in the build system
+    # (distutils?)
+    if sys.platform == "win32":
+        try:
+            import ctypes
+            ctypes.cdll.msvcrt._setmaxstdio(ctypes.c_int(2048))
+        except:
+            pass
 
     # Rewrite the version file everytime
     write_version_py()
