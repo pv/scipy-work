@@ -113,7 +113,7 @@ def minimize(fun, x0, args=(), method='BFGS', jac=None, hess=None,
                 Maximum number of iterations to perform.
             disp : bool
                 Set to True to print convergence messages.
-        For method-specific options, see `show_options('minimize', method)`.
+        For method-specific options, see below.
     callback : callable, optional
         Called after each iteration, as ``callback(xk)``, where ``xk`` is the
         current parameter vector.
@@ -138,69 +138,276 @@ def minimize(fun, x0, args=(), method='BFGS', jac=None, hess=None,
     This section describes the available solvers that can be selected by the
     'method' parameter. The default method is *BFGS*.
 
+
     **Unconstrained minimization**
 
-    Method *Nelder-Mead* uses the Simplex algorithm [1]_, [2]_. This
-    algorithm has been successful in many applications but other algorithms
-    using the first and/or second derivatives information might be preferred
-    for their better performances and robustness in general.
+    *Nelder-Mead*
 
-    Method *Powell* is a modification of Powell's method [3]_, [4]_ which
-    is a conjugate direction method. It performs sequential one-dimensional
-    minimizations along each vector of the directions set (`direc` field in
-    `options` and `info`), which is updated at each iteration of the main
-    minimization loop. The function need not be differentiable, and no
-    derivatives are taken.
+        The Simplex algorithm [1]_, [2]_. This algorithm has been
+        successful in many applications but other algorithms using the
+        first and/or second derivatives information might be preferred for
+        their better performances and robustness in general.
 
-    Method *CG* uses a nonlinear conjugate gradient algorithm by Polak and
-    Ribiere, a variant of the Fletcher-Reeves method described in [5]_ pp.
-    120-122. Only the first derivatives are used.
+        Options:
 
-    Method *BFGS* uses the quasi-Newton method of Broyden, Fletcher,
-    Goldfarb, and Shanno (BFGS) [5]_ pp. 136. It uses the first derivatives
-    only. BFGS has proven good performance even for non-smooth
-    optimizations. This method also returns an approximation of the Hessian
-    inverse, stored as `hess_inv` in the Result object.
+        xtol : float
+            Relative error in solution `xopt` acceptable for convergence.
+        ftol : float
+            Relative error in ``fun(xopt)`` acceptable for convergence.
+        maxfev : int
+            Maximum number of function evaluations to make.
 
-    Method *Newton-CG* uses a Newton-CG algorithm [5]_ pp. 168 (also known
-    as the truncated Newton method). It uses a CG method to the compute the
-    search direction. See also *TNC* method for a box-constrained
-    minimization with a similar algorithm.
+    *Powell*
 
-    Method *Anneal* uses simulated annealing, which is a probabilistic
-    metaheuristic algorithm for global optimization. It uses no derivative
-    information from the function being optimized.
+        This is a modification of Powell's method [3]_, [4]_ which
+        is a conjugate direction method. It performs sequential one-dimensional
+        minimizations along each vector of the directions set (`direc` field in
+        `options` and `info`), which is updated at each iteration of the main
+        minimization loop. The function need not be differentiable, and no
+        derivatives are taken.
 
-    Method *dogleg* uses the dog-leg trust-region algorithm [5]_
-    for unconstrained minimization. This algorithm requires the gradient
-    and Hessian; furthermore the Hessian is required to be positive definite.
+        Options:
 
-    Method *trust-ncg* uses the Newton conjugate gradient trust-region
-    algorithm [5]_ for unconstrained minimization. This algorithm requires
-    the gradient and either the Hessian or a function that computes the
-    product of the Hessian with a given vector.
+        xtol : float
+            Relative error in solution `xopt` acceptable for convergence.
+        ftol : float
+            Relative error in ``fun(xopt)`` acceptable for convergence.
+        maxfev : int
+            Maximum number of function evaluations to make.
+        direc : ndarray
+            Initial set of direction vectors for the Powell method.
+
+    *CG*
+
+        Nonlinear conjugate gradient algorithm by Polak and Ribiere, a
+        variant of the Fletcher-Reeves method described in [5]_ pp.
+        120-122. Only the first derivatives are used.
+    
+        Options:
+
+        gtol : float
+            Gradient norm must be less than `gtol` before successful
+            termination.
+        norm : float
+            Order of norm (Inf is max, -Inf is min).
+        eps : float or ndarray
+            If `jac` is approximated, use this value for the step size.
+
+    *BFGS*
+
+        The quasi-Newton method of Broyden, Fletcher, Goldfarb, and
+        Shanno (BFGS) [5]_ pp. 136. It uses the first derivatives
+        only. BFGS has proven good performance even for non-smooth
+        optimizations. This method also returns an approximation of
+        the Hessian inverse, stored as `hess_inv` in the Result
+        object.
+
+        Options:
+
+        gtol : float
+            Gradient norm must be less than `gtol` before successful
+            termination.
+        norm : float
+            Order of norm (Inf is max, -Inf is min).
+        eps : float or ndarray
+            If `jac` is approximated, use this value for the step size.
+
+    *Newton-CG*
+
+        Newton-CG algorithm [5]_ pp. 168 (also known as the truncated
+        Newton method). It uses a CG method to the compute the search
+        direction. See also *TNC* method for a box-constrained
+        minimization with a similar algorithm.
+
+        Options:
+
+        xtol : float
+            Average relative error in solution `xopt` acceptable for
+            convergence.
+        eps : float or ndarray
+            If `jac` is approximated, use this value for the step size.
+
+    *Anneal*
+
+        Simulated annealing, which is a probabilistic metaheuristic
+        algorithm for global optimization. It uses no derivative
+        information from the function being optimized.
+
+        Options:
+
+        ftol : float
+            Relative error in ``fun(x)`` acceptable for convergence.
+        schedule : str
+            Annealing schedule to use. One of: 'fast', 'cauchy' or
+            'boltzmann'.
+        T0 : float
+            Initial Temperature (estimated as 1.2 times the largest
+            cost-function deviation over random points in the range).
+        Tf : float
+            Final goal temperature.
+        maxfev : int
+            Maximum number of function evaluations to make.
+        maxaccept : int
+            Maximum changes to accept.
+        boltzmann : float
+            Boltzmann constant in acceptance test (increase for less
+            stringent test at each temperature).
+        learn_rate : float
+            Scale constant for adjusting guesses.
+        quench, m, n : float
+            Parameters to alter fast_sa schedule.
+        lower, upper : float or ndarray
+            Lower and upper bounds on `x`.
+        dwell : int
+            The number of times to search the space at each temperature.
+
+    *Dogleg*
+
+        The dog-leg trust-region algorithm [5]_ for unconstrained
+        minimization. This algorithm requires the gradient and
+        Hessian; furthermore the Hessian is required to be positive
+        definite.
+
+        Options:
+
+        initial_trust_radius : float
+            Initial trust-region radius.
+        max_trust_radius : float
+            Maximum value of the trust-region radius. No steps that are longer
+            than this value will be proposed.
+        eta : float
+            Trust region related acceptance stringency for proposed steps.
+        gtol : float
+            Gradient norm must be less than `gtol` before successful
+            termination.
+
+    *Trust-ncg*
+
+        The Newton conjugate gradient trust-region algorithm [5]_ for
+        unconstrained minimization. This algorithm requires the
+        gradient and either the Hessian or a function that computes
+        the product of the Hessian with a given vector.
+
+        Takes same options as *Dogleg*.
+
 
     **Constrained minimization**
 
-    Method *L-BFGS-B* uses the L-BFGS-B algorithm [6]_, [7]_ for bound
-    constrained minimization.
+    *L-BFGS-B*
 
-    Method *TNC* uses a truncated Newton algorithm [5]_, [8]_ to minimize a
-    function with variables subject to bounds. This algorithm uses
-    gradient information; it is also called Newton Conjugate-Gradient. It
-    differs from the *Newton-CG* method described above as it wraps a C
-    implementation and allows each variable to be given upper and lower
-    bounds.
+        The L-BFGS-B algorithm [6]_, [7]_ for bound constrained
+        minimization.
 
-    Method *COBYLA* uses the Constrained Optimization BY Linear
-    Approximation (COBYLA) method [9]_, [10]_, [11]_. The algorithm is
-    based on linear approximations to the objective function and each
-    constraint. The method wraps a FORTRAN implementation of the algorithm.
+        Options:
 
-    Method *SLSQP* uses Sequential Least SQuares Programming to minimize a
-    function of several variables with any combination of bounds, equality
-    and inequality constraints. The method wraps the SLSQP Optimization
-    subroutine originally implemented by Dieter Kraft [12]_.
+        ftol : float
+            The iteration stops when ``(f^k -
+            f^{k+1})/max{|f^k|,|f^{k+1}|,1} <= ftol``.
+        gtol : float
+            The iteration will stop when ``max{|proj g_i | i = 1, ..., n}
+            <= gtol`` where ``pg_i`` is the i-th component of the
+            projected gradient.
+        maxcor : int
+            The maximum number of variable metric corrections used to
+            define the limited memory matrix. (The limited memory BFGS
+            method does not store the full hessian but uses this many terms
+            in an approximation to it.)
+        maxiter : int
+            Maximum number of function evaluations.
+
+    *TNC*
+
+        Truncated Newton algorithm [5]_, [8]_ to minimize a function
+        with variables subject to bounds. This algorithm uses gradient
+        information; it is also called Newton Conjugate-Gradient. It
+        differs from the *Newton-CG* method described above as it
+        wraps a C implementation and allows each variable to be given
+        upper and lower bounds.
+
+        Options:
+
+        ftol : float
+            Precision goal for the value of f in the stoping criterion.
+            If ftol < 0.0, ftol is set to 0.0 defaults to -1.
+        xtol : float
+            Precision goal for the value of x in the stopping
+            criterion (after applying x scaling factors).  If xtol <
+            0.0, xtol is set to sqrt(machine_precision).  Defaults to
+            -1.
+        gtol : float
+            Precision goal for the value of the projected gradient in
+            the stopping criterion (after applying x scaling factors).
+            If gtol < 0.0, gtol is set to 1e-2 * sqrt(accuracy).
+            Setting it to 0.0 is not recommended.  Defaults to -1.
+        scale : list of floats
+            Scaling factors to apply to each variable.  If None, the
+            factors are up-low for interval bounded variables and
+            1+|x] fo the others.  Defaults to None
+        offset : float
+            Value to substract from each variable.  If None, the
+            offsets are (up+low)/2 for interval bounded variables
+            and x for the others.
+        maxCGit : int
+            Maximum number of hessian*vector evaluations per main
+            iteration.  If maxCGit == 0, the direction chosen is
+            -gradient if maxCGit < 0, maxCGit is set to
+            max(1,min(50,n/2)).  Defaults to -1.
+        maxiter : int
+            Maximum number of function evaluation.  if None, `maxiter` is
+            set to max(100, 10*len(x0)).  Defaults to None.
+        eta : float
+            Severity of the line search. if < 0 or > 1, set to 0.25.
+            Defaults to -1.
+        stepmx : float
+            Maximum step for the line search.  May be increased during
+            call.  If too small, it will be set to 10.0.  Defaults to 0.
+        accuracy : float
+            Relative precision for finite difference calculations.  If
+            <= machine_precision, set to sqrt(machine_precision).
+            Defaults to 0.
+        minfev : float
+            Minimum function value estimate.  Defaults to 0.
+        rescale : float
+            Scaling factor (in log10) used to trigger f value
+            rescaling.  If 0, rescale at each iteration.  If a large
+            value, never rescale.  If < 0, rescale is set to 1.3.
+
+    *COBYLA*
+
+        Constrained Optimization BY Linear Approximation (COBYLA)
+        method [9]_, [10]_, [11]_. The algorithm is based on linear
+        approximations to the objective function and each
+        constraint. The method wraps a FORTRAN implementation of the
+        algorithm.
+
+        Options:
+
+        tol : float
+            Final accuracy in the optimization (not precisely guaranteed).
+            This is a lower bound on the size of the trust region.
+        rhobeg : float
+            Reasonable initial changes to the variables.
+        maxfev : int
+            Maximum number of function evaluations.
+        catol : float
+            Absolute tolerance for constraint violations (default: 1e-6).
+
+    *SLSQP*
+
+        Method uses Sequential Least SQuares Programming to minimize a
+        function of several variables with any combination of bounds, equality
+        and inequality constraints. The method wraps the SLSQP Optimization
+        subroutine originally implemented by Dieter Kraft [12]_.
+
+        Options:
+
+        ftol : float
+            Precision goal for the value of f in the stopping criterion.
+        eps : float
+            Step size used for numerical approximation of the jacobian.
+        maxiter : int
+            Maximum number of iterations.
+
 
     References
     ----------
@@ -453,16 +660,37 @@ def minimize_scalar(fun, bracket=None, bounds=None, args=(),
     This section describes the available solvers that can be selected by the
     'method' parameter. The default method is *Brent*.
 
-    Method *Brent* uses Brent's algorithm to find a local minimum.
-    The algorithm uses inverse parabolic interpolation when possible to
-    speed up convergence of the golden section method.
+    *Brent*
 
-    Method *Golden* uses the golden section search technique. It uses
-    analog of the bisection method to decrease the bracketed interval. It
-    is usually preferable to use the *Brent* method.
+        Brent's algorithm to find a local minimum.  The algorithm uses
+        inverse parabolic interpolation when possible to speed up
+        convergence of the golden section method.
 
-    Method *Bounded* can perform bounded minimization. It uses the Brent
-    method to find a local minimum in the interval x1 < xopt < x2.
+        Options:
+
+        xtol : float
+            Relative error in solution `xopt` acceptable for convergence.
+
+    *Golden*
+
+        Method *Golden* uses the golden section search technique. It uses
+        analog of the bisection method to decrease the bracketed interval. It
+        is usually preferable to use the *Brent* method.
+
+        Options:
+
+        xtol : float
+            Relative error in solution `xopt` acceptable for convergence.
+
+    *Bounded*
+
+        Method *Bounded* can perform bounded minimization. It uses the Brent
+        method to find a local minimum in the interval x1 < xopt < x2.
+
+        Options:
+
+        xatol : float
+            Absolute error in solution `xopt` acceptable for convergence.
 
     Examples
     --------

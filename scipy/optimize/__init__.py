@@ -138,8 +138,6 @@ Utility Functions
    check_grad - Check the supplied derivative using finite differences
    line_search - Return a step that satisfies the strong Wolfe conditions
 
-   show_options - Show specific options optimization solvers
-
 """
 
 from __future__ import division, print_function, absolute_import
