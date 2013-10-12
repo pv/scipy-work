@@ -9,8 +9,8 @@ import warnings
 
 from scipy.lib.six import xrange
 
-from scipy.interpolate import interp1d, interp2d, lagrange, PPoly, ppform, \
-     splrep, splev, splantider, splint, sproot
+from scipy.interpolate import (interp1d, interp2d, lagrange, PPoly, BPoly, ppform, 
+     splrep, splev, splantider, splint, sproot)
 
 from scipy.interpolate import _ppoly
 
@@ -724,6 +724,109 @@ class TestPPoly(TestCase):
 
         assert_allclose(pp1(xi1), pp_comb(xi1))
         assert_allclose(pp2(xi2), pp_comb(xi2))
+
+
+class TestBPoly(TestCase):
+
+    def test_simple(self):
+        x = [0, 1]
+        c = [[3]]
+        bp  = BPoly(c, x)
+        assert_allclose(bp(0.1), 3.)
+
+    def test_simple2(self):
+        x = [0, 1]
+        c = [[3], [1]]
+        bp = BPoly(c, x)   # 3*(1-x) + 1*x
+        assert_allclose(bp(0.1), 3*0.9 + 1.*0.1)
+
+    def test_simple3(self):
+        x = [0, 1]
+        c = [[3], [1], [4]]
+        bp = BPoly(c, x)   # 3 * (1-x)**2 + 2 * x (1-x) + 4 * x**2
+        assert_allclose(bp(0.2), 
+                3 * 0.8*0.8 + 1 * 2*0.2*0.8 + 4 * 0.2*0.2)
+
+    def test_simple4(self):
+        x = [0, 1]
+        c = [[1], [1], [1], [2]]
+        bp = BPoly(c, x)
+        assert_allclose(bp(0.3), 0.7**3 +
+                                 3 * 0.7**2 * 0.3 +
+                                 3 * 0.7 * 0.3**2 +
+                             2 * 0.3**3)
+
+    def test_simple5(self):
+        x = [0, 1]
+        c = [[1], [1], [8], [2], [1]]
+        bp = BPoly(c, x)
+        assert_allclose(bp(0.3), 0.7**4 +
+                                 4 * 0.7**3 * 0.3 +
+                             8 * 6 * 0.7**2 * 0.3**2 +
+                             2 * 4 * 0.7 * 0.3**3 +
+                                 0.3**4)
+
+    def test_interval_length(self):
+        x = [0, 2]
+        c = [[3], [1], [4]]
+        bp = BPoly(c, x)
+        xval = 0.1
+        s = xval / 2  # s = (x - xa) / (xb - xa)
+        assert_allclose(bp(xval), 3 * (1-s)*(1-s) + 1 * 2*s*(1-s) + 4 * s*s)
+    
+    def test_two_intervals(self):
+        x = [0, 1, 3]
+        c = [[3, 0], [0, 0], [0, 2]]
+        bp = BPoly(c, x)  # [3*(1-x)**2, 2*((x-1)/2)**2]
+
+        assert_allclose(bp(0.4), 3 * 0.6*0.6)
+        assert_allclose(bp(1.7), 2 * (0.7/2)**2)
+
+
+class TestBPolyCalculus(TestCase):
+
+    def setUp(self):
+        self.x = [0, 1, 3]
+        self.c = [[3, 0], [0, 0], [0, 2]]
+        self.bp = BPoly(self.c, self.x)  # [3*(1-x)**2, 2*((x-1)/2)**2]
+
+    def test_derivative(self):
+        bp_der = self.bp.derivative()
+
+        assert_allclose(bp_der(0.4), -6*(0.6))
+        assert_allclose(bp_der(1.7), 0.7)
+
+        #make sure it's consistent w/ power basis
+        pp = PPoly.from_bernstein_basis(self.bp)
+        pp_der = pp.derivative()
+        
+        for xp in [0.4, 1.7]:
+            assert_allclose(bp_der(xp), pp_der(xp))
+
+
+class TestConversions(TestCase):
+
+    def test_bp_from_pp(self):
+        x = [0, 1, 3]
+        c = [[3, 2], [1, 8], [4, 3]]
+        pp = PPoly(c, x)
+        bp = BPoly.from_power_basis(pp)
+        pp1 = PPoly.from_bernstein_basis(bp)
+
+        for xp in [0.1, 1.4]:
+            assert_allclose(pp(xp), bp(xp))
+            assert_allclose(pp(xp), pp1(xp))
+
+    def test_pp_from_bp(self):
+        x = [0, 1, 3]
+        c = [[3, 3], [1, 1], [4, 2]]
+        bp = BPoly(c, x)
+        pp = PPoly.from_bernstein_basis(bp)
+        bp1 = BPoly.from_power_basis(pp)
+
+        for xp in [0.1, 1.4]:
+            assert_allclose(bp(xp), pp(xp))
+            assert_allclose(bp(xp), bp1(xp))
 
 
 class TestPpform(TestCase):
