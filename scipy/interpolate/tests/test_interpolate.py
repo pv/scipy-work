@@ -1,16 +1,16 @@
 from __future__ import division, print_function, absolute_import
 
-from numpy.testing import assert_, assert_equal, assert_almost_equal, \
-        assert_array_almost_equal, assert_raises, assert_array_equal, \
-        dec, TestCase, run_module_suite, assert_allclose
+from numpy.testing import (assert_, assert_equal, assert_almost_equal,
+        assert_array_almost_equal, assert_raises, assert_array_equal,
+        dec, TestCase, run_module_suite, assert_allclose)
 from numpy import mgrid, pi, sin, ogrid, poly1d, linspace
 import numpy as np
 import warnings
 
 from scipy.lib.six import xrange
 
-from scipy.interpolate import (interp1d, interp2d, lagrange, PPoly, BPoly, ppform, 
-     splrep, splev, splantider, splint, sproot)
+from scipy.interpolate import (interp1d, interp2d, lagrange, PPoly, BPoly,
+         ppform, splrep, splev, splantider, splint, sproot)
 
 from scipy.interpolate import _ppoly
 
@@ -894,6 +894,145 @@ class TestConversions(TestCase):
         assert_allclose(pp(xp), bp(xp))
         assert_allclose(pp(xp), bp1(xp))
 
+
+class TestFromDerivatives(TestCase):
+    def test_make_poly_1(self):
+        c1 = BPoly._construct_from_derivatives(0, 1, [2], [3])
+        assert_allclose(c1, [2., 3.])
+
+    def test_make_poly_2(self):
+        c1 = BPoly._construct_from_derivatives(0, 1, [1, 0], [1])
+        assert_allclose(c1, [1., 1., 1.])
+
+        # f'(0) = 3
+        c2 = BPoly._construct_from_derivatives(0, 1, [2, 3], [1])
+        assert_allclose(c2, [2., 7./2, 1.])
+
+        # f'(1) = 3
+        c3 = BPoly._construct_from_derivatives(0, 1, [2], [1, 3])
+        assert_allclose(c3, [2., -0.5, 1.])
+
+    def test_make_poly_3(self):
+        # f'(0)=2, f''(0)=3
+        c1 = BPoly._construct_from_derivatives(0, 1, [1, 2, 3], [4])
+        assert_allclose(c1, [1., 5./3, 17./6, 4.])
+
+        # f'(1)=2, f''(1)=3
+        c2 = BPoly._construct_from_derivatives(0, 1, [1], [4, 2, 3])
+        assert_allclose(c2, [1., 19./6, 10./3, 4.])
+
+        # f'(0)=2, f'(1)=3
+        c3 = BPoly._construct_from_derivatives(0, 1, [1, 2], [4, 3])
+        assert_allclose(c3, [1., 5./3, 3., 4.])
+
+    def test_make_poly_12(self):
+        np.random.seed(12345)
+        ya = np.r_[0, np.random.random(5)]
+        yb = np.r_[0, np.random.random(5)]
+
+        c = BPoly._construct_from_derivatives(0, 1, ya, yb)
+        pp = BPoly(c[:, None], [0, 1])
+        for j in range(6):
+            assert_allclose([pp(0.), pp(1.)], [ya[j], yb[j]])
+            pp = pp.derivative()
+
+    def test_raise_degree(self):
+        np.random.seed(12345)
+        x = [0, 1]
+        k, d = 8, 5
+        c = np.random.random(k)
+        bp = BPoly(c[:, None], x)
+
+        c1 = BPoly._raise_degree(c, d)
+        bp1 = BPoly(c1[:, None], x)
+
+        xp = np.linspace(0, 1, 11)
+        assert_allclose(bp(xp), bp1(xp))
+
+    def test_xi_yi(self):
+        assert_raises(ValueError, BPoly.from_derivatives, [0, 1], [0])
+
+    def test_coords_order(self):
+        xi = [0, 0, 1]
+        yi = [[0], [0], [0]]
+        assert_raises(ValueError, BPoly.from_derivatives, xi, yi)
+
+    def test_zeros(self):
+        xi = [0, 1, 2, 3]
+        yi = [[0, 0], [0], [0, 0], [0, 0]]  # NB: will have to raise the degree
+        pp = BPoly.from_derivatives(xi, yi)
+        assert_(pp.c.shape == (4, 3, 1))
+
+        ppd = pp.derivative()
+        for xp in [0., 0.1, 1., 1.1, 1.9, 2., 2.5]:
+            assert_allclose([pp(xp), ppd(xp)], [0., 0.])
+
+    def _make_random_mk(self, m, k):
+        # k derivatives at each breakpoint
+        np.random.seed(1234)
+        xi = np.asarray([1. * j**2 for j in range(m+1)])
+        yi = [np.random.random(k) for j in range(m+1)]
+        return xi, yi
+
+    def test_random_12(self):
+        m, k = 5, 12
+        xi, yi = self._make_random_mk(m, k)
+        pp = BPoly.from_derivatives(xi, yi)
+
+        for order in range(k//2):
+            assert_allclose(pp(xi), [yy[order]  for yy in yi])
+            pp = pp.derivative()
+
+    def test_order_zero(self):
+        m, k = 5, 12
+        xi, yi = self._make_random_mk(m, k)
+        assert_raises(ValueError, BPoly.from_derivatives, 
+                **dict(xi=xi, yi=yi, orders=0))
+
+    def test_orders_too_high(self):
+        m, k = 5, 12
+        xi, yi = self._make_random_mk(m, k)
+
+        pp = BPoly.from_derivatives(xi, yi, orders=2*k-1)   # this is still ok
+        assert_raises(ValueError, BPoly.from_derivatives,   # but this is not
+                **dict(xi=xi, yi=yi, orders=2*k))
+
+    def test_orders_global(self):
+        m, k = 5, 12
+        xi, yi = self._make_random_mk(m, k)
+       
+        # ok, this is confusing. Local polynomials will be of the order 5
+        # which means that up to the 2nd derivatives will be used at each point
+        order = 5
+        pp = BPoly.from_derivatives(xi, yi, orders=order)
+
+        for j in range(order//2+1):
+            assert_allclose(pp(xi[1:-1] - 1e-12), pp(xi[1:-1] + 1e-12))
+            pp = pp.derivative()
+        assert_(not np.allclose(pp(xi[1:-1] - 1e-12), pp(xi[1:-1] + 1e-12)))
+        
+        # now repeat with `order` being even: on each interval, it uses
+        # order//2 'derivatives' @ the right-hand endpoint and
+        # order//2+1 'derivatives' @ the left-hand endpoint
+        order = 6
+        pp = BPoly.from_derivatives(xi, yi, orders=order)
+        for j in range(order//2):
+            assert_allclose(pp(xi[1:-1] - 1e-12), pp(xi[1:-1] + 1e-12))
+            pp = pp.derivative()    
+        assert_(not np.allclose(pp(xi[1:-1] - 1e-12), pp(xi[1:-1] + 1e-12)))
+
+    def test_orders_local(self):
+        m, k = 7, 12
+        xi, yi = self._make_random_mk(m, k)
+
+        orders = [o + 1 for o in range(m)]
+        for i, x in enumerate(xi[1:-1]):
+            pp = BPoly.from_derivatives(xi, yi, orders=orders)
+            for j in range(orders[i] // 2 + 1):
+                assert_allclose(pp(x - 1e-12), pp(x + 1e-12))
+                pp = pp.derivative()
+            assert_(not np.allclose(pp(x - 1e-12), pp(x + 1e-12)))
+   
 
 class TestPpform(TestCase):
     def test_shape(self):
