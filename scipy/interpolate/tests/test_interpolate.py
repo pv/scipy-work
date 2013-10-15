@@ -1,8 +1,8 @@
 from __future__ import division, print_function, absolute_import
 
-from numpy.testing import assert_, assert_equal, assert_almost_equal, \
-        assert_array_almost_equal, assert_raises, assert_array_equal, \
-        dec, TestCase, run_module_suite, assert_allclose
+from numpy.testing import (assert_, assert_equal, assert_almost_equal,
+        assert_array_almost_equal, assert_raises, assert_array_equal,
+        dec, TestCase, run_module_suite, assert_allclose)
 from numpy import mgrid, pi, sin, ogrid, poly1d, linspace
 import numpy as np
 import warnings
@@ -11,8 +11,6 @@ from scipy.lib.six import xrange
 
 from scipy.interpolate import (interp1d, interp2d, lagrange, PPoly, BPoly,
          ppform, splrep, splev, splantider, splint, sproot)
-from scipy.interpolate.interpolate import (_construct_from_derivatives, 
-        _raise_degree)
 
 from scipy.interpolate import _ppoly
 
@@ -899,32 +897,32 @@ class TestConversions(TestCase):
 
 class TestFromDerivatives(TestCase):
     def test_make_poly_1(self):
-        c1 = _construct_from_derivatives(0, 1, [2], [3])
+        c1 = BPoly._construct_from_derivatives(0, 1, [2], [3])
         assert_allclose(c1, [2., 3.])
 
     def test_make_poly_2(self):
-        c1 = _construct_from_derivatives(0, 1, [1, 0], [1])
+        c1 = BPoly._construct_from_derivatives(0, 1, [1, 0], [1])
         assert_allclose(c1, [1., 1., 1.])
 
         # f'(0) = 3
-        c2 = _construct_from_derivatives(0, 1, [2, 3], [1])
+        c2 = BPoly._construct_from_derivatives(0, 1, [2, 3], [1])
         assert_allclose(c2, [2., 7./2, 1.])
 
         # f'(1) = 3
-        c3 = _construct_from_derivatives(0, 1, [2], [1, 3])
+        c3 = BPoly._construct_from_derivatives(0, 1, [2], [1, 3])
         assert_allclose(c3, [2., -0.5, 1.])
 
     def test_make_poly_3(self):
         # f'(0)=2, f''(0)=3
-        c1 = _construct_from_derivatives(0, 1, [1, 2, 3], [4])
+        c1 = BPoly._construct_from_derivatives(0, 1, [1, 2, 3], [4])
         assert_allclose(c1, [1., 5./3, 17./6, 4.])
 
         # f'(1)=2, f''(1)=3
-        c2 = _construct_from_derivatives(0, 1, [1], [4, 2, 3])
+        c2 = BPoly._construct_from_derivatives(0, 1, [1], [4, 2, 3])
         assert_allclose(c2, [1., 19./6, 10./3, 4.])
 
         # f'(0)=2, f'(1)=3
-        c3 = _construct_from_derivatives(0, 1, [1, 2], [4, 3])
+        c3 = BPoly._construct_from_derivatives(0, 1, [1, 2], [4, 3])
         assert_allclose(c3, [1., 5./3, 3., 4.])
 
     def test_make_poly_12(self):
@@ -932,7 +930,7 @@ class TestFromDerivatives(TestCase):
         ya = np.r_[0, np.random.random(5)]
         yb = np.r_[0, np.random.random(5)]
 
-        c = _construct_from_derivatives(0, 1, ya, yb)
+        c = BPoly._construct_from_derivatives(0, 1, ya, yb)
         pp = BPoly(c[:, None], [0, 1])
         for j in range(6):
             assert_allclose([pp(0.), pp(1.)], [ya[j], yb[j]])
@@ -945,7 +943,7 @@ class TestFromDerivatives(TestCase):
         c = np.random.random(k)
         bp = BPoly(c[:, None], x)
 
-        c1 = _raise_degree(c, d)
+        c1 = BPoly._raise_degree(c, d)
         bp1 = BPoly(c1[:, None], x)
 
         xp = np.linspace(0, 1, 11)
@@ -1015,7 +1013,7 @@ class TestFromDerivatives(TestCase):
         
         # now repeat with `order` being even: on each interval, it uses
         # order//2 'derivatives' @ the right-hand endpoint and
-        # order//2+1 @ 'derivatives' the left-hand endpoint
+        # order//2+1 'derivatives' @ the left-hand endpoint
         order = 6
         pp = BPoly.from_derivatives(xi, yi, orders=order)
         for j in range(order//2):

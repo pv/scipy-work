@@ -5,9 +5,9 @@ from __future__ import division, print_function, absolute_import
 __all__ = ['interp1d', 'interp2d', 'spline', 'spleval', 'splmake', 'spltopp',
            'ppform', 'lagrange', 'PPoly', 'BPoly']
 
-from numpy import shape, sometrue, array, transpose, searchsorted, \
-                  ones, logical_or, atleast_1d, atleast_2d, ravel, \
-                  dot, poly1d, asarray, intp
+from numpy import (shape, sometrue, array, transpose, searchsorted,
+                  ones, logical_or, atleast_1d, atleast_2d, ravel,
+                  dot, poly1d, asarray, intp)
 import numpy as np
 import scipy.special as spec
 from scipy.misc import comb
@@ -1167,9 +1167,9 @@ class BPoly(_PPolyBase):
                     raise ValueError("`order` input incompatible with"
                             " length y1 or y2.")
             
-            b = _construct_from_derivatives(xi[i], xi[i+1],  y1[:n1], y2[:n2])
+            b = BPoly._construct_from_derivatives(xi[i], xi[i+1],  y1[:n1], y2[:n2])
             if len(b) < k:
-                b = _raise_degree(b, k - len(b))
+                b = BPoly._raise_degree(b, k - len(b))
             c.append(b)
 
         c = np.asarray(c).T
@@ -1188,8 +1188,8 @@ class BPoly(_PPolyBase):
         Returns
         -------
         bp : BPoly
-            Piecewise polynomial of order k2 = k - nu representing the derivative
-            of this polynomial.
+            Piecewise polynomial of order k2 = k - nu representing
+            the derivative of this polynomial.
 
         """
         if nu < 0:
@@ -1220,116 +1220,116 @@ class BPoly(_PPolyBase):
         pp._y_extra_shape = self._y_extra_shape
         return pp
 
+    @staticmethod
+    def _construct_from_derivatives(xa, xb, ya, yb):
+        """Compute the coefficients of a polynomial in the Bernstein basis 
+        given the values and derivatives at the edges.
 
-def _construct_from_derivatives(xa, xb, ya, yb):
-    """Compute the coefficients of a polynomial in the Bernstein basis 
-    given the values and derivatives at the edges.
+        Return the coefficients of a polynomial in the Bernstein basis
+        defined on `[xa, xb]` and having the values and derivatives at the
+        endpoints `xa` and `xb` as specified by `ya` and `yb`, respectively.
+        The polynomial constructed is of the minimal possible degree, i.e.,
+        if the lengths of `ya` and `yb` are `na` and `nb`, the degree of the
+        polynomial is `na + nb - 1`.
 
-    Return the coefficients of a polynomial in the Bernstein basis
-    defined on `[xa, xb]` and having the values and derivatives at the
-    endpoints `xa` and `xb` as specified by `ya` and `yb`, respectively.
-    The polynomial constructed is of the minimal possible degree, i.e.,
-    if the lengths of `ya` and `yb` are `na` and `nb`, the degree of the
-    polynomial is `na + nb - 1`.
+        Parameters
+        ----------
+        xa : float
+            Left-hand end point of the interval
+        xb : float
+            Right-hand end point of the interval
+        ya : array_like
+            Derivatives at `xa`. `ya[0]` is the value of the function, and
+            `ya[i]` for `i > 0` is the value of the `i`-th derivative.
+        yb : array_like
+            Derivatives at `xb`.
 
-    Parameters
-    ----------
-    xa : float
-        Left-hand end point of the interval
-    xb : float
-        Right-hand end point of the interval
-    ya : array_like
-        Derivatives at `xa`. `ya[0]` is the value of the function, and
-        `ya[i]` for `i > 0` is the value of the `i`-th derivative.
-    yb : array_like
-        Derivatives at `xb`.
+        Returns
+        -------
+        array
+            coefficient array of a polynomial having specified derivatives
 
-    Returns
-    -------
-    array
-        coefficient array of a polynomial having specified derivatives
+        Notes
+        -----
+        This uses several facts from life of Bernstein basis functions.
+        First of all,
 
-    Notes
-    -----
-    This uses several facts from life of Bernstein basis functions.
-    First of all,
+            ..math:: b'_{a, n} = n (b_{a-1, n-1} - b_{a, n-1})
 
-        ..math:: b'_{a, n} = n (b_{a-1, n-1} - b_{a, n-1})
+        If B(x) is a linear combination of the form
 
-    If B(x) is a linear combination of the form
+            ..math:: B(x) = \sum_{a=0}^{n} c_a b_{a, n},
 
-        ..math:: B(x) = \sum_{a=0}^{n} c_a b_{a, n},
+        then :math: B'(x) = n \sum_{a=0}^{n-1} (c_{a+1} - c_{a}) b_{a, n-1}.
+        Iterating the latter one, one finds for the q-th derivative
 
-    then :math: B'(x) = n \sum_{a=0}^{n-1} (c_{a+1} - c_{a}) b_{a, n-1}.
-    Iterating the latter one, one finds for the q-th derivative
+            ..math:: B^{q}(x) = n!/(n-q)! \sum_{a=0}^{n-q} Q_a b_{a, n-q},
 
-        ..math:: B^{q}(x) = n!/(n-q)! \sum_{a=0}^{n-q} Q_a b_{a, n-q},
+        with
 
-    with
+          ..math:: Q_a = \sum_{j=0}^{q} (-)^{j+q} comb(q, j) c_{j+a}
 
-      ..math:: Q_a = \sum_{j=0}^{q} (-)^{j+q} comb(q, j) c_{j+a}
+        This way, only `a=0` contributes to :math: `B^{q}(x = xa)`, and 
+        `c_q` are found one by one by iterating `q = 0, ..., na`.
 
-    This way, only `a=0` contributes to :math: `B^{q}(x = xa)`, and 
-    `c_q` are found one by one by iterating `q = 0, ..., na`.
+        At `x = xb` it's the same with `a = n - q`. 
 
-    At `x = xb` it's the same with `a = n - q`. 
+        """
+        na, nb = len(ya), len(yb)
+        n = na + nb
+        c = np.empty(na+nb)
 
-    """
-    na, nb = len(ya), len(yb)
-    n = na + nb
-    c = np.empty(na+nb)
+        # compute coefficients of a polynomial degree na+nb-1
+        # walk left-to-right
+        for q in range(0, na):
+            c[q] = ya[q] / spec.poch(n - q, q) * (xb - xa)**q
+            for j in range(0, q):
+                c[q] -= (-1)**(j+q) * comb(q, j) * c[j]
 
-    # compute coefficients of a polynomial degree na+nb-1
-    # walk left-to-right
-    for q in range(0, na):
-        c[q] = ya[q] / spec.poch(n - q, q) * (xb - xa)**q
-        for j in range(0, q):
-            c[q] -= (-1)**(j+q) * comb(q, j) * c[j]
+        # now walk right-to-left
+        for q in range(0, nb):
+            c[-q-1] = yb[q] / spec.poch(n - q, q) * (-1)**q * (xb - xa)**q
+            for j in range(0, q):
+                c[-q-1] -= (-1)**(j+1) * comb(q, j+1) * c[-q+j]
 
-    # now walk right-to-left
-    for q in range(0, nb):
-        c[-q-1] = yb[q] / spec.poch(n - q, q) * (-1)**q * (xb - xa)**q
-        for j in range(0, q):
-            c[-q-1] -= (-1)**(j+1) * comb(q, j+1) * c[-q+j]
+        return c
 
-    return c
+    @staticmethod
+    def _raise_degree(c, d):
+        """Raise a degree of a polynomial in the Bernstein basis.
 
+        Given the coefficients of a polynomial degree `k`, return (the 
+        coefficients of) the equivalent polynomial of degree `k+d`.
 
-def _raise_degree(c, d):
-    """Raise a degree of a polynomial in the Bernstein basis.
+        Parameters
+        ----------
+        c : array_like
+            coefficient array, 1D
+        d : integer
 
-    Given the coefficients of a polynomial degree `k`, return (the 
-    coefficients of) the equivalent polynomial of degree `k+d`.
+        Returns
+        -------
+        array
+            coefficient array, 1D array of length `c.shape[0] + d`
 
-    Parameters
-    ----------
-    c : array_like
-        coefficient array, 1D
-    d : integer
+        Notes
+        -----
+        This uses the fact that a Berstein polynomial `b_{a, k}` can be
+        identically represented as a linear combination of polynomials of
+        a higher degree `k+d`:
 
-    Returns
-    -------
-    array
-        coefficient array, 1D array of length `c.shape[0] + d`
+            ..math:: b_{a, k} = comb(k, a) \sum_{j=0}^{d} b_{a+j, k+d} \
+                                comb(d, j) / comb(k+d, a+j)
 
-    Notes
-    -----
-    This uses the fact that a Berstein polynomial `b_{a, k}` can be
-    identically represented as a linear combination of polynomials of
-    a higher degree `k+d`:
+        """
+        k = c.shape[0] - 1
+        out = np.zeros(c.shape[0] + d)
 
-        ..math:: b_{a, k} = comb(k, a) \sum_{j=0}^{d} b_{a+j, k+d} \
-                            comb(d, j) / comb(k+d, a+j)
-
-    """
-    k = c.shape[0] - 1
-    out = np.zeros(c.shape[0] + d)
-
-    for a in range(c.shape[0]):
-        f = c[a] * comb(k, a)
-        for j in range(d+1):
-            out[a+j] += f * comb(d, j) / comb(k+d, a+j)
-    return out
+        for a in range(c.shape[0]):
+            f = c[a] * comb(k, a)
+            for j in range(d+1):
+                out[a+j] += f * comb(d, j) / comb(k+d, a+j)
+        return out
 
 
 # backward compatibility wrapper
