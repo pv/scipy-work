@@ -1094,6 +1094,13 @@ class BPoly(_PPolyBase):
         # construct a compatible polynomial
         return BPoly.construct_fast(c2, self.x, self.extrapolate)
 
+    def extend(self, c, x, right=True):
+        k = max(self.c.shape[0], c.shape[0])
+        self.c = self._raise_degree(self.c, k - self.c.shape[0])
+        c = self._raise_degree(c, k - c.shape[0])
+        return _PPolyBase.extend(self, c, x, right)
+    extend.__doc__ = _PPolyBase.extend.__doc__
+
     @classmethod
     def from_power_basis(cls, pp, extrapolate=None):
         """
@@ -1116,9 +1123,9 @@ class BPoly(_PPolyBase):
 
         c = np.zeros_like(pp.c)
         for a in range(k+1):
-            factor = pp.c[a, ...] / comb(k, k-a) * dx[(slice(None),)+rest]**(k-a)
+            factor = pp.c[a] / comb(k, k-a) * dx[(slice(None),)+rest]**(k-a)
             for j in range(k-a, k+1):
-                c[j, ...] += factor * comb(j, k-a)
+                c[j] += factor * comb(j, k-a)
 
         if extrapolate is None:
             extrapolate = pp.extrapolate
@@ -1237,8 +1244,8 @@ class BPoly(_PPolyBase):
                 b = BPoly._raise_degree(b, k - len(b))
             c.append(b)
 
-        c = np.asarray(c).T
-        return BPoly(c, xi, extrapolate)
+        c = np.asarray(c)
+        return BPoly(c.swapaxes(0, 1), xi, extrapolate)
 
     @staticmethod
     def _construct_from_derivatives(xa, xb, ya, yb):
@@ -1295,9 +1302,21 @@ class BPoly(_PPolyBase):
         At `x = xb` it's the same with `a = n - q`. 
 
         """
+        ya, yb = np.asarray(ya), np.asarray(yb)
+        if ya.shape[1:] != yb.shape[1:]:
+            raise ValueError('ya and yb have incompatible dimensions.')
+
+        dta, dtb = ya.dtype, yb.dtype
+        if (np.issubdtype(dta, np.complexfloating)
+               or np.issubdtype(dtb, np.complexfloating)):
+            dt = np.complex_
+        else:
+            dt = np.float_
+
         na, nb = len(ya), len(yb)
         n = na + nb
-        c = np.empty(na+nb)
+
+        c = np.empty((na+nb,) + ya.shape[1:], dtype=dt)
 
         # compute coefficients of a polynomial degree na+nb-1
         # walk left-to-right
@@ -1342,8 +1361,11 @@ class BPoly(_PPolyBase):
                                 comb(d, j) / comb(k+d, a+j)
 
         """
+        if d == 0:
+            return c
+
         k = c.shape[0] - 1
-        out = np.zeros(c.shape[0] + d)
+        out = np.zeros((c.shape[0] + d,) + c.shape[1:], dtype=c.dtype)
 
         for a in range(c.shape[0]):
             f = c[a] * comb(k, a)
