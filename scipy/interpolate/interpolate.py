@@ -650,9 +650,18 @@ class _PPolyBase(object):
         x = np.ascontiguousarray(x.ravel(), dtype=np.float_)
         out = np.empty((len(x), prod(self.c.shape[2:])), dtype=self.c.dtype)
         self._ensure_c_contiguous()
+        x, out = self._pre_evaluate(x, out)
         self._evaluate(x, nu, extrapolate, out)
+        out = self._post_evaluate(x, out)
         return out.reshape(x_shape + self.c.shape[2:])
 
+    def _pre_evaluate(self, x, out):
+        """A hook to be overriden by subclasses."""
+        return x, out
+        
+    def _post_evaluate(self, x, out):
+        """A hook to be overriden by subclasses."""
+        return out
 
 class PPoly(_PPolyBase):
     """
