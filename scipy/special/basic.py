@@ -32,7 +32,7 @@ __all__ = ['agm', 'ai_zeros', 'assoc_laguerre', 'bei_zeros', 'beip_zeros',
            'sinc', 'sph_harm', 'sph_in', 'sph_inkn',
            'sph_jn', 'sph_jnyn', 'sph_kn', 'sph_yn', 'y0_zeros', 'y1_zeros',
            'y1p_zeros', 'yn_zeros', 'ynp_zeros', 'yv', 'yvp', 'zeta',
-           'SpecialFunctionWarning', 'stirling_1', 'stirling_2']
+           'SpecialFunctionWarning', 'stirling_1', 'stirling_2', 'stirling_1_2', 'stirling_2_2']
 
 
 class SpecialFunctionWarning(Warning):
@@ -1149,6 +1149,42 @@ def stirling_1(n,k):
 
 
 def stirling_2(n,k):
+    "Calculate the Sirling Number (n, k) of second kind"
+    if not (isscalar(n) and isscalar(k)):
+        raise ValueError("Arguments must be scalars.")
+    if (floor(n) != n) or (floor(k) != k):
+        raise ValueError("Arguments must be integers.")
+    if (n < 0) or (k < 0):
+        raise ValueError("Arguments must be positive.")
+
+    if n == 0 and k == 0:
+       return 1
+    if k == 0 and n >= 1:
+       return 0
+    if k > n:
+       return 0
+    return k * stirling_2(n-1, k) + stirling_2(n-1, k-1)
+
+
+def stirling_1_2(n,k):
+    "Calculate the Sirling Number (n, k) of first kind"
+    if not (isscalar(n) and isscalar(k)):
+        raise ValueError("Arguments must be scalars.")
+    if (floor(n) != n) or (floor(k) != k):
+        raise ValueError("Arguments must be integers.")
+    if (n < 0) or (k < 0):
+        raise ValueError("Arguments must be positive.")
+
+    S = []
+    for nn in range(n):
+        S.append(1)
+        for j in range(max(len(S), k)-1, 0, -1):
+            S[j] = S[j] - (nn+1)*S[j-1]
+        S[0] = 0
+    return S[-1]
+
+
+def stirling_2_2(n,k):
     "Calculate the Sirling Number (n, k) of second kind"
     if not (isscalar(n) and isscalar(k)):
         raise ValueError("Arguments must be scalars.")
