@@ -11,6 +11,8 @@ Wrappers for Qhull triangulation, plus some additional N-D geometry utilities
 #
 
 import threading
+import warnings
+
 import numpy as np
 cimport numpy as np
 cimport cython
@@ -1610,8 +1612,9 @@ class Delaunay(_QhullUser):
         the (N-1)-dimensional facets that form the convex hull
         of the triangulation.
 
-        .. note::
+        .. warning::
 
+           This attribute is deprecated, and will be removed in the future.
            Computing convex hulls via the Delaunay triangulation is
            inefficient and subject to increased numerical instability.
            Use `ConvexHull` instead.
@@ -1855,6 +1858,7 @@ class Delaunay(_QhullUser):
         return self._vertex_neighbor_vertices
 
     @property
+    @np.deprecate(old_name="Delaunay.convex_hull", new_name="ConvexHull")
     @cython.boundscheck(False)
     def convex_hull(self):
         """
