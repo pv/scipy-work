@@ -6,6 +6,8 @@ from scipy.interpolate._splines import BSpline
 
 class TestBSpline(object):
     def test_simple_eval(self):
+        np.random.seed(1234)
+
         spline = BSpline(t=[0, 0, 0, 1, 2, 3, 4, 4, 4], c=[2, 1, 2, 1, 2, 1, 2, 1, 2], k=2)
 
         xi = np.random.rand(30)*4
@@ -14,12 +16,37 @@ class TestBSpline(object):
         assert_allclose(a, b)
 
     def test_simple_eval_complex(self):
+        np.random.seed(1234)
+
         spline = BSpline(t=[0, 0, 0, 1, 2, 3, 4, 4, 4], c=[2, 1, 2, 1, 2j, 1, 2, 1, 2], k=2)
 
         xi = np.random.rand(30)*4
         a = spline(xi)
         b = _naive_eval(xi, spline.t, spline.c, spline.k)
         assert_allclose(a, b)
+
+    def test_fit_natural(self):
+        np.random.seed(1234)
+
+        n = 170
+        x = np.linspace(0, 1, n)**2
+        x.sort()
+
+        ys = [
+            np.random.rand(n),
+            np.random.rand(n) + 1j*np.random.rand(n),
+            np.random.rand(n, 1, 2, 3, 4, 1)
+        ]
+
+        for k in range(3, 3+2):
+            for y in ys:
+                msg = "k=%d, y: %r %r" % (k, y.dtype, y.shape)
+                spl = BSpline.fit_free(x, y, k=k)
+                assert_allclose(spl(x), y, err_msg=msg)
+                assert_allclose(spl(x[1] + 1e-13, k), spl(x[1] - 1e-13, k),
+                                rtol=1e-4, atol=1e-4, err_msg=msg)
+                assert_allclose(spl(x[-2] + 1e-13, k), spl(x[-2] - 1e-13, k),
+                                rtol=1e-4, atol=1e-4, err_msg=msg)
 
 
 def _naive_B(x, k, i, t):

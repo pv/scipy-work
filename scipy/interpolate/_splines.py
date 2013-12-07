@@ -1,3 +1,5 @@
+from __future__ import division, print_function, absolute_import
+
 import numpy as np
 
 from .interpolate import prod
@@ -314,9 +316,12 @@ class BSpline(object):
 
 
     @classmethod
-    def fit_interpolating(cls, x, y, k=3):
+    def fit_free(cls, x, y, k=3):
         """
-        Fit an interpolating spline to the data
+        Construct an interpolating spline to the data with free b.c.
+
+        The natural boundary conditions imply the k-1 derivative of
+        the spline at the endpoints vanishes.
 
         Parameters
         ----------
@@ -336,5 +341,79 @@ class BSpline(object):
         x = np.asarray(x)
         y = np.asarray(y)
 
-        t = np.r_
+        # Check inputs
+        if x.ndim != 1:
+            raise ValueError("x-array must be 1-dimensional")
+        if y.ndim < 1 or y.shape[0] != x.shape[0]:
+            raise ValueError("shape of y array does not match x")
 
+        # Construct a suitable knot set
+        if k > 0:
+            xp = np.unique(x)
+            xb = np.repeat(xp[0], k+1)
+            xe = np.repeat(xp[-1], k+1)
+            t = np.r_[xb, xp[(k-1):-(k-1)], xe]
+        else:
+            t = x
+
+        # LSQ spline --- enough D.O.F. to interpolate exactly
+        return cls.fit_leastsq(x, y, t, k=k)
+
+
+    @classmethod
+    def fit_leastsq(cls, x, y, t, k=3):
+        """
+        Fit a least-squares spline to the data, with given knots
+
+        Parameters
+        ----------
+        x : array-like, shape (n,)
+            1D array of points. Must be sorted in increasing order.
+        y : array-like, shape (n, ...)
+            Data values
+        t : array-like, shape (m,)
+            1D array of internal knot points. They need to satisfy the
+            conditions:
+
+            - sorted in increasing order
+            - at most `len(x) - 2*k`
+
+        k : int, optional
+            Order of the spline
+
+        Returns
+        -------
+        spl : BSpline
+            B-Spline that interpolates through the data points
+
+        """
+        x = np.asarray(x)
+        y = np.asarray(y)
+
+        # Check inputs
+        if x.ndim != 1:
+            raise ValueError("x-array must be 1-dimensional")
+        if y.ndim < 1 or y.shape[0] != x.shape[0]:
+            raise ValueError("shape of y array does not match x")
+
+        # Check knots
+        ier = dfitpack.fpchec(x, t, k)
+        if ier != 0:
+            raise RuntimeError("Invalid set of knots t")
+
+        # LSQ spline --- enough D.O.F. to interpolate exactly
+        def ev(y):
+            _, _, _, _, _, _, _, _, _, c, fp, _, _, ier = \
+                dfitpack.fpcurfm1(x, y, k, t, w=None, xb=x[0], xe=x[-1])
+            if ier != 0 or abs(fp) > 1e-10:
+                raise RuntimeError("Spline fitting failed: %r" % ((ier, fp),))
+            return c
+
+        if np.issubdtype(y.dtype, np.complexfloating):
+            c = np.empty((t.size,) + y.shape[1:], dtype=y.dtype)
+            c.real = np.apply_along_axis(ev, 0, y.real)
+            c.imag = np.apply_along_axis(ev, 0, y.imag)
+        else:
+            c = np.apply_along_axis(ev, 0, y)
+
+        return cls.construct_fast(t, c, k)
