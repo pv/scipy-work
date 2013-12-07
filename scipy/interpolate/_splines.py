@@ -1,9 +1,7 @@
 import numpy as np
 
-from scipy.interpolate.interpolate import prod
-
-import dfitpack
-#import _spline_low
+from .interpolate import prod
+from . import dfitpack
 
 __all__ = ['BSpline']
 
@@ -313,3 +311,30 @@ class BSpline(object):
 
         raise NotImplementedError('finding roots unsupported for '
                                   'non-cubic splines')
+
+
+    @classmethod
+    def fit_interpolating(cls, x, y, k=3):
+        """
+        Fit an interpolating spline to the data
+
+        Parameters
+        ----------
+        x : array-like, shape (n,)
+            1D array of points. Must be sorted in increasing order.
+        y : array-like, shape (n, ...)
+            Data values
+        k : int, optional
+            Order of the spline
+
+        Returns
+        -------
+        spl : BSpline
+            B-Spline that interpolates through the data points
+
+        """
+        x = np.asarray(x)
+        y = np.asarray(y)
+
+        t = np.r_
+

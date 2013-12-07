@@ -674,6 +674,16 @@ static int calc_regrid_lwrk(int mx, int my, int kx, int ky,
        real*8 dimension(nx+ny-kx-ky-2),depend(nx,ny,kx,ky),intent(cache,hide) :: wrk
        real*8 :: dblint
      end function dblint
+
+
+     subroutine fpchec(x,m,t,n,k,ier)
+       real*8, dimension(m), intent(in) :: x
+       integer, depend(x), intent(in) :: m = len(x)
+       real*8, dimension(n), intent(in) :: t
+       integer, depend(t), intent(in) :: n = len(t)
+       integer, intent(in) :: k
+       integer, intent(out) :: ier
+     end subroutine fpchec
   end interface
 end python module dfitpack
 

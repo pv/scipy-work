@@ -34,7 +34,7 @@ from .cobyla import _minimize_cobyla
 from .slsqp import _minimize_slsqp
 
 
-def minimize(fun, x0, args=(), method='BFGS', jac=None, hess=None,
+def minimize(fun, x0, args=(), method=None, jac=None, hess=None,
              hessp=None, bounds=None, constraints=(), tol=None,
              callback=None, options=None):
     """
@@ -303,6 +303,16 @@ def minimize(fun, x0, args=(), method='BFGS', jac=None, hess=None,
     It should converge to the theoretical solution (1.4 ,1.7).
 
     """
+
+    if method is None:
+        # Select automatically
+        if bounds and constraints:
+            method = 'SLSQP'
+        elif bounds:
+            method = 'L-BFGS-B'
+        else:
+            method = 'BFGS'
+
     meth = method.lower()
     if options is None:
         options = {}
