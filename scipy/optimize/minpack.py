@@ -3,7 +3,6 @@ from __future__ import division, print_function, absolute_import
 import warnings
 from . import _minpack
 
-import numpy as np
 from numpy import (atleast_1d, dot, take, triu, shape, eye,
                    transpose, zeros, product, greater, array,
                    all, where, isscalar, asarray, inf, abs,
@@ -442,11 +441,11 @@ def leastsq(func, x0, args=(), Dfun=None, full_output=0,
 
 
 def _general_function(params, xdata, ydata, function):
-    return function(xdata, *params) - ydata
+    return function(xdata, *params.tolist()) - ydata
 
 
 def _weighted_general_function(params, xdata, ydata, function, weights):
-    return weights * (function(xdata, *params) - ydata)
+    return weights * (function(xdata, *params.tolist()) - ydata)
 
 
 def curve_fit(f, xdata, ydata, p0=None, sigma=None, absolute_sigma=False, **kw):
@@ -536,12 +535,6 @@ def curve_fit(f, xdata, ydata, p0=None, sigma=None, absolute_sigma=False, **kw):
     # Check input arguments
     if isscalar(p0):
         p0 = array([p0])
-
-    ydata = np.asanyarray(ydata)
-    if isinstance(xdata, (list, tuple)):
-        # `xdata` is passed straight to the user-defined `f`, so allow
-        # non-array_like `xdata`.
-        xdata = np.asarray(xdata)
 
     args = (xdata, ydata, f)
     if sigma is None:
