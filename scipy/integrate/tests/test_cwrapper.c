@@ -1,7 +1,9 @@
 /* This c file is meant as proof of concept to show that the fulllib.h
   header can serve the expected purpose and will allow the usage of 
-  multivariate functions declared in c to speed up scipy */
-#include "fulllib.h"
+  multivariate functions declared in c to speed up scipy 
+  Authors: Brian Newsom + Nate Woods
+  */
+#include "cwrapper.h"
 
 static const double  PI=3.14159265359;
 
