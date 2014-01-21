@@ -3,6 +3,8 @@
  */
 #include "quadpack.h"
 #include "__quadpack.h"
+#include "cwrapper.h"
+  
 static struct PyMethodDef quadpack_module_methods[] = {
 {"_qagse", quadpack_qagse, METH_VARARGS, doc_qagse},
 {"_qagie", quadpack_qagie, METH_VARARGS, doc_qagie},

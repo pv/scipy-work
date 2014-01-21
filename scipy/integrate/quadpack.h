@@ -33,7 +33,6 @@ the result tuple when the full_output argument is non-zero.
 #include "numpy/arrayobject.h"
 #include <setjmp.h>
 
-
 #define PYERR(errobj,message) {PyErr_SetString(errobj,message); goto fail;}
 #define PYERR2(errobj,message) {PyErr_Print(); PyErr_SetString(errobj, message); goto fail;}
 #define ISCONTIGUOUS(m) ((m)->flags & CONTIGUOUS)

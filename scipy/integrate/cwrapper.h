@@ -2,8 +2,9 @@
   in the SLATEC quadpack library.  Global variables are used to store parameters
   for functions of multiple variables which can then be evaluated through the 
   call function.  The intent is then to wrap this with python and allow use 
-  in the SciPy library */
-
+  in the SciPy library 
+  Authors: Brian Newsom + Nate Woods
+  */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -23,16 +24,18 @@ int init(double (*f)(int, double *), int n, double args[n]){
     1 on failure 
     0 on success
   */
+  printf("BREAK1\n");
   globalnargs = n;
+  printf("BREAK2\n");
   globalf = f;
+  printf("BREAK3\n"); 
   globalargs = args;
-
+  /* Apparently this doesn't actually do anything
   if (&globalnargs == NULL || &globalf == NULL || &globalnargs == NULL){
     printf("%s\n", "Initialization did not complete correctly.");
     return 1;
-  }
-  else
-    return 0;
+  }*/
+  return 0;
 }
 
 double call(double* x){ 
@@ -42,6 +45,7 @@ double call(double* x){
   Output: Function evaluated at x with initialized parameters
   We want to create a new array with [x0, concatenated with [x1, . . . , xn]]
   */ 
+
   double evalArray[globalnargs+1];
   int i = 1;
   evalArray[0] = *x;
@@ -78,15 +82,12 @@ double dqagi2(double (*f)(int, double *), int nargs, double args[nargs], double*
   return *result;
 }
 
-double HARDCODEDFUNCTION(float* x){
-  return -(exp(-*x)*log(*x));
-}
-
 double dqagie2(double (*f)(int, double *), int nargs, double args[nargs], double* bound, int* inf, 
 	      double* epsabs, double* epsrel, int* limit, double* result, double* abserr, int* neval, 
 	      int* ier, double alist[*limit], double blist[*limit], double rlist[*limit], double elist[*limit], 
 	      int iord[*limit], int* last){
   init(f,nargs,args);
+  //Weird bug lives here
   // int i = 0;
   // double param = 0;
   // for (i; i < 100 ; i++){
@@ -117,14 +118,14 @@ double dqags2(double (*f)(int, double *), int nargs, double args[nargs], double*
   return *result;
 }
 
-double dqagse2(double (*f)(int, double *), int nargs, double args[nargs], double* a, double* b, 
+void dqagse2(double (*f)(int, double *), int nargs, double args[nargs], double* a, double* b, 
 	      double* epsabs, double* epsrel, int* limit, double* result, double* abserr, int* neval, 
 	      int* ier, double alist[*limit], double blist[*limit], double rlist[*limit], 
 	      double elist[*limit], int iord[*limit], int* last){
   init(f,nargs,args);
   dqagse_(call, a, b, epsabs, epsrel, limit, result, abserr, neval, ier, alist, blist, rlist, 
 	  elist, iord, last);
-  return *result;
+  return;
 }
 
 double dqng2(double (*f)(int, double *), int nargs, double args[nargs], double* a, double* b, 
