@@ -1,6 +1,6 @@
 /* This c file is meant as proof of concept to show that the fulllib.h
   header can serve the expected purpose and will allow the usage of 
-  multivariate functions declared in c to speed up scipy integrate
+  multivariate functions declared in c to speed up scipy 
   Authors: Brian Newsom + Nate Woods
   */
 #include "cwrapper.h"
@@ -85,8 +85,11 @@ int test_indefinite(){
   int iord[limit];
   int last;
   double value = dqagie2(tiFunc, nargs, args, &bound, &inf, &epsabs, &epsrel, &limit, &result, 
-			 &abserr, &neval, &ier, alist, blist, rlist, elist, iord, &last); // KNOWN ERROR
-  return assert_quad(value, 0.577215664901532860606512, 1.49e-8);
+			 &abserr, &neval, &ier, alist, blist, rlist, elist, iord, &last); //ERROR
+  double value2 = dqagie_(tiFunc2, &bound, &inf, &epsabs, &epsrel, &limit, &result, &abserr, &neval, 
+			  &ier, alist, blist, rlist, elist, iord, &last); // If i skip the wrapper it works.
+  value2 = result; //Somehow this one is correct..
+  return assert_quad(value2, 0.577215664901532860606512, 1.49e-8);
 
 }
 

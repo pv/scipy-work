@@ -18,7 +18,7 @@
 /* python files: (to be imported to Multipack.py)
    quadpack.py
  */
-   
+
 #if defined(NO_APPEND_FORTRAN)
   #if defined(UPPERCASE_FORTRAN)
   /* nothing to do here */
@@ -230,8 +230,6 @@ static PyObject *quadpack_qagse(PyObject *dummy, PyObject *args) {
   PyArrayObject *ap_alist = NULL, *ap_iord = NULL;
   PyArrayObject *ap_blist = NULL, *ap_elist = NULL;
   PyArrayObject *ap_rlist = NULL;
-  //Crap
-  PyArrayObject *ap_args = NULL;
 
   PyObject *extra_args = NULL;
   PyObject *fcn;
@@ -243,8 +241,6 @@ static PyObject *quadpack_qagse(PyObject *dummy, PyObject *args) {
   int      neval=0, ier=6, last=0, *iord;
   double   result=0.0, abserr=0.0;
   double   *alist, *blist, *rlist, *elist;
-  //Crap
-  double
   FuncType func_type;
   QStorage storevar;
 
@@ -271,11 +267,6 @@ static PyObject *quadpack_qagse(PyObject *dummy, PyObject *args) {
   rlist = (double *)ap_rlist->data;
   elist = (double *)ap_elist->data;
 
-  //Crap I'm adding
-  int nargs = 0;
-  ap_args = (PyArrayObject *)PyArray_SimpleNew(1,limit_shape,NPY_DOUBLE);
-  args = (double *)ap_args->data;
-
   if (func_type == Callable) {
     if (quad_init_func(&storevar, fcn, extra_args) == NPY_FAIL)
       goto fail;
@@ -285,7 +276,7 @@ static PyObject *quadpack_qagse(PyObject *dummy, PyObject *args) {
       goto fail;
     }
     else {
-      DQAGS(quad_function, &a, &b, &epsabs, &epsrel, &limit, &result, &abserr, &neval, &ier, alist, 
+      dqagse2(quad_function, &a, &b, &epsabs, &epsrel, &limit, &result, &abserr, &neval, &ier, alist, 
     blist, rlist, elist, iord, &last);
     }
 
