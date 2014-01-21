@@ -42,15 +42,17 @@ double call(double* x){
   Output: Function evaluated at x with initialized parameters
   We want to create a new array with [x0, concatenated with [x1, . . . , xn]]
   */ 
+  printf("INSIDE CALL\n");
   double evalArray[globalnargs+1];
   int i = 1;
+  printf("2\n");
   evalArray[0] = *x;
-
+  printf("3\n");
   for(i; i < globalnargs + 1 ; i++){
     evalArray[i] = globalargs[i-1]; //Add everything from globalargs to end of evalArray
   }
-  
-  return  globalf(globalnargs, evalArray);
+  printf("INSIDE2\n");
+  return  globalf(globalnargs, evalArray); //seg faulting here - Not surprising
 }
 
 void dqag2(double (*f)(int, double *), int nargs, double args[nargs], double* a, double* b,
