@@ -5,9 +5,9 @@
   in the SciPy library */
 
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <math.h>
+//#include <stdio.h>
+//#include <stdlib.h>
+//#include <math.h> Removed unnecessary import
 
 double* globalargs; //Array to store function parameters (x[1],...,x[n])
 double (*globalf)(int, double *); //Pointer to function of array

@@ -276,7 +276,8 @@ static PyObject *quadpack_qagse(PyObject *dummy, PyObject *args) {
       goto fail;
     }
     else {
-      dqagse2(quad_function, 0, alist, &a, &b, &epsabs, &epsrel, &limit, &result, &abserr, &neval, &ier, alist, 
+      funcwrapper_init(quad_function);
+      DQAGSE(quad_function, &a, &b, &epsabs, &epsrel, &limit, &result, &abserr, &neval, &ier, alist, 
     blist, rlist, elist, iord, &last);
     }
 
