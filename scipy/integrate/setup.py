@@ -33,7 +33,7 @@ def configuration(parent_package='',top_path=None):
     config.add_extension('_quadpack',
                          sources=['_quadpackmodule.c'],
                          libraries=['quadpack', 'linpack_lite', 'mach'],
-                         depends=(['quadpack.h','__quadpack.h','cwrapper.h','arraywrapper.h']
+                         depends=(['quadpack.h','__quadpack.h','cwrapper.h']
                                   + quadpack_src + linpack_lite_src + mach_src))
     # odepack
     libs = ['odepack','linpack_lite','mach']

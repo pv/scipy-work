@@ -68,7 +68,10 @@ typedef enum {
   Callable=1,
   Valid_Ctype=2
 } FuncType;
-
+//////////////////////////////////////////Forward declarations for cwrapper////////////////////////////////
+void funcwrapper_init(double (*f)(double *));
+double funcwrapper(int nargs, double args[nargs]);
+///////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 /* Checks a callable object:
    Returns Valid_Ctype if the Python Object is a CType Function of the type (double) -> (double)
@@ -77,6 +80,7 @@ typedef enum {
    Returns Not_Callable if it is not a Python callable
    Returns Error if other error occurs.
 */
+
 
 static FuncType
 get_func_type(PyObject *func) {
@@ -276,9 +280,14 @@ static PyObject *quadpack_qagse(PyObject *dummy, PyObject *args) {
       goto fail;
     }
     else {
+      /////////////////////////////////////Brian's Code///////////////////////////////////////////
       funcwrapper_init(quad_function);
-      DQAGSE(quad_function, &a, &b, &epsabs, &epsrel, &limit, &result, &abserr, &neval, &ier, alist, 
-    blist, rlist, elist, iord, &last);
+
+      dqagse2(funcwrapper, 0, alist, &a, &b, &epsabs, &epsrel, &limit, &result, &abserr, &neval, &ier, alist, 
+            blist, rlist, elist, iord, &last);
+      ////////////////////////////////////////////////////////////////////////////////////////////
+    //  DQAGSE(quad_function, &a, &b, &epsabs, &epsrel, &limit, &result, &abserr, &neval, &ier, alist, 
+    //blist, rlist, elist, iord, &last);
     }
 
     quad_restore_func(&storevar, &ier);

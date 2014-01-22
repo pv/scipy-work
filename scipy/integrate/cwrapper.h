@@ -12,6 +12,9 @@
 double* globalargs; //Array to store function parameters (x[1],...,x[n])
 double (*globalf)(int, double *); //Pointer to function of array
 int globalnargs; //Int to store number of elements in globargs
+double (*globalbasef)(double *); //Function received from __quadpack.h to initialize and convert to
+                                 //form used
+
 
 int init(double (*f)(int, double *), int n, double args[n]){
   /*Initialize function of n+1 variables
@@ -42,17 +45,13 @@ double call(double* x){
   Output: Function evaluated at x with initialized parameters
   We want to create a new array with [x0, concatenated with [x1, . . . , xn]]
   */ 
-  printf("INSIDE CALL\n");
   double evalArray[globalnargs+1];
   int i = 1;
-  printf("2\n");
   evalArray[0] = *x;
-  printf("3\n");
   for(i; i < globalnargs + 1 ; i++){
     evalArray[i] = globalargs[i-1]; //Add everything from globalargs to end of evalArray
   }
-  printf("INSIDE2\n");
-  return  globalf(globalnargs, evalArray); //seg faulting here - Not surprising
+  return globalf(globalnargs, evalArray); //seg faulting here - Not surprising
 }
 
 void dqag2(double (*f)(int, double *), int nargs, double args[nargs], double* a, double* b,
@@ -233,4 +232,23 @@ void dqawse2(double (*f)(int, double *), int nargs, double args[nargs], double* 
   dqawse_(call, a, b, alfa, beta, integr, epsabs, epsrel, limit, result, abserr, neval, 
         ier, alist, blist, rlist,elist, iord, last);
   return;
+}
+
+
+
+/*Second wrapper for testing. Interprets fn of f(x) as f(n,x[n]) for use with
+cwrapper*/
+
+void funcwrapper_init(double (*f)(double *)){
+  //sets f as global for future use
+  //input: f - function of double pointer
+  globalbasef = f;
+  return;
+}
+
+double funcwrapper(int nargs, double args[nargs]){
+  /*Take globalbasef and evaluate it in the form that cwrapper
+  can handle*/
+
+  return globalbasef(args);  
 }
