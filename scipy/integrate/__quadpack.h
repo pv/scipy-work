@@ -282,8 +282,7 @@ static PyObject *quadpack_qagse(PyObject *dummy, PyObject *args) {
     else {
       /////////////////////////////////////Brian's Code///////////////////////////////////////////
       funcwrapper_init(quad_function);
-
-      dqagse2(funcwrapper, 0, alist, &a, &b, &epsabs, &epsrel, &limit, &result, &abserr, &neval, &ier, alist, 
+      dqagse2(funcwrapper, 0, NULL, &a, &b, &epsabs, &epsrel, &limit, &result, &abserr, &neval, &ier, alist, 
             blist, rlist, elist, iord, &last);
       ////////////////////////////////////////////////////////////////////////////////////////////
     //  DQAGSE(quad_function, &a, &b, &epsabs, &epsrel, &limit, &result, &abserr, &neval, &ier, alist, 
@@ -379,7 +378,8 @@ static PyObject *quadpack_qagie(PyObject *dummy, PyObject *args) {
       goto fail;
     }
     else {
-      DQAGIE(quad_function, &bound, &inf, &epsabs, &epsrel, &limit, &result, &abserr, &neval, &ier, alist, blist, rlist, elist, iord, &last);
+      funcwrapper_init(quad_function);
+      dqagie2(funcwrapper, 0, NULL, &bound, &inf, &epsabs, &epsrel, &limit, &result, &abserr, &neval, &ier, alist, blist, rlist, elist, iord, &last);
     }
     quad_restore_func(&storevar, &ier);
   }
@@ -482,7 +482,9 @@ static PyObject *quadpack_qagpe(PyObject *dummy, PyObject *args) {
       goto fail;
     }
     else {
-      DQAGPE(quad_function, &a, &b, &npts2, points, &epsabs, &epsrel, &limit, &result, &abserr, &neval, &ier, alist, blist, rlist, elist, pts, iord, level, ndin, &last);
+      funcwrapper_init(quad_function);
+      dqagpe2(funcwrapper, 0, NULL, &a, &b, &npts2, points, &epsabs, &epsrel, &limit, &result, &abserr, &neval, &ier, alist, blist, rlist, elist, pts, iord, level, ndin, &last);
+      //DQAGPE(quad_function, &a, &b, &npts2, points, &epsabs, &epsrel, &limit, &result, &abserr, &neval, &ier, alist, blist, rlist, elist, pts, iord, level, ndin, &last);
     }
     
     quad_restore_func(&storevar, &ier);
@@ -596,7 +598,8 @@ static PyObject *quadpack_qawoe(PyObject *dummy, PyObject *args) {
       goto fail;
     }
     else {
-      DQAWOE(quad_function, &a, &b, &omega, &integr, &epsabs, &epsrel, &limit, &icall, &maxp1, &result, &abserr, &neval, &ier, &last, alist, blist, rlist, elist, iord, nnlog, &momcom, chebmo);
+      funcwrapper_init(quad_function);
+      dqawoe2(funcwrapper, 0, NULL, &a, &b, &omega, &integr, &epsabs, &epsrel, &limit, &icall, &maxp1, &result, &abserr, &neval, &ier, &last, alist, blist, rlist, elist, iord, nnlog, &momcom, chebmo);
     }
 
     quad_restore_func(&storevar, &ier);
@@ -706,7 +709,9 @@ static PyObject *quadpack_qawfe(PyObject *dummy, PyObject *args) {
       goto fail;
     }
     else {
-      DQAWFE(quad_function, &a, &omega, &integr, &epsabs, &limlst, &limit, &maxp1, &result, &abserr, &neval, &ier, rslst, erlst, ierlst, &lst, alist, blist, rlist, elist, iord, nnlog, chebmo);
+      funcwrapper_init(quad_function);
+      dqawfe2(funcwrapper, 0, NULL, &a, &omega, &integr, &epsabs, &limlst, &limit, &maxp1, &result, &abserr, &neval, &ier, rslst, erlst, ierlst, &lst, alist, blist, rlist, elist, iord, nnlog, chebmo);
+     //DQAWFE(quad_function, &a, &omega, &integr, &epsabs, &limlst, &limit, &maxp1, &result, &abserr, &neval, &ier, rslst, erlst, ierlst, &lst, alist, blist, rlist, elist, iord, nnlog, chebmo);
     }
 
     quad_restore_func(&storevar, &ier);
@@ -803,7 +808,9 @@ static PyObject *quadpack_qawce(PyObject *dummy, PyObject *args) {
       goto fail;
     }
     else {
-      DQAWCE(quad_function, &a, &b, &c, &epsabs, &epsrel, &limit, &result, &abserr, &neval, &ier, alist, blist, rlist, elist, iord, &last);
+      funcwrapper_init(quad_function);
+      dqawce2(funcwrapper, 0, NULL, &a, &b, &c, &epsabs, &epsrel, &limit, &result, &abserr, &neval, &ier, alist, blist, rlist, elist, iord, &last);
+      // DQAWCE(quad_function, &a, &b, &c, &epsabs, &epsrel, &limit, &result, &abserr, &neval, &ier, alist, blist, rlist, elist, iord, &last);
     }
 
     quad_restore_func(&storevar, &ier);
@@ -891,7 +898,9 @@ static PyObject *quadpack_qawse(PyObject *dummy, PyObject *args) {
       goto fail;
     }
     else {
-      DQAWSE(quad_function, &a, &b, &alfa, &beta, &integr, &epsabs, &epsrel, &limit, &result, &abserr, &neval, &ier, alist, blist, rlist, elist, iord, &last);
+      funcwrapper_init(quad_function);
+      dqawse2(funcwrapper, 0, NULL, &a, &b, &alfa, &beta, &integr, &epsabs, &epsrel, &limit, &result, &abserr, &neval, &ier, alist, blist, rlist, elist, iord, &last);
+      // DQAWSE(quad_function, &a, &b, &alfa, &beta, &integr, &epsabs, &epsrel, &limit, &result, &abserr, &neval, &ier, alist, blist, rlist, elist, iord, &last);
     }
 
     quad_restore_func(&storevar, &ier);

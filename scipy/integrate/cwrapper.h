@@ -2,7 +2,9 @@
   in the SLATEC quadpack library.  Global variables are used to store parameters
   for functions of multiple variables which can then be evaluated through the 
   call function.  The intent is then to wrap this with python and allow use 
-  in the SciPy library */
+  in the SciPy library 
+  Authors: Brian Newsom, Nathan Woods
+  */
 
 
 //#include <stdio.h>
@@ -236,7 +238,7 @@ void dqawse2(double (*f)(int, double *), int nargs, double args[nargs], double* 
 
 
 
-/*Second wrapper for testing. Interprets fn of f(x) as f(n,x[n]) for use with
+/*Second piece of wrapper for testing. Interprets funciton of f(x) as f(n,x[n]) for use with
 cwrapper*/
 
 void funcwrapper_init(double (*f)(double *)){
