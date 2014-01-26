@@ -2820,11 +2820,7 @@ class TestCSC(sparse_test_class()):
         assert_equal(SIJ, D[I,J])
 
 
-class TestDOK(sparse_test_class(slicing=False,
-                                slicing_assign=False,
-                                fancy_indexing=False,
-                                fancy_assign=False,
-                                minmax=False)):
+class TestDOK(sparse_test_class(minmax=False)):
     spmatrix = dok_matrix
     checked_dtypes = [np.int_, np.float_, np.complex_]
 
