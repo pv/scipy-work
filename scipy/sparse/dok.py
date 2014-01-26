@@ -138,19 +138,73 @@ class dok_matrix(spmatrix, IndexMixin, dict):
         """
         i, j = self._unpack_index(index)
 
-        if isintlike(i) and isintlike(j):
-            # Fast path
+        if isintlike(i):
             i = int(i)
-            j = int(j)
             if i < 0:
                 i += self.shape[0]
             if i < 0 or i >= self.shape[0]:
                 raise IndexError('index out of bounds')
+
+        if isintlike(j):
+            j = int(j)
             if j < 0:
                 j += self.shape[1]
             if j < 0 or j >= self.shape[1]:
                 raise IndexError('index out of bounds')
+
+        if isintlike(i) and isintlike(j):
             return dict.get(self, (i,j), 0.)
+
+        if ((isintlike(i) or isinstance(i, slice)) and
+              (isintlike(j) or isinstance(j, slice))):
+            # Second fast path
+            if isintlike(i):
+                i_start, i_stop, i_stride = i, i + 1, 1
+            else:
+                i_start, i_stop, i_stride = i.indices(self.shape[0])
+
+            if isintlike(j):
+                j_start, j_stop, j_stride = j, j + 1, 1
+            else:
+                j_start, j_stop, j_stride = j.indices(self.shape[0])
+
+            newdok = dok_matrix(((i_stop - i_start)//i_stride,
+                                 (j_stop - j_start)//j_stride),
+                                dtype=self.dtype)
+
+            i_a, i_b = (i_start, i_stop) if i_stride >= 0 else (i_stop - 1, i_start + 1)
+            j_a, j_b = (j_start, j_stop) if j_stride >= 0 else (j_stop - 1, j_start + 1)
+
+            if len(self) > 0.1 * _prod(newdok.shape):
+                for i, a in enumerate(xrange(i_start, i_stop, i_stride)):
+                    for j, b in enumerate(xrange(j_start, j_stop, j_stride)):
+                        v = dict.get(self, (a, b), 0.)
+                        if v != 0:
+                            dict.__setitem__(newdok, (i, j), v)
+            elif isintlike(i):
+                if j_stride < 0:
+                    j_start, j_stop = j_stop, j_start
+                    j_stride = -j_stride
+                for (ii, jj) in self.keys():
+                    if (ii == i and
+                        jj >= j_a and jj < j_b and (jj - j_start) % j_stride == 0):
+                        dict.__setitem__(newdok, (0, (jj - j_start)//j_stride),
+                                         dict.__getitem__(self, (ii, jj)))
+            elif isintlike(j):
+                for (ii, jj) in self.keys():
+                    if (jj == j and
+                        ii >= i_a and ii < i_b and (ii - i_start) % i_stride == 0):
+                        dict.__setitem__(newdok, ((ii - i_start)//i_stride, 0),
+                                         dict.__getitem__(self, (ii, jj)))
+            else:
+                for (ii, jj) in self.keys():
+                    if (ii >= i_a and ii < i_b and (ii - i_start) % i_stride == 0 and
+                        jj >= j_a and jj < j_b and (jj - j_start) % j_stride == 0):
+                        dict.__setitem__(newdok, ((ii - i_start)//i_stride,
+                                                  (jj - j_start)//j_stride),
+                                         dict.__getitem__(self, (ii, jj)))
+
+            return newdok
 
         i, j = self._index_to_arrays(i, j)
 
