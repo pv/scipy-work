@@ -333,12 +333,6 @@ class BenchmarkSparse(TestCase):
             times = []
 
             for fmt in formats:
-                if fmt == 'dok' and ((getitem and N > 1) or N > 200 or (isinstance(i, np.ndarray) and i.ndim > 1)):
-                    times.append(None)
-                    continue
-                if fmt in ('csr', 'csc') and (not getitem and N > 20000):
-                    times.append(None)
-                    continue
                 base = A.asformat(fmt)
 
                 m = base.copy()
