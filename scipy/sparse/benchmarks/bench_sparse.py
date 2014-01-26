@@ -6,6 +6,7 @@ import warnings
 
 import numpy
 import numpy as np
+import itertools
 from numpy import ones, array, asarray, empty
 
 from numpy.testing import *
@@ -291,79 +292,210 @@ class BenchmarkSparse(TestCase):
             print(output)
 
 
-    def _getset_bench(self, kernel, formats):
-        print('==========================================================')
-        print('      N | s.patt. |' + ''.join(' %7s |' % fmt for fmt in formats))
-        print('----------------------------------------------------------')
+    def _getset_bench(self, kernel, formats, use_2d=False, densities=(1e-5,), getitem=False,
+                      Nvals=(1, 10, 100, 1000, 10000, 100000), matrix_N=100):
+        print('========================================================================')
+        print('      N | s.patt. | dens.  |' + ''.join(' %8s |' % fmt for fmt in formats))
+        print('------------------------------------------------------------------------')
 
-        A = rand(1000, 1000, density=1e-5)
+        for density, N, spat in itertools.product(densities,
+                                                  Nvals,
+                                                  [False, True]):
+            A = rand(matrix_N, matrix_N, density=density)
 
-        for N in [1, 10, 100, 1000, 10000]:
-            for spat in [False, True]:
-                # indices to assign to
-                i, j = [], []
-                while len(i) < N:
-                    n = N - len(i)
-                    ip = np.random.randint(0, A.shape[0], size=n)
-                    jp = np.random.randint(0, A.shape[1], size=n)
-                    i = np.r_[i, ip]
-                    j = np.r_[j, jp]
-                v = np.random.rand(n)
+            if N == 1 and not spat:
+                continue
 
-                if N == 1:
-                    i = int(i)
-                    j = int(j)
-                    v = float(v)
+            if use_2d:
+                n = int(np.ceil(np.sqrt(N)))
+                N = n**2
 
-                times = []
+            # indices to assign to
+            i, j = [], []
+            while len(i) < N:
+                k = N - len(i)
+                ip = np.random.randint(0, A.shape[0], size=k)
+                jp = np.random.randint(0, A.shape[1], size=k)
+                i = np.r_[i, ip]
+                j = np.r_[j, jp]
+            v = np.random.rand(N)
 
-                for fmt in formats:
-                    if fmt == 'dok' and N > 500:
-                        times.append(None)
-                        continue
+            if use_2d:
+                i = i.reshape(n, n)
+                j = j.reshape(n, n)
+                v = v.reshape(n, n)
 
-                    base = A.asformat(fmt)
-                    
-                    m = base.copy()
-                    if spat:
-                        kernel(m, i, j, v)
+            if N == 1:
+                i = int(i)
+                j = int(j)
+                v = float(v)
 
+            times = []
+
+            for fmt in formats:
+                if fmt == 'dok' and ((getitem and N > 1) or N > 200 or (isinstance(i, np.ndarray) and i.ndim > 1)):
+                    times.append(None)
+                    continue
+                if fmt in ('csr', 'csc') and (not getitem and N > 20000):
+                    times.append(None)
+                    continue
+                base = A.asformat(fmt)
+
+                m = base.copy()
+
+                try:
                     with warnings.catch_warnings():
                         warnings.simplefilter('ignore', SparseEfficiencyWarning)
 
+                        if spat:
+                            kernel(m, i, j, v)
+
                         iter = 0
                         total_time = 0
-                        while total_time < 0.2 and iter < 5000:
-                            if not spat:
+                        start = time.time()
+                        while total_time < 0.2 and time.time() - start < 0.5:
+                            if spat:
+                                nrep = 1 + 1000//N
+                                a = time.clock()
+                                for _ in xrange(nrep):
+                                    kernel(m, i, j, v)
+                                total_time += (time.clock() - a)
+                                iter += nrep
+                            else:
                                 m = base.copy()
-                            a = time.clock()
-                            kernel(m, i, j, v)
-                            total_time += time.clock() - a
-                            iter += 1
+                                a = time.clock()
+                                kernel(m, i, j, v)
+                                total_time += time.clock() - a
+                                iter += 1
 
-                    times.append(total_time/float(iter))
+                        times.append(total_time/float(iter))
+                except (IndexError, ValueError, TypeError):
+                    times.append('error')
+                except NotImplementedError:
+                    times.append('notimp')
 
-                output = " %6d | %7s " % (N, "same" if spat else "change")
-                for t in times:
-                    if t is None:
-                        output += '|    n/a    '
-                    else:
-                        output += '| %5.2fms ' % (1e3*t)
-                print(output)
+            output = " %6d | %7s | %6g " % (N,
+                                            "same" if spat else "change",
+                                            density)
+            for t in times:
+                if t is None:
+                    output += '|     n/a  '
+                elif isinstance(t, str):
+                    output += '| %8s ' % (t,)
+                elif t < 1e-3:
+                    output += '| %8.2g ' % (1e3*t)
+                else:
+                    output += '| %8.2f ' % (1e3*t)
+            print(output)
 
     def bench_setitem(self):
         def kernel(A, i, j, v):
             A[i, j] = v
         print()
-        print('           Sparse Matrix fancy __setitem__')
-        self._getset_bench(kernel, ['csr', 'csc', 'lil', 'dok'])
+        print('           Sparse Matrix fancy __setitem__; times in ms')
+        self._getset_bench(kernel, ['csr', 'csc', 'lil', 'dok'],
+                           densities=[1e-5, 0.1])
 
     def bench_getitem(self):
         def kernel(A, i, j, v=None):
             A[i, j]
         print()
-        print('           Sparse Matrix fancy __getitem__')
-        self._getset_bench(kernel,  ['csr', 'csc', 'lil'])
+        print('           Sparse Matrix fancy __getitem__; times in ms')
+        self._getset_bench(kernel,  ['csr', 'csc', 'lil', 'dok'],
+                           densities=[1e-5, 0.1],
+                           getitem=True)
+
+    def bench_setitem_2d(self, use_2d=True):
+        def kernel(A, i, j, v):
+            A[i, j] = v
+        print()
+        print('           Sparse Matrix fancy __setitem__ (2D index); times in ms')
+        self._getset_bench(kernel, ['csr', 'csc', 'lil', 'dok'],
+                           densities=[1e-5, 0.1],
+                           use_2d=True)
+
+    def bench_getitem_2d(self, use_2d=True):
+        def kernel(A, i, j, v=None):
+            A[i, j]
+        print()
+        print('           Sparse Matrix fancy __getitem__ (2D index); times in ms')
+        self._getset_bench(kernel,  ['csr', 'csc', 'lil', 'dok'],
+                           densities=[1e-5, 0.1],
+                           use_2d=True,
+                           getitem=True)
+
+    def bench_set_slice_int(self):
+        def kernel(A, i, j, v):
+            v = np.atleast_1d(v)
+            A[:len(v), 0] = v.reshape(-1, 1)
+        print()
+        print('           Sparse Matrix __setitem__(slice, int); times in ms')
+        self._getset_bench(kernel, ['csr', 'csc', 'lil', 'dok'],
+                           densities=[1e-5, 1e-3],
+                           Nvals=[1, 10, 100, 1000],
+                           matrix_N=1000)
+
+    def bench_get_slice_int(self):
+        def kernel(A, i, j, v=None):
+            i = np.atleast_1d(i)
+            A[:len(i), 0]
+        print()
+        print('           Sparse Matrix __getitem__(slice, int); times in ms')
+        self._getset_bench(kernel,  ['csr', 'csc', 'lil', 'dok'],
+                           densities=[1e-5, 1e-3],
+                           getitem=True,
+                           Nvals=[1, 10, 100, 1000],
+                           matrix_N=1000)
+
+    def bench_set_int_slice(self):
+        def kernel(A, i, j, v):
+            i = np.atleast_1d(i)
+            A[0, :len(i)] = v
+        print()
+        print('           Sparse Matrix __setitem__(int, slice); times in ms')
+        self._getset_bench(kernel, ['csr', 'csc', 'lil', 'dok'],
+                           densities=[1e-5, 1e-3],
+                           Nvals=[1, 10, 100, 1000],
+                           matrix_N=1000)
+
+    def bench_get_int_slice(self):
+        def kernel(A, i, j, v=None):
+            i = np.atleast_1d(i)
+            A[0, :len(i)]
+        print()
+        print('           Sparse Matrix __getitem__(int, slice); times in ms')
+        self._getset_bench(kernel,  ['csr', 'csc', 'lil', 'dok'],
+                           densities=[1e-5, 1e-3],
+                           getitem=True,
+                           Nvals=[1, 10, 100, 1000],
+                           matrix_N=1000)
+
+    def bench_set_slice_slice(self):
+        def kernel(A, i, j, v):
+            v = np.atleast_1d(v)
+            k = int(np.sqrt(v.size))
+            A[:k, :k] = v.reshape(k, k)
+        print()
+        print('           Sparse Matrix __setitem__(slice, slice); times in ms')
+        self._getset_bench(kernel, ['csr', 'csc', 'lil', 'dok'],
+                           densities=[1e-5, 1e-3],
+                           Nvals=[1, 10, 100, 1000],
+                           matrix_N=1000,
+                           use_2d=True)
+
+    def bench_get_slice_slice(self):
+        def kernel(A, i, j, v=None):
+            i = np.atleast_1d(i)
+            k = int(np.sqrt(i.size))
+            A[:k, :k]
+        print()
+        print('           Sparse Matrix __getitem__(slice, slice); times in ms')
+        self._getset_bench(kernel,  ['csr', 'csc', 'lil', 'dok'],
+                           densities=[1e-5, 1e-3],
+                           getitem=True,
+                           Nvals=[1, 10, 100, 1000],
+                           matrix_N=1000,
+                           use_2d=True)
 
 # class TestLarge(TestCase):
 #    def bench_large(self):
