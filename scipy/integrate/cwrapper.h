@@ -123,6 +123,7 @@ void dqagse2(double (*f)(int, double *), int nargs, double args[nargs], double* 
   init(f,nargs,args);
   dqagse_(call, a, b, epsabs, epsrel, limit, result, abserr, neval, ier, alist, blist, rlist, 
           elist, iord, last);
+  printf("GOING THROUGH THE WRAPPER\n");
   /*Code used to verify quadpack is actually passing through this wrapper. Causes tests to fail.
    double param = 12.0;
    double* badresult = &param;

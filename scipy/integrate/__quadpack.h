@@ -296,8 +296,14 @@ static PyObject *quadpack_qagse(PyObject *dummy, PyObject *args) {
          quadpack_raw_function and quad_function2 being used */
     if (init_ctypes_func(&storevar, fcn) == NPY_FAIL)
       goto fail;
-    DQAGSE(quad_function2, &a, &b, &epsabs, &epsrel, &limit, &result, &abserr, &neval, &ier, alist,
+    /////////////////////////////////////Brian's Code///////////////////////////////////////////
+    //Proof that same concept works with ctypes! Run test3.py in ~/scipy/
+    funcwrapper_init(quad_function2);
+    dqagse2(funcwrapper, 0, NULL, &a, &b, &epsabs, &epsrel, &limit, &result, &abserr, &neval, &ier, alist,
            blist, rlist, elist, iord, &last);
+    ////////////////////////////////////////////////////////////////////////////////////////////
+    // DQAGSE(quad_function2, &a, &b, &epsabs, &epsrel, &limit, &result, &abserr, &neval, &ier, alist,
+    //        blist, rlist, elist, iord, &last);
     restore_ctypes_func(&storevar);
   }
 
