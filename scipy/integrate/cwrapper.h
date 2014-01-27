@@ -123,6 +123,11 @@ void dqagse2(double (*f)(int, double *), int nargs, double args[nargs], double* 
   init(f,nargs,args);
   dqagse_(call, a, b, epsabs, epsrel, limit, result, abserr, neval, ier, alist, blist, rlist, 
           elist, iord, last);
+  /*Code used to verify quadpack is actually passing through this wrapper. Causes tests to fail.
+   double param = 12.0;
+   double* badresult = &param;
+   memcpy(result, badresult, sizeof(double*)); //copy dumb result into true result to return. This should break things.
+  */
   return;
 }
 
@@ -250,7 +255,8 @@ void funcwrapper_init(double (*f)(double *)){
 
 double funcwrapper(int nargs, double args[nargs]){
   /*Take globalbasef and evaluate it in the form that cwrapper
-  can handle*/
-
+  can handle
+  NOTE: This will need to be more complex to add support for multivariate functions,
+  as currently only single variable functions are called through this wrapper.*/
   return globalbasef(args);  
 }
