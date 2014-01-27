@@ -6,17 +6,10 @@
   Authors: Brian Newsom, Nathan Woods
   */
 
-
-//#include <stdio.h>
-//#include <stdlib.h>
-//#include <math.h> Removed unnecessary import
-
 double* globalargs; //Array to store function parameters (x[1],...,x[n])
 double (*globalf)(int, double *); //Pointer to function of array
 int globalnargs; //Int to store number of elements in globargs
-double (*globalbasef)(double *); //Function received from __quadpack.h to initialize and convert to
-                                 //form used
-
+double (*globalbasef)(double *); //Function received from __quadpack.h to initialize and convert to form used in wrapper
 
 int init(double (*f)(int, double *), int n, double args[n]){
   /*Initialize function of n+1 variables
@@ -32,7 +25,7 @@ int init(double (*f)(int, double *), int n, double args[n]){
   globalf = f;
   globalargs = args;
 
-  if (&globalnargs == NULL || &globalf == NULL || &globalnargs == NULL){
+  if (!&globalnargs || !&globalf || !&globalnargs){
     printf("%s\n", "Initialization did not complete correctly.");
     return 1;
   }
@@ -53,12 +46,19 @@ double call(double* x){
   for(i; i < globalnargs + 1 ; i++){
     evalArray[i] = globalargs[i-1]; //Add everything from globalargs to end of evalArray
   }
-  return globalf(globalnargs, evalArray); //seg faulting here - Not surprising
+  return globalf(globalnargs, evalArray);
 }
 
+/*Wrapped Routines:
+  Each of the below routines simply wraps the quadpack fortran functions, taking input pointers
+for all elements except nargs, then passing it through init and call to evaluate functions as
+functions of single variables which quadpack can handle.
+  Each function has the same inputs as that of the fortran, but with the additional arguments
+of nargs and args[nargs] for extra parameters.
+*/
 void dqag2(double (*f)(int, double *), int nargs, double args[nargs], double* a, double* b,
-       double* epsabs, double* epsrel, int* key, double* result, double* abserr, int* neval, int* ier,
-       int* limit, int* lenw, int* last, int iwork[*limit], double work[*lenw]){
+              double* epsabs, double* epsrel, int* key, double* result, double* abserr, int* neval, int* ier,
+              int* limit, int* lenw, int* last, int iwork[*limit], double work[*lenw]){
   init(f,nargs,args);
   dqag_(call,a,b,epsabs,epsrel,key,result,abserr,neval,ier,limit,lenw,last,iwork,work);
   return;
@@ -67,7 +67,7 @@ void dqag2(double (*f)(int, double *), int nargs, double args[nargs], double* a,
 void dqage2(double (*f)(int, double *), int nargs, double args[nargs], double* a, double* b, double* epsabs,
               double* epsrel, int* key, int* limit, double* result, double* abserr, int* neval, int* ier, 
               double alist[*limit], double blist[*limit], double rlist[*limit], double elist[*limit], 
-        int iord[*limit], int* last){
+              int iord[*limit], int* last){
   init(f,nargs,args);
   dqage_(call, a,b,epsabs,epsrel,key,limit,result,abserr,neval,ier,alist,blist,rlist,elist,iord,last);
   return;
@@ -86,24 +86,8 @@ void dqagie2(double (*f)(int, double *), int nargs, double args[nargs], double* 
               int* ier, double alist[*limit], double blist[*limit], double rlist[*limit], double elist[*limit], 
               int iord[*limit], int* last){
   init(f,nargs,args);
-  // int i = 0;
-  // double param = 0;
-  // for (i; i < 100 ; i++){
-  //   param = i -10e-10;
-  //   float paramint = i -10e-10;
-  //   printf("%.20f %.20f\n", call(&param), HARDCODEDFUNCTION(&paramint) );
-  // }
-
-  //double param = .1;
-  //printf("%f Test \n",call(&param));
-  //This returns okay...
-  //If I skip over my function wrapper and call
-  //dqagie_(HARDCODEDFUNCTION, bound, inf, epsabs, epsrel, 
-  //  limit, result, abserr, neval, ier, alist, blist, rlist, elist, iord, last);
-  //directly, it works.
-  //But if I use my wrapper (which shouldn't do anything...)
   dqagie_(call, bound, inf, epsabs, epsrel, limit, result, abserr, neval, ier, alist, blist, 
-          rlist, elist, iord, last);
+              rlist, elist, iord, last);
   return;
 
 }
@@ -122,8 +106,8 @@ void dqagse2(double (*f)(int, double *), int nargs, double args[nargs], double* 
               double elist[*limit], int iord[*limit], int* last){
   init(f,nargs,args);
   dqagse_(call, a, b, epsabs, epsrel, limit, result, abserr, neval, ier, alist, blist, rlist, 
-          elist, iord, last);
-  printf("GOING THROUGH THE WRAPPER\n");
+              elist, iord, last);
+  //printf("GOING THROUGH THE WRAPPER\n");
   /*Code used to verify quadpack is actually passing through this wrapper. Causes tests to fail.
    double param = 12.0;
    double* badresult = &param;
@@ -133,7 +117,7 @@ void dqagse2(double (*f)(int, double *), int nargs, double args[nargs], double* 
 }
 
 void dqng2(double (*f)(int, double *), int nargs, double args[nargs], double* a, double* b, 
-        double* epsabs, double* epsrel, double* result, double* abserr, int* neval, int* ier){
+              double* epsabs, double* epsrel, double* result, double* abserr, int* neval, int* ier){
   init(f,nargs,args);
   dqng_(call,a,b,epsabs,epsrel,result,abserr,neval,ier);
   return;
@@ -148,16 +132,16 @@ void dqawo2(double (*f)(int, double *), int nargs, double args[nargs], double* a
          leniw, maxp1, lenw, last, iwork, work);
   return;
 }
-
+E
 void dqawoe2(double (*f)(int, double *), int nargs, double args[nargs], double* a, double* b, 
               double* omega, int* integr, double* epsabs, double* epsrel, int* limit, int* icall, 
               int* maxp1, double* result, double* abserr, int* neval, int* ier, int* last, 
-        double alist[*limit], double blist[*limit], double rlist[*limit], double elist[*limit], 
-        int iord[*limit], int nnlog[*limit], int* momcom, double chebmo[*maxp1][25] ){  
+              double alist[*limit], double blist[*limit], double rlist[*limit], double elist[*limit], 
+              int iord[*limit], int nnlog[*limit], int* momcom, double chebmo[*maxp1][25] ){  
   
   init(f,nargs,args);
   dqawoe_(call, a, b, omega, integr, epsabs, epsrel, limit, icall, maxp1, result, abserr, 
-        neval, ier, last, alist, blist, rlist, elist, iord, nnlog, momcom, chebmo);
+              neval, ier, last, alist, blist, rlist, elist, iord, nnlog, momcom, chebmo);
   return;
 }
 
@@ -167,7 +151,7 @@ void dqagp2(double (*f)(int, double *), int nargs, double args[nargs], double* a
               int iwork[*leniw], double work[*lenw]){
   init(f,nargs,args);
   dqagp_(call,a,b,npts2,points,epsabs,epsrel,result,abserr,neval,ier,leniw,lenw,
-        last,iwork,work);
+              last,iwork,work);
   return;
 }
 
@@ -185,19 +169,19 @@ void dqagpe2(double (*f)(int, double *), int nargs, double args[nargs], double* 
 void dqawc2(double (*f)(int, double *), int nargs, double args[nargs], double* a, double* b,
               double* c, double* epsabs, double* epsrel, double* result, double* abserr,
               int* neval, int* ier, int* limit, int* lenw, int* last, int iwork[*limit], 
-        double work[*lenw]){
+              double work[*lenw]){
   init(f,nargs,args);
   dqawc_(call,a,b,c,epsabs,epsrel,result,abserr,neval,ier,limit,lenw,last,iwork,work);
   return; 
 }
 
 void dqawce2(double (*f)(int, double *), int nargs, double args[nargs], double* a, double* b, 
-        double* c, double* epsabs, double* epsrel, int* limit, double* result, double* abserr, 
-        int* neval, int* ier, double alist[*limit], double blist[*limit],double rlist[*limit], 
-        double elist[*limit], int iord[*limit], int* last){
+              double* c, double* epsabs, double* epsrel, int* limit, double* result, double* abserr, 
+              int* neval, int* ier, double alist[*limit], double blist[*limit],double rlist[*limit], 
+              double elist[*limit], int iord[*limit], int* last){
   init(f,nargs,args);
   dqawce_(call, a, b, c, epsabs, epsrel, limit, result, abserr, neval, ier, alist, blist, rlist, 
-        elist, iord, last);
+              elist, iord, last);
   return;
 }
 
@@ -212,13 +196,13 @@ void dqawf2(double (*f)(int, double *), int nargs, double args[nargs], double* a
 }
 
 void dqawfe2(double (*f)(int, double *), int nargs, double args[nargs], double* a, double* omega, 
-          int* integr, double* epsabs, int* limlst, int* limit, int* maxp1, double* result, 
-                double* abserr, int* neval, int* ier, double rslst[*limlst], double erlst[*limlst], 
-                int ierlst[*limlst], int* lst, double alist[*limit], double blist[*limit], double rlist[*limit], 
-                double elist[*limit], int iord[*limit], int nnlog[*limit], double chebmo[*maxp1][25] ){
+              int* integr, double* epsabs, int* limlst, int* limit, int* maxp1, double* result, 
+              double* abserr, int* neval, int* ier, double rslst[*limlst], double erlst[*limlst], 
+              int ierlst[*limlst], int* lst, double alist[*limit], double blist[*limit], double rlist[*limit], 
+              double elist[*limit], int iord[*limit], int nnlog[*limit], double chebmo[*maxp1][25] ){
   init(f,nargs,args);
   dqawfe_(call, a, omega, integr, epsabs, limlst, limit, maxp1, result, abserr, neval, ier, rslst, 
-          erlst, ierlst, lst, alist, blist, rlist, elist, iord, nnlog, chebmo);
+              erlst, ierlst, lst, alist, blist, rlist, elist, iord, nnlog, chebmo);
   return;
 }
 
@@ -233,19 +217,22 @@ void dqaws2(double (*f)(int, double *), int nargs, double args[nargs], double* a
 }
 
 void dqawse2(double (*f)(int, double *), int nargs, double args[nargs], double* a, double* b, 
-               double* alfa, double* beta, int* integr, double* epsabs, double* epsrel, int* limit, 
+              double* alfa, double* beta, int* integr, double* epsabs, double* epsrel, int* limit, 
               double* result, double* abserr, int* neval, int* ier, double alist[*limit], double blist[*limit], 
               double rlist[*limit], double elist[*limit], int iord[*limit], int* last){
   init(f,nargs,args);
   dqawse_(call, a, b, alfa, beta, integr, epsabs, epsrel, limit, result, abserr, neval, 
-        ier, alist, blist, rlist,elist, iord, last);
+              ier, alist, blist, rlist,elist, iord, last);
   return;
 }
 
 
 
-/*Second piece of wrapper for testing. Interprets funciton of f(x) as f(n,x[n]) for use with
-cwrapper*/
+/*Second wrapper. Interprets funciton of f(x) as f(n,x[n]) for use with
+above cwrapper
+For use: call funcwrapper_init(f(x))
+         call routine2(funcwrapper, ...) (from above)
+*/
 
 void funcwrapper_init(double (*f)(double *)){
   //sets f as global for future use

@@ -71,6 +71,14 @@ typedef enum {
 //////////////////////////////////////////Forward declarations for cwrapper////////////////////////////////
 void funcwrapper_init(double (*f)(double *));
 double funcwrapper(int nargs, double args[nargs]);
+
+void dqagse2();
+void dqagie2();
+void dqagpe2();
+void dqawoe2();
+void dqawfe2();
+void dqawse2();
+void dqawce2();
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 /* Checks a callable object:
