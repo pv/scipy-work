@@ -3,7 +3,7 @@
   for functions of multiple variables which can then be evaluated through the 
   call function.  The intent is then to wrap this with python and allow use 
   in the SciPy library 
-  Author: Brian Newsom
+  Authors: Brian Newsom, Nathan Woods
   .. versionadded:: 0.14.0
   */
 
