@@ -48,7 +48,7 @@
     #define DQAWFE dqawfe_
     #define DQAWSE dqawse_
     #define DQAWCE dqawce_ 
-  #endifcc
+  #endif
 #endif
 
 void DQAGSE();
