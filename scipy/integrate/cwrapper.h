@@ -3,7 +3,8 @@
   for functions of multiple variables which can then be evaluated through the 
   call function.  The intent is then to wrap this with python and allow use 
   in the SciPy library 
-  Authors: Brian Newsom, Nathan Woods
+  Author: Brian Newsom
+  .. versionadded:: 0.14.0
   */
 
 double* globalargs; //Array to store function parameters (x[1],...,x[n])
@@ -51,10 +52,10 @@ double call(double* x){
 
 /*Wrapped Routines:
   Each of the below routines simply wraps the quadpack fortran functions, taking input pointers
-for all elements except nargs, then passing it through init and call to evaluate functions as
-functions of single variables which quadpack can handle.
+  for all elements except nargs, then passing it through init and call to evaluate functions as
+  functions of single variables which quadpack can handle.
   Each function has the same inputs as that of the fortran, but with the additional arguments
-of nargs and args[nargs] for extra parameters.
+  of nargs and args[nargs] for extra parameters.
 */
 void dqag2(double (*f)(int, double *), int nargs, double args[nargs], double* a, double* b,
               double* epsabs, double* epsrel, int* key, double* result, double* abserr, int* neval, int* ier,
@@ -107,12 +108,6 @@ void dqagse2(double (*f)(int, double *), int nargs, double args[nargs], double* 
   init(f,nargs,args);
   dqagse_(call, a, b, epsabs, epsrel, limit, result, abserr, neval, ier, alist, blist, rlist, 
               elist, iord, last);
-  //printf("GOING THROUGH THE WRAPPER\n");
-  /*Code used to verify quadpack is actually passing through this wrapper. Causes tests to fail.
-   double param = 12.0;
-   double* badresult = &param;
-   memcpy(result, badresult, sizeof(double*)); //copy dumb result into true result to return. This should break things.
-  */
   return;
 }
 
@@ -129,10 +124,10 @@ void dqawo2(double (*f)(int, double *), int nargs, double args[nargs], double* a
               double work[*lenw]){
   init(f,nargs,args);
   dqawo_(call, a, b, omega, integr, epsabs, epsrel, result, abserr, neval, ier, 
-         leniw, maxp1, lenw, last, iwork, work);
+              leniw, maxp1, lenw, last, iwork, work);
   return;
 }
-E
+
 void dqawoe2(double (*f)(int, double *), int nargs, double args[nargs], double* a, double* b, 
               double* omega, int* integr, double* epsabs, double* epsrel, int* limit, int* icall, 
               int* maxp1, double* result, double* abserr, int* neval, int* ier, int* last, 
