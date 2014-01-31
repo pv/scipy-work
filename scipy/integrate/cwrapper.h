@@ -9,7 +9,7 @@
 
 double* globalargs; //Array to store function parameters (x[1],...,x[n])
 double (*globalf)(int, double *); //Pointer to function of array
-int globalnargs; //Int to store number of elements in globargs
+int globalnargs; //Int to store number of elements in globalargs
 double (*globalbasef)(double *); //Function received from __quadpack.h to initialize and convert to form used in wrapper
 
 int init(double (*f)(int, double *), int n, double args[n]){

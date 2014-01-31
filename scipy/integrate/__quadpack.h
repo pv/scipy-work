@@ -48,7 +48,7 @@
     #define DQAWFE dqawfe_
     #define DQAWSE dqawse_
     #define DQAWCE dqawce_ 
-  #endif
+  #endifcc
 #endif
 
 void DQAGSE();
@@ -59,16 +59,7 @@ void DQAWFE();
 void DQAWSE();
 void DQAWCE();
 
-
-typedef enum {
-  Error=-3, 
-  Not_Callable=-2,
-  Invalid_Ctype=-1,
-  /* Acceptable returns below */
-  Callable=1,
-  Valid_Ctype=2
-} FuncType;
-//////////////////////////////////////////Forward declarations for cwrapper////////////////////////////////
+//forward declarations for cwrapper.h
 void funcwrapper_init(double (*f)(double *));
 double funcwrapper(int nargs, double args[nargs]);
 
@@ -79,7 +70,15 @@ void dqawoe2();
 void dqawfe2();
 void dqawse2();
 void dqawce2();
-///////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+typedef enum {
+  Error=-3, 
+  Not_Callable=-2,
+  Invalid_Ctype=-1,
+  /* Acceptable returns below */
+  Callable=1,
+  Valid_Ctype=2
+} FuncType;
 
 /* Checks a callable object:
    Returns Valid_Ctype if the Python Object is a CType Function of the type (double) -> (double)
