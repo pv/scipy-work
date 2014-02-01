@@ -16,36 +16,44 @@ import scipy.linalg
 def bench_levinson_durbin():
     np.random.seed(1234)
     print()
-    print('                    Levinson-Durbin vs. generic solver')
+    print('               Levinson-Durbin vs. generic solver')
+    print('          T x = y; T.shape == (n, n); y.shape == (n, m)')
     print('==============================================================')
-    print('      shape      |  solver   |        dtype       |   time   ')
-    print('                 |           |                    | (seconds)')
+    print('   n   |   m   |        dtype       | L-D time  | generic time')
+    print('       |       |                    | (seconds) |             ')
     print('--------------------------------------------------------------')
-    fmt = ' %15s |   %6s  | %18s | %6.2f '
-    for n in (100, 300, 1000):
-        for dtype in (np.float64, np.complex128):
+    fmt = ' %5d | %5d | %18s | %9.3g | %9.3g '
+    for dtype in (np.float64, np.complex128):
+        for n in (100, 300, 1000):
+            for m in (1, 10, 100, 1000, 10000):
+                # Sample a random Toeplitz matrix representation and rhs.
+                c = np.random.randn(n)
+                r = np.random.randn(n)
+                y = np.random.randn(n, m)
+                if dtype == np.complex128:
+                    c = c + 1j*np.random.rand(n)
+                    r = r + 1j*np.random.rand(n)
+                    y = y + 1j*np.random.rand(n, m)
 
-            # Sample a random Toeplitz matrix representation and rhs.
-            c = np.random.randn(n)
-            r = np.random.randn(n)
-            y = np.random.randn(n)
-            if dtype == np.complex128:
-                c = c + 1j*np.random.rand(n)
-                r = r + 1j*np.random.rand(n)
-                y = y + 1j*np.random.rand(n)
+                # generic solver
+                T = scipy.linalg.toeplitz(c, r=r)
+                count = 0
+                tm = time.clock()
+                while time.clock() - tm < 0.1 or count == 0:
+                    x_generic = scipy.linalg.solve(T, y)
+                    count += 1
+                nseconds_gen = (time.clock() - tm)/count
 
-            # generic solver
-            tm = time.clock()
-            T = scipy.linalg.toeplitz(c, r=r)
-            x_generic = scipy.linalg.solve(T, y)
-            nseconds = time.clock() - tm
-            print(fmt % (T.shape, 'generic', T.dtype, nseconds))
+                # toeplitz-specific solver
+                count = 0
+                tm = time.clock()
+                while time.clock() - tm < 0.1 or count == 0:
+                    x_toeplitz = scipy.linalg.solve_toeplitz(c, r=r, y=y)
+                    count += 1
+                nseconds_ld = (time.clock() - tm)/count
 
-            # toeplitz-specific solver
-            tm = time.clock()
-            x_toeplitz = scipy.linalg.solve_toeplitz(c, r=r, y=y)
-            nseconds = time.clock() - tm
-            print(fmt % (T.shape, 'toeplitz', T.dtype, nseconds))
+                print(fmt % (n, m, T.dtype, nseconds_ld, nseconds_gen))
 
-            # Check that the solutions are the same.
-            assert_allclose(x_generic, x_toeplitz)
+                # Check that the solutions are the same.
+                assert_allclose(x_generic, x_toeplitz, atol=1e-8*abs(x_generic).max(),
+                                err_msg=repr(abs(x_generic - x_toeplitz).max()))
