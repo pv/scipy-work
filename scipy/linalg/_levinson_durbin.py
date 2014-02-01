@@ -57,7 +57,9 @@ def solve_toeplitz(c, r=None, y=None):
     if y is None:
         raise ValueError('missing rhs')
     y = np.asarray(y)
+    y_shape = y.shape
     N = y.shape[0]
+    y = y.reshape(N, -1)
 
     # Check that the Toeplitz representation makes sense
     # and is compatible with the rhs shape.
@@ -85,7 +87,19 @@ def solve_toeplitz(c, r=None, y=None):
     else:
         mytype = np.float64
 
+    # Grab BLAS routines; these are slightly faster than the
+    # corresponding Numpy operations, and using them avoids
+    # temporaries
+    axpy = scipy.linalg.get_blas_funcs('axpy', dtype=mytype)
+    if mytype == np.complex128:
+        ger = scipy.linalg.get_blas_funcs('geru', dtype=mytype)
+        xdot = scipy.linalg.get_blas_funcs('dotu', dtype=mytype)
+    else:
+        ger = scipy.linalg.get_blas_funcs('ger', dtype=mytype)
+        xdot = scipy.linalg.get_blas_funcs('dot', dtype=mytype)
+
     # Initialize the forward, backward, and solution vectors.
+    y = y.astype(mytype)
     f_prev = np.zeros(N, dtype=mytype)
     b_prev = np.zeros(N, dtype=mytype)
     x_prev = np.zeros(y.shape, dtype=mytype)
@@ -97,17 +111,15 @@ def solve_toeplitz(c, r=None, y=None):
     x[0] = y[0] / c[0]
 
     # Compute forward, backward, and solution vectors recursively.
-    # The tensordot shenanigans is for multiple rhs.
     for n in range(1, N):
         f, f_prev = f_prev, f
         b, b_prev = b_prev, b
         x, x_prev = x_prev, x
-        eps_f = np.dot(c[n:0:-1], f_prev[:n])
-        eps_x = np.tensordot(c[n:0:-1], x_prev[:n], 1)
-        eps_b = np.dot(r[1:n+1], b_prev[:n])
+        eps_f = xdot(c[n:0:-1], f_prev[:n])
+        eps_x = np.dot(c[n:0:-1], x_prev[:n])
+        eps_b = xdot(r[1:n+1], b_prev[:n])
         f.fill(0)
         b.fill(0)
-        x.fill(0)
         denom = 1 - eps_f * eps_b
 
         # Complain if the denominator is exactly zero.
@@ -118,11 +130,23 @@ def solve_toeplitz(c, r=None, y=None):
                     'failed to solve the matrix equation')
 
         coeff = 1 / denom
-        f[:n] += coeff * f_prev[:n]
-        f[1:n+1] -= coeff * eps_f * b_prev[:n]
-        b[1:n+1] += coeff * b_prev[:n]
-        b[:n] -= coeff * eps_b * f_prev[:n]
-        x[:n+1] = x_prev[:n+1] + np.tensordot(b[:n+1], (y[n] - eps_x), 0)
 
-    return x
+        # f[:n] += coeff * f_prev[:n]
+        f[:n] = axpy(f_prev[:n], f[:n], a=coeff)
+
+        # f[1:n+1] -= coeff * eps_f * b_prev[:n]
+        f[1:n+1] = axpy(b_prev[:n], f[1:n+1], a=-coeff*eps_f)
+
+        # b[1:n+1] += coeff * b_prev[:n]
+        b[1:n+1] = axpy(b_prev[:n], b[1:n+1], a=coeff)
+
+        # b[:n] -= coeff * eps_b * f_prev[:n]
+        b[:n] = axpy(f_prev[:n], b[:n], a=-coeff*eps_b)
+
+        # x[:n+1] = x_prev[:n+1] + b[:n+1,None] * (y[n] - eps_x)
+        np.subtract(y[n], eps_x, out=eps_x)
+        x[:n+1] = ger(1.0, y=b[:n+1], x=eps_x, a=x_prev[:n+1].T,
+                      overwrite_x=True, overwrite_y=False, overwrite_a=True).T
+
+    return x.reshape((x.shape[0],) + y_shape[1:])
 
