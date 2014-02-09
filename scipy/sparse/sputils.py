@@ -203,11 +203,17 @@ class IndexMixin(object):
             if len(index) == 2:
                 row, col = index
             elif len(index) == 1:
-                row, col = index[0], slice(None)
+                if len(self.shape) == 1:
+                    row, col = 0, slice(None)
+                else:
+                    row, col = index[0], slice(None)
             else:
                 raise IndexError('invalid number of indices')
         else:
-            row, col = index, slice(None)
+            if len(self.shape) == 1:
+                row, col = 0, index
+            else:
+                row, col = index, slice(None)
 
         # Next, check for validity, or transform the index as needed.
         row, col = self._check_boolean(row, col)
@@ -216,7 +222,10 @@ class IndexMixin(object):
     def _check_ellipsis(self, index):
         """Process indices with Ellipsis. Returns modified index."""
         if index is Ellipsis:
-            return (slice(None), slice(None))
+            if len(self.shape) == 1:
+                return (0, slice(None))
+            else:
+                return (slice(None), slice(None))
         elif isinstance(index, tuple):
             # Find first ellipsis
             for j, v in enumerate(index):

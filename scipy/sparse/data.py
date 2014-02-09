@@ -59,6 +59,9 @@ class _data_matrix(spmatrix):
         else:
             raise NotImplementedError
 
+    def __pow__(self, other):
+        return self._with_data(self.data.__pow__(other))
+
     def astype(self, t):
         return self._with_data(self.data.astype(t))
 

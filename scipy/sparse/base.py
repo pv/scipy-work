@@ -224,21 +224,6 @@ class spmatrix(object):
         """
         return self.tocsr().multiply(other)
 
-    def dot(self, other):
-        """Ordinary dot product
-
-        Examples
-        --------
-        >>> import numpy as np
-        >>> from scipy.sparse import csr_matrix
-        >>> A = csr_matrix([[1, 2, 0], [0, 0, 3], [4, 0, 5]])
-        >>> v = np.array([1, 0, -1])
-        >>> A.dot(v)
-        array([ 1, -3, -1], dtype=int64)
-
-        """
-        return self * other
-
     def __eq__(self, other):
         return self.tocsr().__eq__(other)
 
@@ -274,6 +259,13 @@ class spmatrix(object):
         return self.tocsr().__rsub__(other)
 
     def __mul__(self, other):
+        return self.multiply(other)
+
+    def __rmul__(self, other):
+        # elementwise multiplication is commutative
+        return self.multiply(other)
+
+    def dot(self, other):
         """interpret other and call one of the following
 
         self._mul_scalar()
@@ -327,7 +319,7 @@ class spmatrix(object):
 
             if other.ndim == 2 and other.shape[1] == 1:
                 # If 'other' was an (nx1) column vector, reshape the result
-                result = result.reshape(-1,1)
+                result = result.reshape(-1, 1)
 
             return result
 
@@ -339,10 +331,6 @@ class spmatrix(object):
                 raise ValueError('dimension mismatch')
 
             result = self._mul_multivector(np.asarray(other))
-
-            if isinstance(other, np.matrix):
-                result = np.asmatrix(result)
-
             return result
         else:
             raise ValueError('could not interpret dimensions')
@@ -359,17 +347,6 @@ class spmatrix(object):
 
     def _mul_sparse_matrix(self, other):
         return self.tocsr()._mul_sparse_matrix(other)
-
-    def __rmul__(self, other):  # other * self
-        if isscalarlike(other):
-            return self.__mul__(other)
-        else:
-            # Don't use asarray unless we have to
-            try:
-                tr = other.transpose()
-            except AttributeError:
-                tr = np.asarray(other).transpose()
-            return (self.transpose() * tr).transpose()
 
     ####################
     # Other Arithmetic #
@@ -426,12 +403,10 @@ class spmatrix(object):
         return self._divide(other, true_divide=True)
 
     def __rtruediv__(self, other):
-        # Implementing this as the inverse would be too magical -- bail out
-        return NotImplemented
+        return self._divide(other, true_divide=True, rdivide=True)
 
     def __rdiv__(self, other):
-        # Implementing this as the inverse would be too magical -- bail out
-        return NotImplemented
+        return self._divide(other, true_divide=True, rdivide=True)
 
     def __neg__(self):
         return -self.tocsr()
@@ -443,7 +418,7 @@ class spmatrix(object):
         raise NotImplementedError
 
     def __imul__(self, other):
-        raise NotImplementedError
+        return NotImplemented
 
     def __idiv__(self, other):
         return self.__itruediv__(other)
@@ -451,7 +426,7 @@ class spmatrix(object):
     def __itruediv__(self, other):
         raise NotImplementedError
 
-    def __pow__(self, other):
+    def matrix_power(self, other):
         if self.shape[0] != self.shape[1]:
             raise TypeError('matrix is not square')
 
@@ -466,11 +441,11 @@ class spmatrix(object):
             elif other == 1:
                 return self.copy()
             else:
-                tmp = self.__pow__(other//2)
+                tmp = self.matrix_power(other//2)
                 if (other % 2):
-                    return self * tmp * tmp
+                    return self.dot(tmp.dot(tmp))
                 else:
-                    return tmp * tmp
+                    return tmp.dot(tmp)
         elif isscalarlike(other):
             raise ValueError('exponent must be an integer')
         else:
@@ -544,8 +519,8 @@ class spmatrix(object):
             j += n
         if j < 0 or j >= n:
             raise IndexError("index out of bounds")
-        col_selector = csc_matrix(([1], [[j], [0]]), shape=(n,1), dtype=self.dtype)
-        return self * col_selector
+        col_selector = csc_matrix(([1], [[j], [0]]), shape=(n,), dtype=self.dtype)
+        return self.dot(col_selector)
 
     def getrow(self, i):
         """Returns a copy of row i of the matrix, as a (1 x n) sparse
@@ -560,8 +535,8 @@ class spmatrix(object):
             i += m
         if i < 0 or i >= m:
             raise IndexError("index out of bounds")
-        row_selector = csr_matrix(([1], [[0], [i]]), shape=(1,m), dtype=self.dtype)
-        return row_selector * self
+        row_selector = csr_matrix(([1], [[0], [i]]), shape=(m,), dtype=self.dtype)
+        return row_selector.dot(self)
 
     # def __array__(self):
     #    return self.toarray()
@@ -596,7 +571,7 @@ class spmatrix(object):
             with the appropriate values and returned wrapped in a
             `numpy.matrix` object that shares the same memory.
         """
-        return np.asmatrix(self.toarray(order=order, out=out))
+        return self.toarray(order=order, out=out)
 
     def toarray(self, order=None, out=None):
         """
@@ -670,16 +645,16 @@ class spmatrix(object):
 
         if axis is None:
             # sum over rows and columns
-            return (self * np.asmatrix(np.ones((n, 1), dtype=res_dtype))).sum()
+            return self.dot(np.ones((n,), dtype=res_dtype)).sum()
 
         if axis < 0:
             axis += 2
         if axis == 0:
             # sum over columns
-            return np.asmatrix(np.ones((1, m), dtype=res_dtype)) * self
+            return self.T.dot(np.ones((m,), dtype=res_dtype)).T
         elif axis == 1:
             # sum over rows
-            return self * np.asmatrix(np.ones((n, 1), dtype=res_dtype))
+            return self.dot(np.ones((n,), dtype=res_dtype))
         else:
             raise ValueError("axis out of bounds")
 
@@ -810,6 +785,24 @@ class spmatrix(object):
             result = out
 
         return result
+
+    def _get_internal_shape(self):
+        """
+        Get shape of the matrix, expanding 1D arrays to row vectors.
+        """
+        if len(self.shape) == 1:
+            return (1, self.shape)
+        else:
+            return self.shape
+
+    def _format_shape(self):
+        """
+        Format shape to a string, %d or %dx%d
+        """
+        if len(self.shape) == 1:
+            return "%d" % self.shape
+        else:
+            return "%dx%d" % self.shape
 
 
 def isspmatrix(x):

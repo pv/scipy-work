@@ -110,6 +110,12 @@ class csc_matrix(_cs_matrix, IndexMixin):
     """
 
     def transpose(self, copy=False):
+        if len(self.shape) == 1:
+            if copy:
+                return self.copy()
+            else:
+                return self
+
         from .csr import csr_matrix
         M,N = self.shape
         return csr_matrix((self.data,self.indices,self.indptr),(N,M),copy=copy)
@@ -117,7 +123,7 @@ class csc_matrix(_cs_matrix, IndexMixin):
     def __iter__(self):
         csr = self.tocsr()
         for r in xrange(self.shape[0]):
-            yield csr[r,:]
+            yield csr[r]
 
     def tocsc(self, copy=False):
         if copy:
@@ -126,7 +132,7 @@ class csc_matrix(_cs_matrix, IndexMixin):
             return self
 
     def tocsr(self):
-        M,N = self.shape
+        M,N = self._get_internal_shape()
         idx_dtype = get_index_dtype((self.indptr, self.indices),
                                     maxval=max(self.nnz, N))
         indptr = np.empty(M + 1, dtype=idx_dtype)
@@ -163,7 +169,7 @@ class csc_matrix(_cs_matrix, IndexMixin):
         # returns the indices sorted for self transposed.
 
         # Get row and col indices, from _cs_matrix.tocoo
-        major_dim, minor_dim = self._swap(self.shape)
+        major_dim, minor_dim = self._swap(self._get_internal_shape())
         minor_indices = self.indices
         major_indices = np.empty(len(minor_indices), dtype=self.indptr.dtype)
         sparsetools.expandptr(major_dim, self.indptr, major_indices)

@@ -35,7 +35,7 @@ class _cs_matrix(_data_matrix, _minmax_mixin, IndexMixin):
                 # It's a tuple of matrix dimensions (M, N)
                 # create empty matrix
                 self.shape = arg1   # spmatrix checks for errors here
-                M, N = self.shape
+                M, N = self._get_internal_shape()
                 idx_dtype = get_index_dtype(maxval=self._swap((M,N))[1])
                 self.data = np.zeros(0, getdtype(dtype, default=float))
                 self.indices = np.zeros(0, idx_dtype)
@@ -100,7 +100,7 @@ class _cs_matrix(_data_matrix, _minmax_mixin, IndexMixin):
             if axis < 0:
                 axis += 2
             axis, _ = self._swap((axis, 1 - axis))
-            _, N = self._swap(self.shape)
+            _, N = self._swap(self._get_internal_shape())
             if axis == 0:
                 return np.bincount(self.indices, minlength=N)
             elif axis == 1:
@@ -133,7 +133,7 @@ class _cs_matrix(_data_matrix, _minmax_mixin, IndexMixin):
         """
         # use _swap to determine proper bounds
         major_name,minor_name = self._swap(('row','column'))
-        major_dim,minor_dim = self._swap(self.shape)
+        major_dim,minor_dim = self._swap(self._get_internal_shape())
 
         # index arrays should have integer data types
         if self.indptr.dtype.kind != 'i':
@@ -387,7 +387,7 @@ class _cs_matrix(_data_matrix, _minmax_mixin, IndexMixin):
         """
         # Scalar multiplication.
         if isscalarlike(other):
-            return self.__mul__(other)
+            return self.dot(other)
         # Sparse matrix or vector.
         if isspmatrix(other):
             if self.shape == other.shape:
@@ -395,9 +395,9 @@ class _cs_matrix(_data_matrix, _minmax_mixin, IndexMixin):
                 return self._binopt(other, '_elmul_')
             # Single element.
             elif other.shape == (1,1):
-                return self.__mul__(other.tocsc().data[0])
+                return self.dot(other.tocsc().data[0])
             elif self.shape == (1,1):
-                return other.__mul__(self.tocsc().data[0])
+                return other.dot(self.tocsc().data[0])
             # A row times a column.
             elif self.shape[1] == other.shape[0] and self.shape[1] == 1:
                 return self._mul_sparse_matrix(other.tocsc())
@@ -433,7 +433,7 @@ class _cs_matrix(_data_matrix, _minmax_mixin, IndexMixin):
     ###########################
 
     def _mul_vector(self, other):
-        M,N = self.shape
+        M,N = self._get_internal_shape()
 
         # output array
         result = np.zeros(M, dtype=upcast_char(self.dtype.char,
@@ -446,7 +446,7 @@ class _cs_matrix(_data_matrix, _minmax_mixin, IndexMixin):
         return result
 
     def _mul_multivector(self, other):
-        M,N = self.shape
+        M,N = self._get_internal_shape()
         n_vecs = other.shape[1]  # number of column vectors
 
         result = np.zeros((M,n_vecs), dtype=upcast_char(self.dtype.char,
@@ -459,8 +459,8 @@ class _cs_matrix(_data_matrix, _minmax_mixin, IndexMixin):
         return result
 
     def _mul_sparse_matrix(self, other):
-        M, K1 = self.shape
-        K2, N = other.shape
+        M, K1 = self._get_internal_shape()
+        K2, N = other._get_internal_shape()
 
         major_axis = self._swap((M,N))[0]
         other = self.__class__(other) # convert to this format
@@ -503,7 +503,8 @@ class _cs_matrix(_data_matrix, _minmax_mixin, IndexMixin):
         # TODO support k-th diagonal
         fn = getattr(sparsetools, self.format + "_diagonal")
         y = np.empty(min(self.shape), dtype=upcast(self.dtype))
-        fn(self.shape[0], self.shape[1], self.indptr, self.indices, self.data, y)
+        M, N = self._get_internal_shape()
+        fn(M, N, self.indptr, self.indices, self.data, y)
         return y
 
     #####################
@@ -527,7 +528,6 @@ class _cs_matrix(_data_matrix, _minmax_mixin, IndexMixin):
             ret = np.zeros(len(self.indptr) - 1, dtype=dtype)
             major_index, value = self._minor_reduce(np.add)
             ret[major_index] = value
-            ret = np.asmatrix(ret)
             if axis % 2 == 1:
                 ret = ret.T
             return ret
@@ -572,7 +572,7 @@ class _cs_matrix(_data_matrix, _minmax_mixin, IndexMixin):
             else:
                 major,minor = self._swap((row,col))
                 if isintlike(major) and isinstance(minor,slice):
-                    minor_shape = self._swap(self.shape)[1]
+                    minor_shape = self._swap(self._get_internal_shape())[1]
                     start, stop, stride = minor.indices(minor_shape)
                     out_shape = self._swap((1, stop-start))
                     return self._get_slice(major, start, stop, stride, out_shape)
@@ -611,7 +611,7 @@ class _cs_matrix(_data_matrix, _minmax_mixin, IndexMixin):
 
         Here (i,j) index major and minor respectively.
         """
-        M, N = self._swap(self.shape)
+        M, N = self._swap(self._get_internal_shape())
         def check_bounds(indices, bound):
             idx = indices.max()
             if idx >= bound:
@@ -730,7 +730,7 @@ class _cs_matrix(_data_matrix, _minmax_mixin, IndexMixin):
         self.check_format(full_check=False)
 
     def _get_single_element(self,row,col):
-        M, N = self.shape
+        M, N = self._get_internal_shape()
         if (row < 0):
             row += M
         if (col < 0):
@@ -777,7 +777,7 @@ class _cs_matrix(_data_matrix, _minmax_mixin, IndexMixin):
         """Return a submatrix of this matrix (new matrix is created)."""
 
         slice0, slice1 = self._swap((slice0,slice1))
-        shape0, shape1 = self._swap(self.shape)
+        shape0, shape1 = self._swap(self._get_internal_shape())
 
         def _process_slice(sl, num):
             if isinstance(sl, slice):
@@ -838,7 +838,7 @@ class _cs_matrix(_data_matrix, _minmax_mixin, IndexMixin):
 
         When copy=False the index and data arrays are not copied.
         """
-        major_dim,minor_dim = self._swap(self.shape)
+        major_dim,minor_dim = self._swap(self._get_internal_shape())
 
         data = self.data
         minor_indices = self.indices
@@ -870,7 +870,7 @@ class _cs_matrix(_data_matrix, _minmax_mixin, IndexMixin):
         The is an *in place* operation
         """
         fn = sparsetools.csr_eliminate_zeros
-        M,N = self._swap(self.shape)
+        M,N = self._swap(self._get_internal_shape())
         fn(M, N, self.indptr, self.indices, self.data)
 
         self.prune()  # nnz may have changed
@@ -883,7 +883,7 @@ class _cs_matrix(_data_matrix, _minmax_mixin, IndexMixin):
         self.sort_indices()
 
         fn = sparsetools.csr_sum_duplicates
-        M,N = self._swap(self.shape)
+        M,N = self._swap(self._get_internal_shape())
         fn(M, N, self.indptr, self.indices, self.data)
 
         self.prune()  # nnz may have changed
@@ -932,7 +932,7 @@ class _cs_matrix(_data_matrix, _minmax_mixin, IndexMixin):
     def prune(self):
         """Remove empty space after all non-zero elements.
         """
-        major_dim = self._swap(self.shape)[0]
+        major_dim = self._swap(self._get_internal_shape())[0]
 
         if len(self.indptr) != major_dim + 1:
             raise ValueError('index pointer has invalid length')
@@ -956,10 +956,10 @@ class _cs_matrix(_data_matrix, _minmax_mixin, IndexMixin):
         """
         if copy:
             return self.__class__((data,self.indices.copy(),self.indptr.copy()),
-                                   shape=self.shape,dtype=data.dtype)
+                                   shape=self.shape, dtype=data.dtype)
         else:
             return self.__class__((data,self.indices,self.indptr),
-                                   shape=self.shape,dtype=data.dtype)
+                                   shape=self.shape, dtype=data.dtype)
 
     def _binopt(self, other, op):
         """apply the binary operation fn to two sparse matrices."""
@@ -981,7 +981,9 @@ class _cs_matrix(_data_matrix, _minmax_mixin, IndexMixin):
         else:
             data = np.empty(maxnnz, dtype=upcast(self.dtype, other.dtype))
 
-        fn(self.shape[0], self.shape[1],
+        M, N = self._get_internal_shape()
+
+        fn(M, N,
            self.indptr.astype(idx_dtype),
            self.indices.astype(idx_dtype),
            self.data,

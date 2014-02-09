@@ -106,6 +106,12 @@ class csr_matrix(_cs_matrix, IndexMixin):
     """
 
     def transpose(self, copy=False):
+        if len(self.shape) == 1:
+            if copy:
+                return self.copy()
+            else:
+                return self
+
         from .csc import csc_matrix
         M,N = self.shape
         return csc_matrix((self.data,self.indices,self.indptr), shape=(N,M), copy=copy)
@@ -119,7 +125,8 @@ class csr_matrix(_cs_matrix, IndexMixin):
         ptr,ind,dat = self.indptr,self.indices,self.data
         rows, data = lil.rows, lil.data
 
-        for n in xrange(self.shape[0]):
+        M, N = self._get_internal_shape()
+        for n in xrange(M):
             start = ptr[n]
             end = ptr[n+1]
             rows[n] = ind[start:end].tolist()
@@ -134,13 +141,14 @@ class csr_matrix(_cs_matrix, IndexMixin):
             return self
 
     def tocsc(self):
+        M, N = self._get_internal_shape()
         idx_dtype = get_index_dtype((self.indptr, self.indices),
-                                    maxval=max(self.nnz, self.shape[0]))
-        indptr = np.empty(self.shape[1] + 1, dtype=idx_dtype)
+                                    maxval=max(self.nnz, M))
+        indptr = np.empty(N + 1, dtype=idx_dtype)
         indices = np.empty(self.nnz, dtype=idx_dtype)
         data = np.empty(self.nnz, dtype=upcast(self.dtype))
 
-        csr_tocsc(self.shape[0], self.shape[1],
+        csr_tocsc(M, N,
                   self.indptr.astype(idx_dtype),
                   self.indices.astype(idx_dtype),
                   self.data,
@@ -166,7 +174,7 @@ class csr_matrix(_cs_matrix, IndexMixin):
 
         else:
             R,C = blocksize
-            M,N = self.shape
+            M,N = self._get_internal_shape()
 
             if R < 1 or C < 1 or M % R != 0 or N % C != 0:
                 raise ValueError('invalid blocksize %s' % blocksize)
@@ -216,7 +224,7 @@ class csr_matrix(_cs_matrix, IndexMixin):
             return (min_indx,max_indx)
 
         def extractor(indices,N):
-            """Return a sparse matrix P so that P*self implements
+            """Return a sparse matrix P so that P.dot(self) implements
             slicing of the form self[[1,2,3],:]
             """
             indices = asindices(indices)
@@ -246,8 +254,8 @@ class csr_matrix(_cs_matrix, IndexMixin):
                 return self._get_row_slice(row, col)
             # [i, [1, 2]]
             elif issequence(col):
-                P = extractor(col,self.shape[1]).T
-                return self[row, :] * P
+                P = extractor(col, self.shape[-1]).T
+                return P.T.dot(self[row])
         elif isinstance(row, slice):
             # [1:2,??]
             if ((isintlike(col) and row.step in (1, None)) or
@@ -257,14 +265,14 @@ class csr_matrix(_cs_matrix, IndexMixin):
                 # col is int or slice with step 1, row is slice with step 1.
                 return self._get_submatrix(row, col)
             elif issequence(col):
-                P = extractor(col,self.shape[1]).T        # [1:2,[1,2]]
+                P = extractor(col,self.shape[-1])        # [1:2,[1,2]]
                 # row is slice, col is sequence.
-                return self[row,:]*P
+                return P.T.dot(self[row,:])
         elif issequence(row):
             # [[1,2],??]
             if isintlike(col) or isinstance(col,slice):
                 P = extractor(row, self.shape[0])     # [[1,2],j] or [[1,2],1:2]
-                return (P*self)[:,col]
+                return (P.dot(self))[:,col]
 
         if not (issequence(col) and issequence(row)):
             # Sample elementwise
@@ -279,16 +287,18 @@ class csr_matrix(_cs_matrix, IndexMixin):
         num_samples = np.size(row)
         if num_samples == 0:
             return csr_matrix((0,0))
-        check_bounds(row, self.shape[0])
-        check_bounds(col, self.shape[1])
+
+        M, N = self._get_internal_shape()
+        check_bounds(row, M)
+        check_bounds(col, N)
 
         val = np.empty(num_samples, dtype=self.dtype)
-        csr_sample_values(self.shape[0], self.shape[1],
+        csr_sample_values(M, N,
                           self.indptr, self.indices, self.data,
                           num_samples, row.ravel(), col.ravel(), val)
         if row.ndim == 1:
             # row and col are 1d
-            return np.asmatrix(val)
+            return val
         return self.__class__(val.reshape(row.shape))
 
     def getrow(self, i):
@@ -312,7 +322,7 @@ class csr_matrix(_cs_matrix, IndexMixin):
         if i < 0 or i >= self.shape[0]:
             raise IndexError('index (%d) out of range' % i)
 
-        start, stop, stride = cslice.indices(self.shape[1])
+        start, stop, stride = cslice.indices(self.shape[-1])
 
         if stride == 1:
             # for stride == 1, _get_submatrix is ~30% faster than below
@@ -349,7 +359,7 @@ class csr_matrix(_cs_matrix, IndexMixin):
     def _get_submatrix(self, row_slice, col_slice):
         """Return a submatrix of this matrix (new matrix is created)."""
 
-        M,N = self.shape
+        M,N = self._get_internal_shape()
 
         def process_slice(sl, num):
             if isinstance(sl, slice):

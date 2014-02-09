@@ -118,8 +118,8 @@ class coo_matrix(_data_matrix, _minmax_mixin):
 
         if isinstance(arg1, tuple):
             if isshape(arg1):
-                M, N = arg1
-                self.shape = (M,N)
+                self.shape = arg1
+                M, N = self._get_internal_shape()
                 idx_dtype = get_index_dtype(maxval=max(M, N))
                 self.row = np.array([], dtype=idx_dtype)
                 self.col = np.array([], dtype=idx_dtype)
@@ -223,10 +223,11 @@ class coo_matrix(_data_matrix, _minmax_mixin):
 
         if axis < 0:
             axis += 2
+        M, N = self._get_internal_shape()
         if axis == 0:
-            return np.bincount(self.col, minlength=self.shape[1])
+            return np.bincount(self.col, minlength=N)
         elif axis == 1:
-            return np.bincount(self.row, minlength=self.shape[0])
+            return np.bincount(self.row, minlength=M)
         else:
             raise ValueError('axis out of bounds')
     nnz = property(fget=getnnz)
@@ -248,10 +249,11 @@ class coo_matrix(_data_matrix, _minmax_mixin):
         self.col = np.asarray(self.col, dtype=idx_dtype)
         self.data = to_native(self.data)
 
+        M, N = self._get_internal_shape()
         if nnz > 0:
-            if self.row.max() >= self.shape[0]:
+            if self.row.max() >= M:
                 raise ValueError('row index exceeds matrix dimensions')
-            if self.col.max() >= self.shape[1]:
+            if self.col.max() >= N:
                 raise ValueError('column index exceeds matrix dimensions')
             if self.row.min() < 0:
                 raise ValueError('negative row index found')
@@ -259,7 +261,7 @@ class coo_matrix(_data_matrix, _minmax_mixin):
                 raise ValueError('negative column index found')
 
     def transpose(self, copy=False):
-        M,N = self.shape
+        M,N = self._get_internal_shape()
         return coo_matrix((self.data, (self.col, self.row)), shape=(N,M), copy=copy)
 
     def toarray(self, order=None, out=None):
@@ -268,7 +270,7 @@ class coo_matrix(_data_matrix, _minmax_mixin):
         fortran = int(B.flags.f_contiguous)
         if not fortran and not B.flags.c_contiguous:
             raise ValueError("Output array must be C or F contiguous")
-        M,N = self.shape
+        M,N = self._get_internal_shape()
         coo_todense(M, N, self.nnz, self.row, self.col, self.data,
                     B.ravel('A'), fortran)
         return B
@@ -297,7 +299,7 @@ class coo_matrix(_data_matrix, _minmax_mixin):
         if self.nnz == 0:
             return csc_matrix(self.shape, dtype=self.dtype)
         else:
-            M,N = self.shape
+            M,N = self._get_internal_shape()
             idx_dtype = get_index_dtype((self.col, self.row),
                                         maxval=max(self.nnz, M))
             indptr = np.empty(N + 1, dtype=idx_dtype)
@@ -339,7 +341,7 @@ class coo_matrix(_data_matrix, _minmax_mixin):
         if self.nnz == 0:
             return csr_matrix(self.shape, dtype=self.dtype)
         else:
-            M,N = self.shape
+            M,N = self._get_internal_shape()
             idx_dtype = get_index_dtype((self.row, self.col),
                                         maxval=max(self.nnz, N))
             indptr = np.empty(M + 1, dtype=idx_dtype)

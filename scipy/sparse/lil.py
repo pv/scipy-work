@@ -116,7 +116,7 @@ class lil_matrix(spmatrix, IndexMixin):
         else:
             # assume A is dense
             try:
-                A = np.asmatrix(arg1)
+                A = np.asarray(arg1)
             except TypeError:
                 raise TypeError('unsupported matrix type')
             else:

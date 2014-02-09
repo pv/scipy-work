@@ -129,7 +129,7 @@ class bsr_matrix(_cs_matrix, _minmax_mixin):
             if isshape(arg1):
                 # it's a tuple of matrix dimensions (M,N)
                 self.shape = arg1
-                M,N = self.shape
+                M,N = self._get_internal_shape()
                 # process blocksize
                 if blocksize is None:
                     blocksize = (1,1)
@@ -206,7 +206,7 @@ class bsr_matrix(_cs_matrix, _minmax_mixin):
                     False - basic check, O(1) operations
 
         """
-        M,N = self.shape
+        M,N = self._get_internal_shape()
         R,C = self.blocksize
 
         # index arrays should have integer data types
@@ -271,15 +271,15 @@ class bsr_matrix(_cs_matrix, _minmax_mixin):
     def __repr__(self):
         nnz = self.getnnz()
         format = self.getformat()
-        return "<%dx%d sparse matrix of type '%s'\n" \
+        return "<%s sparse matrix of type '%s'\n" \
                "\twith %d stored elements (blocksize = %dx%d) in %s format>" % \
-               (self.shape + (self.dtype.type, nnz) + self.blocksize +
+               ((self._format_shape(),) + (self.dtype.type, nnz) + self.blocksize +
                  (_formats[format][1],))
 
     def diagonal(self):
         """Returns the main diagonal of the matrix
         """
-        M,N = self.shape
+        M,N = self._get_internal_shape()
         R,C = self.blocksize
         y = np.empty(min(M,N), dtype=upcast(self.dtype))
         sparsetools.bsr_diagonal(M//R, N//C, R, C,
@@ -310,10 +310,10 @@ class bsr_matrix(_cs_matrix, _minmax_mixin):
         return self * other
 
     def _mul_vector(self, other):
-        M,N = self.shape
+        M,N = self._get_internal_shape()
         R,C = self.blocksize
 
-        result = np.zeros(self.shape[0], dtype=upcast(self.dtype, other.dtype))
+        result = np.zeros(M, dtype=upcast(self.dtype, other.dtype))
 
         bsr_matvec(M//R, N//C, R, C,
             self.indptr, self.indices, self.data.ravel(),
@@ -323,7 +323,7 @@ class bsr_matrix(_cs_matrix, _minmax_mixin):
 
     def _mul_multivector(self,other):
         R,C = self.blocksize
-        M,N = self.shape
+        M,N = self._get_internal_shape()
         n_vecs = other.shape[1]  # number of column vectors
 
         result = np.zeros((M,n_vecs), dtype=upcast(self.dtype,other.dtype))
@@ -335,7 +335,7 @@ class bsr_matrix(_cs_matrix, _minmax_mixin):
         return result
 
     def _mul_sparse_matrix(self, other):
-        M, K1 = self.shape
+        M, K1 = self._get_internal_shape()
         K2, N = other.shape
 
         R,n = self.blocksize
@@ -417,7 +417,7 @@ class bsr_matrix(_cs_matrix, _minmax_mixin):
         this matrix and the resultant coo_matrix.
         """
 
-        M,N = self.shape
+        M,N = self._get_internal_shape()
         R,C = self.blocksize
 
         indptr_diff = np.diff(self.indptr)
@@ -448,7 +448,7 @@ class bsr_matrix(_cs_matrix, _minmax_mixin):
     def transpose(self):
 
         R,C = self.blocksize
-        M,N = self.shape
+        M,N = self._get_internal_shape()
         NBLK = self.nnz//(R*C)
 
         if self.nnz == 0:
@@ -471,7 +471,7 @@ class bsr_matrix(_cs_matrix, _minmax_mixin):
 
     def eliminate_zeros(self):
         R,C = self.blocksize
-        M,N = self.shape
+        M,N = self._get_internal_shape()
 
         mask = (self.data != 0).reshape(-1,R*C).sum(axis=1)  # nonzero blocks
 
@@ -500,7 +500,7 @@ class bsr_matrix(_cs_matrix, _minmax_mixin):
             return
 
         R,C = self.blocksize
-        M,N = self.shape
+        M,N = self._get_internal_shape()
 
         bsr_sort_indices(M//R, N//C, R, C, self.indptr, self.indices, self.data.ravel())
 
@@ -511,7 +511,7 @@ class bsr_matrix(_cs_matrix, _minmax_mixin):
         """
 
         R,C = self.blocksize
-        M,N = self.shape
+        M,N = self._get_internal_shape()
 
         if len(self.indptr) != M//R + 1:
             raise ValueError("index pointer has invalid length")
@@ -537,6 +537,7 @@ class bsr_matrix(_cs_matrix, _minmax_mixin):
         # e.g. bsr_plus_bsr, etc.
         fn = getattr(sparsetools, self.format + op + self.format)
 
+        M, N = self._get_internal_shape()
         R,C = self.blocksize
 
         max_bnnz = len(self.data) + len(other.data)
@@ -552,7 +553,7 @@ class bsr_matrix(_cs_matrix, _minmax_mixin):
         else:
             data = np.empty(R*C*max_bnnz, dtype=upcast(self.dtype,other.dtype))
 
-        fn(self.shape[0]//R, self.shape[1]//C, R, C,
+        fn(M//R, N//C, R, C,
            self.indptr.astype(idx_dtype),
            self.indices.astype(idx_dtype),
            np.ravel(self.data),
@@ -583,10 +584,10 @@ class bsr_matrix(_cs_matrix, _minmax_mixin):
         """
         if copy:
             return self.__class__((data,self.indices.copy(),self.indptr.copy()),
-                                   shape=self.shape,dtype=data.dtype)
+                                   shape=self.shape, dtype=data.dtype)
         else:
             return self.__class__((data,self.indices,self.indptr),
-                                   shape=self.shape,dtype=data.dtype)
+                                   shape=self.shape, dtype=data.dtype)
 
 #    # these functions are used by the parent class
 #    # to remove redudancy between bsc_matrix and bsr_matrix

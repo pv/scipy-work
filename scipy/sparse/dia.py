@@ -146,9 +146,9 @@ class dia_matrix(_data_matrix):
     def __repr__(self):
         nnz = self.getnnz()
         format = self.getformat()
-        return "<%dx%d sparse matrix of type '%s'\n" \
+        return "<%s sparse matrix of type '%s'\n" \
                "\twith %d stored elements (%d diagonals) in %s format>" % \
-               (self.shape + (self.dtype.type, nnz, self.data.shape[0],
+               ((self._format_shape(),) + (self.dtype.type, nnz, self.data.shape[0],
                  _formats[format][1],))
 
     def getnnz(self):
