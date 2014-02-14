@@ -10,7 +10,7 @@ def norm(x, ord=None, axis=None):
 
     This function is able to return one of seven different matrix norms,
     depending on the value of the ``ord`` parameter.
-    
+
     Parameters
     ----------
     x : a sparse matrix
@@ -20,46 +20,46 @@ def norm(x, ord=None, axis=None):
         `inf` object.
     axis : {int, None}, optional
         If `axis` is an integer, it specifies the axis of `x` along which to
-        compute the vector norms. 
-    
+        compute the vector norms.
+
     Returns
     -------
     n : float or matrix
-    
+
     Notes
     -----
-    Some of the ord are not implemented because some associated functions like, 
-    _multi_svd_norm, are not yet available for sparse matrix. 
-    
-    This docstring is modified based on numpy.linalg.norm. 
-    https://github.com/numpy/numpy/blob/master/numpy/linalg/linalg.py 
-    
+    Some of the ord are not implemented because some associated functions like,
+    _multi_svd_norm, are not yet available for sparse matrix.
+
+    This docstring is modified based on numpy.linalg.norm.
+    https://github.com/numpy/numpy/blob/master/numpy/linalg/linalg.py
+
     The following norms can be calculated:
-    
-    =====  ============================  
-    ord    norm for sparse matrices             
-    =====  ============================  
-    None   Frobenius norm                
-    'fro'  Frobenius norm                
-    inf    max(sum(abs(x), axis=1))      
-    -inf   min(sum(abs(x), axis=1))      
-    0      abs(x).sum(axis=axis)                           
-    1      max(sum(abs(x), axis=0))      
-    -1     min(sum(abs(x), axis=0))      
-    2      Not implemented  
-    -2     Not implemented      
-    other  Not implemented                               
-    =====  ============================  
-    
+
+    =====  ============================
+    ord    norm for sparse matrices
+    =====  ============================
+    None   Frobenius norm
+    'fro'  Frobenius norm
+    inf    max(sum(abs(x), axis=1))
+    -inf   min(sum(abs(x), axis=1))
+    0      abs(x).sum(axis=axis)
+    1      max(sum(abs(x), axis=0))
+    -1     min(sum(abs(x), axis=0))
+    2      Not implemented
+    -2     Not implemented
+    other  Not implemented
+    =====  ============================
+
     The Frobenius norm is given by [1]_:
-    
+
         :math:`||A||_F = [\\sum_{i,j} abs(a_{i,j})^2]^{1/2}`
-    
+
     References
     ----------
     .. [1] G. H. Golub and C. F. Van Loan, *Matrix Computations*,
         Baltimore, MD, Johns Hopkins University Press, 1985, pg. 15
-    
+
     Examples
     --------
     >>> import numpy as np
@@ -118,7 +118,7 @@ def norm(x, ord=None, axis=None):
     nd = x.ndim
     if axis is None:
         axis = tuple(range(nd))
-    
+
     if np.isscalar(axis):
         if ord == np.inf:
             return max(abs(x).sum(axis=axis))
@@ -131,9 +131,9 @@ def norm(x, ord=None, axis=None):
             # special case for speedup
             return abs(x).sum(axis=axis)
         elif ord == -1:
-            return min(abs(x).sum(axis=axis))             
-        elif ord is None:            
-            return np.sqrt(x.power(2).sum(axis=axis))        
+            return min(abs(x).sum(axis=axis))
+        elif ord in (None, 'fro', 'f'):
+            return np.sqrt(x.power(2).sum(axis=axis))
         else:
             raise NotImplementedError
     elif len(axis) == 2:
@@ -157,7 +157,7 @@ def norm(x, ord=None, axis=None):
             return abs(x).sum(axis=row_axis).min(axis=col_axis)[0,0]
         elif ord == -np.inf:
             return abs(x).sum(axis=col_axis).min(axis=row_axis)[0,0]
-        elif ord in [None, 'fro', 'f']:
+        elif ord in (None, 'fro', 'f'):
             return np.sqrt(x.power(2).sum(axis=axis))
         else:
             raise ValueError("Invalid norm order for matrices.")

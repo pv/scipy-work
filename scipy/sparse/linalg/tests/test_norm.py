@@ -4,7 +4,7 @@
 from __future__ import division, print_function, absolute_import
 
 import numpy as np
-from numpy.testing import assert_raises, assert_equal, TestCase
+from numpy.testing import assert_raises, assert_allclose, TestCase
 
 from scipy import sparse
 from scipy.sparse.linalg import norm
@@ -17,13 +17,13 @@ class TestNorm(TestCase):
         b = sparse.csr_matrix(b)
 
         # Frobenius norm is the default
-        assert_equal(norm(b), 7.745966692414834)        
-        assert_equal(norm(b, 'fro'), 7.745966692414834)
+        assert_allclose(norm(b), 7.745966692414834)        
+        assert_allclose(norm(b, 'fro'), 7.745966692414834)
 
-        assert_equal(norm(b, np.inf), 9)
-        assert_equal(norm(b, -np.inf), 2)
-        assert_equal(norm(b, 1), 7)
-        assert_equal(norm(b, -1), 6)
+        assert_allclose(norm(b, np.inf), 9)
+        assert_allclose(norm(b, -np.inf), 2)
+        assert_allclose(norm(b, 1), 7)
+        assert_allclose(norm(b, -1), 6)
         
         # _multi_svd_norm is not implemented for sparse matrix
         assert_raises(NotImplementedError, norm, b, 2)
@@ -35,22 +35,31 @@ class TestNorm(TestCase):
 
         c = sparse.csr_matrix(a)
 
-        # Frobenius norm
-        assert_equal(norm(c, axis=0), np.sqrt(np.power(np.asmatrix(a), 2).sum(axis=0)))
-        assert_equal(norm(c, axis=1), np.sqrt(np.power(np.asmatrix(a), 2).sum(axis=1)))
-        
-        assert_equal(norm(c, np.inf, axis=0), max(abs(np.asmatrix(a)).sum(axis=0)))
-        assert_equal(norm(c, np.inf, axis=1), max(abs(np.asmatrix(a)).sum(axis=1)))
-                
-        assert_equal(norm(c, -np.inf, axis=0), min(abs(np.asmatrix(a)).sum(axis=0)))
-        assert_equal(norm(c, -np.inf, axis=1), min(abs(np.asmatrix(a)).sum(axis=1)))
-                        
-        assert_equal(norm(c, 1, axis=0), abs(np.asmatrix(a)).sum(axis=0))
-        assert_equal(norm(c, 1, axis=1), abs(np.asmatrix(a)).sum(axis=1))
-        
-        assert_equal(norm(c, -1, axis=0), min(abs(np.asmatrix(a)).sum(axis=0)))
-        assert_equal(norm(c, -1, axis=1), min(abs(np.asmatrix(a)).sum(axis=1)))
-        
+        for ord in (None, 'f', 'fro'):
+            assert_allclose(norm(c, ord, axis=0), np.sqrt(np.power(np.asmatrix(a), 2).sum(axis=0)))
+            assert_allclose(norm(c, ord, axis=1), np.sqrt(np.power(np.asmatrix(a), 2).sum(axis=1)))
+
+        assert_allclose(norm(c, 'f', axis=0), np.sqrt(np.power(np.asmatrix(a), 2).sum(axis=0)))
+        assert_allclose(norm(c, 'fro', axis=1), np.sqrt(np.power(np.asmatrix(a), 2).sum(axis=1)))
+
+        assert_allclose(norm(c, axis=0), np.sqrt(np.power(np.asmatrix(a), 2).sum(axis=0)))
+        assert_allclose(norm(c, axis=1), np.sqrt(np.power(np.asmatrix(a), 2).sum(axis=1)))
+
+        assert_allclose(norm(c, np.inf, axis=0), max(abs(np.asmatrix(a)).sum(axis=0)))
+        assert_allclose(norm(c, np.inf, axis=1), max(abs(np.asmatrix(a)).sum(axis=1)))
+
+        assert_allclose(norm(c, -np.inf, axis=0), min(abs(np.asmatrix(a)).sum(axis=0)))
+        assert_allclose(norm(c, -np.inf, axis=1), min(abs(np.asmatrix(a)).sum(axis=1)))
+
+        assert_allclose(norm(c, 1, axis=0), abs(np.asmatrix(a)).sum(axis=0))
+        assert_allclose(norm(c, 1, axis=1), abs(np.asmatrix(a)).sum(axis=1))
+
+        assert_allclose(norm(c, -1, axis=0), min(abs(np.asmatrix(a)).sum(axis=0)))
+        assert_allclose(norm(c, -1, axis=1), min(abs(np.asmatrix(a)).sum(axis=1)))
+
+        assert_allclose(norm(c, 0, axis=0), np.sum(np.asmatrix(a) != 0, axis=0))
+        assert_allclose(norm(c, 0, axis=1), np.sum(np.asmatrix(a) != 0, axis=1))
+
         # _multi_svd_norm is not implemented for sparse matrix
         assert_raises(NotImplementedError, norm, c, 2, 0)
         # assert_raises(NotImplementedError, norm, c, -2, 0)
