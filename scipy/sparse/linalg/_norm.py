@@ -1,17 +1,8 @@
 import numpy as np
 from scipy.sparse import issparse
 
-from numpy.core import (
-    array, asarray, zeros, empty, empty_like, transpose, intc, single, double,
-    csingle, cdouble, inexact, complexfloating, newaxis, ravel, all, Inf, dot,
-    add, multiply, sqrt, maximum, fastCopyAndTranspose, sum, isfinite, size,
-    finfo, errstate, geterrobj, longdouble, rollaxis, amin, amax, product, abs,
-    broadcast
-    )
+from numpy import dot
 
-
-def isComplexType(t):
-    return issubclass(t, complexfloating)
 
 def norm(x, ord=None, axis=None):
     """
@@ -71,8 +62,8 @@ def norm(x, ord=None, axis=None):
     
     Examples
     --------
-    >>> from scipy.sparse import *
     >>> import numpy as np
+    >>> from scipy import sparse
     >>> from scipy.sparse.linalg import norm
     >>> a = np.arange(9) - 4
     >>> a
@@ -82,8 +73,8 @@ def norm(x, ord=None, axis=None):
     array([[-4, -3, -2],
            [-1, 0, 1],
            [ 2, 3, 4]])
-           
-    >>> b = csr_matrix(b)
+
+    >>> b = sparse.csr_matrix(b)
     >>> norm(b)
     7.745966692414834
     >>> norm(b, 'fro')
@@ -96,12 +87,12 @@ def norm(x, ord=None, axis=None):
     7
     >>> norm(b, -1)
     6
-    
+
     Using the `axis` argument to compute vector norms:
-    
+
     >>> c = np.array([[ 1, 2, 3],
     ...               [-1, 1, 4]])
-    >>> c = csr_matrix(c)
+    >>> c = sparse.csr_matrix(c)
     >>> norm(c, axis=0)
     matrix[[ 1.41421356, 2.23606798, 5. ]]
     >>> norm(c, axis=1)
@@ -110,17 +101,18 @@ def norm(x, ord=None, axis=None):
     matrix[[6]
            [6]]
 
-"""
+    """
+
     if not issparse(x):
         raise TypeError("input is not sparse. use numpy.linalg.norm")
 
     # Check the default case first and handle it immediately.
     if ord in [None, 'fro', 'f'] and axis is None:
-        if isComplexType(x.dtype.type):
+        if np.issubdtype(x.dtype, np.complexfloating):
             sqnorm = dot(x.real, x.real) + dot(x.imag, x.imag)
         else:
             sqnorm = x.power(2).sum()
-        return sqrt(sqnorm)
+        return np.sqrt(sqnorm)
 
     # Normalize the `axis` argument to a tuple.
     nd = x.ndim
@@ -128,9 +120,9 @@ def norm(x, ord=None, axis=None):
         axis = tuple(range(nd))
     
     if np.isscalar(axis):
-        if ord == Inf:
+        if ord == np.inf:
             return max(abs(x).sum(axis=axis))
-        elif ord == -Inf:
+        elif ord == -np.inf:
             return min(abs(x).sum(axis=axis))
         elif ord == 0:
             # Zero norm
@@ -141,7 +133,7 @@ def norm(x, ord=None, axis=None):
         elif ord == -1:
             return min(abs(x).sum(axis=axis))             
         elif ord is None:            
-            return sqrt(x.power(2).sum(axis=axis))        
+            return np.sqrt(x.power(2).sum(axis=axis))        
         else:
             raise NotImplementedError
     elif len(axis) == 2:
@@ -159,14 +151,14 @@ def norm(x, ord=None, axis=None):
             #return _multi_svd_norm(x, row_axis, col_axis, amin)
         elif ord == 1:
             return abs(x).sum(axis=row_axis).max(axis=col_axis)[0,0]
-        elif ord == Inf:
+        elif ord == np.inf:
             return abs(x).sum(axis=col_axis).max(axis=row_axis)[0,0]
         elif ord == -1:
             return abs(x).sum(axis=row_axis).min(axis=col_axis)[0,0]
-        elif ord == -Inf:
+        elif ord == -np.inf:
             return abs(x).sum(axis=col_axis).min(axis=row_axis)[0,0]
         elif ord in [None, 'fro', 'f']:
-            return sqrt(x.power(2).sum(axis=axis))
+            return np.sqrt(x.power(2).sum(axis=axis))
         else:
             raise ValueError("Invalid norm order for matrices.")
     else:
