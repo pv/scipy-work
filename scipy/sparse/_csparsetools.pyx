@@ -3,6 +3,9 @@ Fast snippets for sparse matrices
 """
 
 cimport cython
+cimport cpython.list
+cimport cpython.int
+cimport cpython
 cimport numpy as cnp
 import numpy as np
 
@@ -80,10 +83,12 @@ cdef bisect_left(list a, cnp.intp_t x):
     cdef cnp.intp_t hi = len(a)
     cdef cnp.intp_t lo = 0
     cdef cnp.intp_t mid_v
+    cdef cpython.PyObject* v
 
     while lo < hi:
         mid = (lo + hi)//2
-        mid_v = a[mid]
+        v = cpython.list.PyList_GET_ITEM(a, mid)
+        mid_v = cpython.int.PyInt_AsLong(<object>v)
         if mid_v < x:
             lo = mid + 1
         else:
