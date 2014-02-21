@@ -347,12 +347,18 @@ int NRFormat_from_spMatrix(SuperMatrix * A, int m, int n, int nnz,
 {
     int err = 0;
 
-    err = (nzvals->descr->type_num != typenum);
-    err += (nzvals->nd != 1);
-    err += (nnz > nzvals->dimensions[0]);
+    err = !PyArray_EquivTypenums(PyArray_DESCR(nzvals)->type_num, typenum);
+    err += (PyArray_NDIM(nzvals) != 1);
+    err += !PyArray_ISCARRAY(nzvals);
+    err += !PyArray_ISCARRAY(colind);
+    err += !PyArray_ISCARRAY(rowptr);
+    err += !PyArray_EquivTypenums(PyArray_DESCR(colind)->type_num, NPY_INT);
+    err += !PyArray_EquivTypenums(PyArray_DESCR(rowptr)->type_num, NPY_INT);
+    err += (nnz > PyArray_DIM(nzvals, 0));
     if (err) {
 	PyErr_SetString(PyExc_TypeError,
-			"Fourth argument must be a 1-D array at least as big as third argument.");
+			"sparse matrix arrays must be 1-D C-contigous and of proper "
+                        "sizes and types");
 	return -1;
     }
 
@@ -380,12 +386,18 @@ int NCFormat_from_spMatrix(SuperMatrix * A, int m, int n, int nnz,
 {
     int err = 0;
 
-    err = (nzvals->descr->type_num != typenum);
-    err += (nzvals->nd != 1);
-    err += (nnz > nzvals->dimensions[0]);
+    err = !PyArray_EquivTypenums(PyArray_DESCR(nzvals)->type_num, typenum);
+    err += (PyArray_NDIM(nzvals) != 1);
+    err += !PyArray_ISCARRAY(nzvals);
+    err += !PyArray_ISCARRAY(rowind);
+    err += !PyArray_ISCARRAY(colptr);
+    err += !PyArray_EquivTypenums(PyArray_DESCR(rowind)->type_num, NPY_INT);
+    err += !PyArray_EquivTypenums(PyArray_DESCR(colptr)->type_num, NPY_INT);
+    err += (nnz > PyArray_DIM(nzvals, 0));
     if (err) {
 	PyErr_SetString(PyExc_TypeError,
-			"Fifth argument must be a 1-D array at least as big as fourth argument.");
+			"sparse matrix arrays must be 1-D C-contigous and of proper "
+                        "sizes and types");
 	return -1;
     }
 
