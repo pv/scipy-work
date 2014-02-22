@@ -68,20 +68,23 @@ void XStatFree(SuperLUStat_t *);
 #define CHECK_SLU_TYPE(type) \
     (type == NPY_FLOAT || type == NPY_DOUBLE || type == NPY_CFLOAT || type == NPY_CDOUBLE)
 
-#define TYPE_GENERIC_FUNC(name, returntype)                \
-    returntype s##name(name##_ARGS);                       \
-    returntype d##name(name##_ARGS);                       \
-    returntype c##name(name##_ARGS);                       \
-    static returntype name(int type, name##_ARGS)          \
+#define TYPE_GENERIC_FUNC_SD(name, sret, dret)                  \
+    sret s##name(name##_ARGS);                                  \
+    dret d##name(name##_ARGS);                                  \
+    sret c##name(name##_ARGS);                                  \
+    static dret name(int type, name##_ARGS)                     \
     {                                                      \
         switch(type) {                                     \
         case NPY_FLOAT:   s##name(name##_ARGS_REF); break; \
         case NPY_DOUBLE:  d##name(name##_ARGS_REF); break; \
         case NPY_CFLOAT:  c##name(name##_ARGS_REF); break; \
         case NPY_CDOUBLE: z##name(name##_ARGS_REF); break; \
-        default: return;                                   \
+        default: return def;                               \
         }                                                  \
     }
+
+#define TYPE_GENERIC_FUNC_VOID(name)            \
+    TYPE_GENERIC_FUNC(name, void, void, void, void, )
 
 #define SLU_TYPECODE_TO_NPY(s)                    \
     ( ((s) == SLU_S) ? NPY_FLOAT :                \
@@ -117,6 +120,15 @@ void XStatFree(SuperLUStat_t *);
     SuperLUStat_t *h, int *i
 #define gssv_ARGS_REF a,b,c,d,e,f,g,h,i
 
+#define gscon_ARGS                                               \
+    char *a, SuperMatrix *b, SuperMatrix *c,                     \
+    double d, double *e, int *f
+#define gscon_ARGS_REF a,b,c,d,e,f
+
+#define langs_ARGS                                               \
+    char *a, SuperMatrix *b
+#define langs_ARGS_REF a,b
+
 #define Create_Dense_Matrix_ARGS                               \
     SuperMatrix *a, int b, int c, void *d, int e,              \
     Stype_t f, Dtype_t g, Mtype_t h
@@ -131,12 +143,14 @@ void XStatFree(SuperLUStat_t *);
 #define Create_CompCol_Matrix_ARGS Create_CompRow_Matrix_ARGS
 #define Create_CompCol_Matrix_ARGS_REF Create_CompRow_Matrix_ARGS_REF
 
-TYPE_GENERIC_FUNC(gstrf, void);
-TYPE_GENERIC_FUNC(gsitrf, void);
-TYPE_GENERIC_FUNC(gstrs, void);
-TYPE_GENERIC_FUNC(gssv, void);
-TYPE_GENERIC_FUNC(Create_Dense_Matrix, void);
-TYPE_GENERIC_FUNC(Create_CompRow_Matrix, void);
-TYPE_GENERIC_FUNC(Create_CompCol_Matrix, void);
+TYPE_GENERIC_FUNC_VOID(gstrf);
+TYPE_GENERIC_FUNC_VOID(gsitrf);
+TYPE_GENERIC_FUNC_VOID(gstrs);
+TYPE_GENERIC_FUNC_VOID(gssv);
+TYPE_GENERIC_FUNC_VOID(gscon);
+TYPE_GENERIC_FUNC_SD(langs, float, double);
+TYPE_GENERIC_FUNC_VOID(Create_Dense_Matrix);
+TYPE_GENERIC_FUNC_VOID(Create_CompRow_Matrix);
+TYPE_GENERIC_FUNC_VOID(Create_CompCol_Matrix);
 
 #endif				/* __SUPERLU_OBJECT */
