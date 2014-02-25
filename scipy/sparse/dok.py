@@ -377,7 +377,7 @@ class dok_matrix(spmatrix, IndexMixin, dict):
             # new.dtype.char = self.dtype.char
             return self
         else:
-            raise NotImplementedError
+            return NotImplemented
 
     def __truediv__(self, other):
         if isscalarlike(other):
@@ -398,7 +398,7 @@ class dok_matrix(spmatrix, IndexMixin, dict):
                 self[key] = val / other
             return self
         else:
-            raise NotImplementedError
+            return NotImplemented
 
     # What should len(sparse) return? For consistency with dense matrices,
     # perhaps it should be the number of rows?  For now it returns the number
