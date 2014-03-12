@@ -24,6 +24,7 @@ References
 #------------------------------------------------------------------------------
 cimport cython
 from libc.math cimport sqrt, exp, floor, fabs, log, sin, M_PI as pi
+from libc.limits cimport ULONG_MAX
 
 from numpy cimport npy_cdouble
 from _complexstuff cimport nan, inf, number_t
@@ -71,6 +72,25 @@ cdef inline number_t hyp1f1(double a, double b, number_t z) nogil:
 cdef inline double binom(double n, double k) nogil:
     cdef double kx, nx, num, den, dk, sgn
     cdef int i
+    cdef unsigned long un, uk, ui, uacc
+
+    un = <unsigned long>n
+    uk = <unsigned long>k
+    if k == uk and n == un:
+        # Fast path for integer cases
+        unum = 1
+        for ui in range(1, uk + 1):
+            if unum > ULONG_MAX//(un+1):
+                # overflow
+                break
+            unum *= (un + 1 - ui)
+            unum /= ui
+        else:
+            # finished OK
+            with gil:
+                print("OK")
+            return unum
+        # overflow: fall-back to floating point
 
     if n < 0:
         nx = floor(n)
