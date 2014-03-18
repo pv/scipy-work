@@ -163,6 +163,9 @@ def find_process_files(root_dir):
     hash_db = load_hashes(HASH_FILE)
     for cur_dir, dirs, files in os.walk(root_dir):
         for filename in files:
+            in_file = os.path.join(cur_dir, filename + ".in")
+            if filename.endswith('.pyx') and os.path.isfile(in_file):
+                continue
             for fromext, function in rules.items():
                 if filename.endswith(fromext):
                     toext = ".c"
