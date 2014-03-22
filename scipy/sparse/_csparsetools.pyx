@@ -143,22 +143,8 @@ cpdef lil_get1(cnp.npy_intp M, cnp.npy_intp N, object[:] rows, object[:] datas,
         return 0
 
 
-def lil_insert(cnp.npy_intp M, cnp.npy_intp N, object[:] rows, object[:] datas,
-               cnp.npy_intp i, cnp.npy_intp j, object x, object dtype):
-    """
-    Work around broken Cython fused type dispatch
-    """
-    dtype = np.dtype(dtype)
-    try:
-        key = DTYPE_NAME_MAP[dtype.char]
-    except KeyError:
-        raise ValueError("Unsupported data type: %r" % (dtype.char,))
-
-    _lil_insert[key](M, N, rows, datas, i, j, x)
-
-
-cpdef _lil_insert(cnp.npy_intp M, cnp.npy_intp N, object[:] rows, object[:] datas,
-                  cnp.npy_intp i, cnp.npy_intp j, value_t x):
+cpdef lil_insert(cnp.npy_intp M, cnp.npy_intp N, object[:] rows, object[:] datas,
+                 cnp.npy_intp i, cnp.npy_intp j, value_t x):
     """
     Insert a single item to LIL matrix.
 
