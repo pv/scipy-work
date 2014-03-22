@@ -225,7 +225,7 @@ cpdef lil_fancy_set(cnp.npy_intp M, cnp.npy_intp N,
         for y in range(i_idx.shape[1]):
             i = i_idx[x,y]
             j = j_idx[x,y]
-            _lil_insert[value_t](M, N, rows, data, i, j, values[x, y])
+            lil_insert[value_t](M, N, rows, data, i, j, values[x, y])
 
 
 cdef lil_insertat_nocheck(list row, list data, cnp.npy_intp j, object x):
