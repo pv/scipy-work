@@ -66,18 +66,20 @@ def process_pyx(fromfile, tofile):
 
     try:
         try:
+            #r = subprocess.call(['/home/pauli/prj/scipy/cython/cython.py'] + flags + ["-o", tofile, fromfile])
             r = subprocess.call(['cython'] + flags + ["-o", tofile, fromfile])
             if r != 0:
                 raise Exception('Cython failed')
         except OSError:
             # There are ways of installing Cython that don't result in a cython
             # executable on the path, see gh-2397.
-            r = subprocess.call([sys.executable, '-c',
-                                 'import sys; from Cython.Compiler.Main import '
-                                 'setuptools_main as main; sys.exit(main())'] + flags +
-                                 ["-o", tofile, fromfile])
-            if r != 0:
-                raise Exception('Cython failed')
+            #r = subprocess.call([sys.executable, '-c',
+            #                     'import sys; from Cython.Compiler.Main import '
+            #                     'setuptools_main as main; sys.exit(main())'] + flags +
+            #                     ["-o", tofile, fromfile])
+            #if r != 0:
+            #    raise Exception('Cython failed')
+            raise
     except OSError:
         raise OSError('Cython needs to be installed')
 

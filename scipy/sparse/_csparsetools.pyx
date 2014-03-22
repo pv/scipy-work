@@ -33,9 +33,6 @@ ctypedef fused value_t:
     long double complex
 
 
-# Use .char to work around dtype comparison bugs in earlier Numpy
-# versions
-
 DTYPE_NAME_MAP = {
     np.dtype(np.bool_).char: "npy_bool",
     np.dtype(np.int8).char: "npy_int8",
@@ -53,7 +50,7 @@ DTYPE_NAME_MAP = {
     np.dtype(np.complex128).char: "double complex",
     np.dtype(np.clongdouble).char: "long double complex"
 }
-
+ 
 if np.dtype('q').itemsize == 4:
     DTYPE_NAME_MAP['q'] = "npy_int32"
     DTYPE_NAME_MAP['Q'] = "npy_uint32"
@@ -246,36 +243,7 @@ def lil_fancy_get(cnp.npy_intp M, cnp.npy_intp N,
         new_datas[x] = new_data
 
 
-def lil_fancy_set(cnp.npy_intp M, cnp.npy_intp N,
-                  object[:] rows,
-                  object[:] data,
-                  object i_idx,
-                  object j_idx,
-                  object values):
-    """
-    Work around broken Cython fused type dispatch
-    """
-    try:
-        key = DTYPE_NAME_MAP[values.dtype.char]
-    except KeyError:
-        raise ValueError("Unsupported data type: %r" % (values.dtype.char,))
-    try:
-        ikey = DTYPE_NAME_MAP[i_idx.dtype.char]
-    except KeyError:
-        raise ValueError("Unsupported data type: %r" % (i_idx.dtype.char,))
-
-    if key != "npy_bool":
-        _lil_fancy_set[ikey, key](M, N, rows, data, i_idx, j_idx, values)
-    else:
-        # bool has no memoryview support
-        for x in range(i_idx.shape[0]):
-            for y in range(i_idx.shape[1]):
-                i = i_idx[x,y]
-                j = j_idx[x,y]
-                _lil_insert[key](M, N, rows, data, i, j, values[x, y])
-
-
-cpdef _lil_fancy_set(cnp.npy_intp M, cnp.npy_intp N,
+cpdef lil_fancy_set(cnp.npy_intp M, cnp.npy_intp N,
                      object[:] rows,
                      object[:] data,
                      idx_t[:,:] i_idx,
