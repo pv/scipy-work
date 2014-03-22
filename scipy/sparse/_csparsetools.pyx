@@ -33,38 +33,6 @@ ctypedef fused value_t:
     long double complex
 
 
-DTYPE_NAME_MAP = {
-    np.dtype(np.bool_).char: "npy_bool",
-    np.dtype(np.int8).char: "npy_int8",
-    np.dtype(np.uint8).char: "npy_uint8",
-    np.dtype(np.int16).char: "npy_int16",
-    np.dtype(np.uint16).char: "npy_uint16",
-    np.dtype(np.int32).char: "npy_int32",
-    np.dtype(np.uint32).char: "npy_uint32",
-    np.dtype(np.int64).char: "npy_int64",
-    np.dtype(np.uint64).char: "npy_uint64",
-    np.dtype(np.float32).char: "npy_float32",
-    np.dtype(np.float64).char: "npy_float64",
-    np.dtype(np.longdouble).char: "long double",
-    np.dtype(np.complex64).char: "float complex",
-    np.dtype(np.complex128).char: "double complex",
-    np.dtype(np.clongdouble).char: "long double complex"
-}
- 
-if np.dtype('q').itemsize == 4:
-    DTYPE_NAME_MAP['q'] = "npy_int32"
-    DTYPE_NAME_MAP['Q'] = "npy_uint32"
-elif np.dtype('q').itemsize == 8:
-    DTYPE_NAME_MAP['q'] = "npy_int64"
-    DTYPE_NAME_MAP['Q'] = "npy_uint64"
-if np.dtype('i').itemsize == 4:
-    DTYPE_NAME_MAP['i'] = "npy_int32"
-    DTYPE_NAME_MAP['I'] = "npy_uint32"
-elif np.dtype('i').itemsize == 8:
-    DTYPE_NAME_MAP['i'] = "npy_int64"
-    DTYPE_NAME_MAP['I'] = "npy_uint64"
-
-
 def prepare_index_for_memoryview(cnp.ndarray i, cnp.ndarray j, cnp.ndarray x=None):
     """
     Convert index and data arrays to form suitable for passing to the
