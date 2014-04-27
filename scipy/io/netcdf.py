@@ -185,6 +185,9 @@ class netcdf_file(object):
     """
     def __init__(self, filename, mode='r', mmap=None, version=1):
         """Initialize netcdf_file from fileobj (str or file-like)."""
+        if mode not in 'rw':
+            raise ValueError("Mode must be either 'r' or 'w'.")
+
         if hasattr(filename, 'seek'):  # file-like
             self.fp = filename
             self.filename = 'None'
@@ -197,17 +200,13 @@ class netcdf_file(object):
             self.fp = open(self.filename, '%sb' % mode)
             if mmap is None:
                 mmap = True
+            if mode != 'r':
+                # Cannot read write-only files
+                mmap = False
+
         self.use_mmap = mmap
-        self.version_byte = version
-
-        if not mode in 'rw':
-            raise ValueError("Mode must be either 'r' or 'w'.")
         self.mode = mode
-
-        self._mm = None
-        if self.use_mmap and self.mode is 'r':
-            self._mm = mm.mmap(self.fp.fileno(), 0, access=mm.ACCESS_READ)
-            self._mm_buf = np.frombuffer(self._mm, dtype=np.int8)
+        self.version_byte = version
 
         self.dimensions = {}
         self.variables = {}
@@ -216,10 +215,26 @@ class netcdf_file(object):
         self._recs = 0
         self._recsize = 0
 
+        self._mm = None
+        self._mm_buf = None
+
         self._attributes = {}
 
         if mode == 'r':
             self._read()
+
+    def _setup_mmap(self, reset=False):
+        if reset and self._mm is not None:
+            # Drop the previous mmap
+            self._mm_buf = None
+            self._mm.close()
+            self._mm = None
+
+        if self.use_mmap and self._mm is None:
+            self._mm = mm.mmap(self.fp.fileno(), 0, access=mm.ACCESS_READ)
+            self._mm_buf = np.frombuffer(self._mm, dtype=np.int8)
+            if self.mode == 'r':
+                self._mm_buf.flags.writeable = False
 
     def __setattr__(self, attr, value):
         # Store user defined attributes in a separate dict,
@@ -236,9 +251,10 @@ class netcdf_file(object):
             try:
                 self.flush()
             finally:
+                self._mm_buf = None
                 if self._mm is not None:
-                    self._mm_buf = None
                     self._mm.close()
+                self._mm = None
                 self.fp.close()
     __del__ = close
 
@@ -323,7 +339,7 @@ class netcdf_file(object):
         sync : Identical function
 
         """
-        if hasattr(self, 'mode') and self.mode is 'w':
+        if hasattr(self, 'mode') and self.mode == 'w':
             self._write()
     sync = flush
 
@@ -337,6 +353,9 @@ class netcdf_file(object):
         self._write_dim_array()
         self._write_gatt_array()
         self._write_var_array()
+
+        # Re-mmap in case the size of the file changed
+        self._setup_mmap(reset=True)
 
     def _write_numrecs(self):
         # Get highest record count from all record variables.
@@ -599,19 +618,19 @@ class netcdf_file(object):
             else:  # not a record variable
                 # Calculate size to avoid problems with vsize (above)
                 a_size = reduce(mul, shape, 1) * size
+                self._setup_mmap()
                 if self.use_mmap:
                     data = self._mm_buf[begin_:begin_+a_size].view(dtype=dtype_)
                     data.shape = shape
-                    if self.mode is 'r':
-                        data.flags.writeable = False
                 else:
                     pos = self.fp.tell()
                     self.fp.seek(begin_)
                     data = fromstring(self.fp.read(a_size), dtype=dtype_)
                     data.shape = shape
-                    if self.mode is 'r':
-                        data.flags.writeable = False
                     self.fp.seek(pos)
+
+                if self.mode == 'r':
+                    data.flags.writeable = False
 
             # Add variable.
             self.variables[name] = netcdf_variable(
@@ -624,19 +643,19 @@ class netcdf_file(object):
                 dtypes['formats'] = dtypes['formats'][:1]
 
             # Build rec array.
+            self._setup_mmap()
             if self.use_mmap:
                 rec_array = self._mm_buf[begin:begin+self._recs*self._recsize].view(dtype=dtypes)
                 rec_array.shape = (self._recs,)
-                if self.mode is 'r':
-                    rec_array.flags.writeable = False
             else:
                 pos = self.fp.tell()
                 self.fp.seek(begin)
                 rec_array = fromstring(self.fp.read(self._recs*self._recsize), dtype=dtypes)
                 rec_array.shape = (self._recs,)
-                if self.mode is 'r':
-                    rec_array.flags.writeable = False
                 self.fp.seek(pos)
+
+            if self.mode == 'r':
+                rec_array.flags.writeable = False
 
             for var in rec_vars:
                 self.variables[var].__dict__['data'] = rec_array[var]
