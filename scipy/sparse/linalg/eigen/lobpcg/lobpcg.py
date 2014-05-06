@@ -8,6 +8,7 @@ License: BSD
 Authors: Robert Cimrman, Andrew Knyazev
 
 Examples in tests directory contributed by Nils Wagner.
+
 """
 
 from __future__ import division, print_function, absolute_import
@@ -174,30 +175,39 @@ def lobpcg(A, X,
 
     Examples
     --------
-    >>> # Solve A x = lambda B x with constraints and preconditioning.
+
+    Solve A x = lambda B x with constraints and preconditioning.
+
     >>> n = 100
-    >>> vals = [nm.arange( n, dtype = nm.float64 ) + 1]
-    >>> # Matrix A.
-    >>> operatorA = spdiags( vals, 0, n, n )
-    >>> # Matrix B
-    >>> operatorB = nm.eye( n, n )
-    >>> # Constraints.
-    >>> Y = nm.eye( n, 3 )
-    >>> # Initial guess for eigenvectors, should have linearly independent
-    >>> # columns. Column dimension = number of requested eigenvalues.
-    >>> X = sc.rand( n, 3 )
-    >>> # Preconditioner - inverse of A.
+    >>> vals = [nm.arange(n, dtype = nm.float64) + 1]
+
+    Matrices A and B
+
+    >>> operatorA = spdiags(vals, 0, n, n)
+    >>> operatorB = nm.eye(n, n)
+
+    Constraints
+    
+    >>> Y = nm.eye(n, 3)
+
+    Initial guess for eigenvectors, should have linearly independent
+    columns. Column dimension = number of requested eigenvalues.
+
+    >>> X = sc.rand(n, 3)
+
+    Preconditioner: inverse of A.
+
     >>> ivals = [1./vals[0]]
-    >>> def precond( x ):
-        invA = spdiags( ivals, 0, n, n )
-        y = invA  * x
-        if sp.issparse( y ):
-            y = y.toarray()
+    >>> def precond(x):
+    ...    invA = spdiags(ivals, 0, n, n)
+    ...    y = invA  * x
+    ...    if sp.issparse(y):
+    ...        y = y.toarray()
+    ...
+    ...    return as2d(y)
 
-        return as2d( y )
-
-    >>> # Alternative way of providing the same preconditioner.
-    >>> #precond = spdiags( ivals, 0, n, n )
+    Alternative way of providing the same preconditioner would be
+    ``precond = spdiags(ivals, 0, n, n)``
 
     >>> tt = time.clock()
     >>> eigs, vecs = lobpcg(X, operatorA, operatorB, blockVectorY=Y,
@@ -206,7 +216,6 @@ def lobpcg(A, X,
     >>>                     largest=False, verbosityLevel=1)
     >>> print 'solution time:', time.clock() - tt
     >>> print eigs
-
 
     Notes
     -----
@@ -244,12 +253,6 @@ def lobpcg(A, X,
         slow, unless efficient preconditioning is used.
         For this specific problem, a good simple preconditioner function would
         be a linear solve for A, which is easy to code since A is tridiagonal.
-
-    Acknowledgements
-    ----------------
-    lobpcg.py code was written by Robert Cimrman.
-    Many thanks belong to Andrew Knyazev, the author of the algorithm,
-    for lots of advice and support.
 
     References
     ----------

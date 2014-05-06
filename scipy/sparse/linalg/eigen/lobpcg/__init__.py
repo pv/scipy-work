@@ -6,6 +6,12 @@ LOBPCG is a preconditioned eigensolver for large symmetric positive definite
 
 Call the function lobpcg - see help for lobpcg.lobpcg.
 
+Acknowledgements
+----------------
+lobpcg.py code was written by Robert Cimrman.
+Many thanks belong to Andrew Knyazev, the author of the algorithm,
+for lots of advice and support.
+
 """
 from __future__ import division, print_function, absolute_import
 
