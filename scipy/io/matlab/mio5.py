@@ -323,7 +323,10 @@ class MatFile5Reader(MatFileReader):
                 # can only be a matlab 7 function workspace
                 name = '__function_workspace__'
 
-            shape = self._matrix_reader.shape_from_header(hdr)
+            try: # Fails for class types.
+                shape = self._matrix_reader.shape_from_header(hdr)
+            except TypeError:
+                shape = None
             if hdr.is_logical:
                 info = 'logical'
             else:

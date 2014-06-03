@@ -86,7 +86,7 @@ save_matfile('testobject', inline('x'))
 %save_matfile('testobjarr', [inline('x') inline('x')])
 
 % unicode test
-if str2num(mlv) > 7  % function added 7.0.1
+if str2double(mlv) > 7  % function added 7.0.1
   fid = fopen([FILEPREFIX 'japanese_utf8.txt']);
   from_japan = fread(fid, 'uint8')';
   fclose(fid);
@@ -94,7 +94,13 @@ if str2num(mlv) > 7  % function added 7.0.1
 end
   
 % func
-if str2num(mlv) > 7  % function pointers added recently
+if str2double(mlv) > 7  % function pointers added recently
   func = @afunc;
   save_matfile('testfunc', func);
+end
+
+% new-style classes
+if str2double(mlv) >= 7.6
+    obj = classname;
+    save_matfile('testclass', obj);
 end
