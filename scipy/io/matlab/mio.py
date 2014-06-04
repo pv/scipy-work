@@ -245,7 +245,8 @@ def whosmat(file_name, appendmat=True, **kwargs):
 
     """
     ML = mat_reader_factory(file_name, **kwargs)
-    variables = ML.list_variables()
+    variables = [(name, shape, cls) for name, shape, cls in ML.list_variables()
+                 if name != "__function_workspace__"]
     if isinstance(file_name, string_types):
         ML.mat_stream.close()
     return variables
