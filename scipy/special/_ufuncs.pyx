@@ -1457,7 +1457,7 @@ cdef extern from "_ufuncs_defs.h":
     cdef double _func_cosm1 "cosm1"(double) nogil
 cdef extern from "_ufuncs_defs.h":
     cdef double _func_cotdg "cotdg"(double) nogil
-from ellip_harm1 cimport ellip_harmonic as _func_ellip_harmonic
+from ellip_harm cimport ellip_harmonic as _func_ellip_harmonic
 ctypedef double _proto_ellip_harmonic_t(double, double, double, int, int, double, double, double) nogil
 cdef _proto_ellip_harmonic_t *_proto_ellip_harmonic_t_var = &_func_ellip_harmonic
 from _legacy cimport ellip_harmonic_unsafe as _func_ellip_harmonic_unsafe

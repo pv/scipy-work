@@ -14,7 +14,7 @@ cdef extern from "lapack_defs.h":
 @cython.boundscheck(False)
 @cython.cdivision(True)
 
-cdef inline double ellip_harmonic( double coord_a, double coord_b, double coord_c, int n,int p, double l, int signn, int signm) nogil:
+cdef inline double ellip_harmonic( double coord_a, double coord_b, double coord_c, int n,int p, double l, double signn, double signm) nogil:
     """
     Evaluate E^p_n(l)
 
@@ -40,20 +40,24 @@ cdef inline double ellip_harmonic( double coord_a, double coord_b, double coord_
     if coord_b < coord_c:
         sf_error.error("ellip_harm",sf_error.ARG,"a_coord should be greater than b_coord")
         return nan
+
+    if p < 1 or p > 2*n + 1:
+        sf_error.error("ellip_harm",sf_error.ARG,"Invalid values of p for given n")
+        return nan
    
     r = n/2
     h2 = coord_a * coord_a - coord_b * coord_b
     k2 = coord_a * coord_a - coord_c * coord_c
     l2 = l * l
 
-    if p < r + 1:
-        t1, t, tp = 0,'K', p
-    elif p < (n-r) + (r +1):
-        t1, t, tp = 1,'L', p-(r+1)
-    elif p < (n-r) + (n-r) + (r+1):
-        t1, t, tp = 2, 'M', p - (n-r) - (r+1)
-    elif p < 2*n+1:
-        t1, t,tp = 3, 'N', p - (n-r) - (n-r) - (r+1)
+    if p - 1 < r + 1:
+        t1, t, tp = 0,'K', p - 1
+    elif p - 1 < (n-r) + (r +1):
+        t1, t, tp = 1,'L', p-(r+1)-1
+    elif p - 1 < (n-r) + (n-r) + (r+1):
+        t1, t, tp = 2, 'M', p - (n-r) - (r+1)-1
+    elif p - 1 < 2*n+1:
+        t1, t,tp = 3, 'N', p - (n-r) - (n-r) - (r+1) - 1
     
     if t == 'K':
         size = r+1

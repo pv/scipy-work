@@ -8,7 +8,7 @@ Here, we define such unsafe wrappers manually.
 """
 
 cimport sf_error
-from ellip_harm1 cimport ellip_harmonic
+from ellip_harm cimport ellip_harmonic
 
 cdef extern from "cephes.h":
     double bdtrc(int k, int n, double p) nogil
