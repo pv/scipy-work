@@ -19,6 +19,10 @@ def get(name):
 def add_newdoc(place, name, doc):
     docdict['.'.join((place, name))] = doc
 
+add_newdoc("scipy.special", "ellip_harm",
+    """
+    ----.
+    """)
 
 add_newdoc("scipy.special", "_lambertw",
     """

@@ -81,7 +81,8 @@ from __future__ import division, print_function, absolute_import
 
 # Ufuncs without C++
 UFUNCS = """
-_lambertw -- lambertw_scalar: Dld->D                       -- lambertw.pxd
+_lambertw -- lambertw_scalar: Dld->D                       -- lambertw.pxd 
+ellip_harm -- ellip_harmonic: dddiiddd->d, ellip_harmonic_unsafe: dddddddd->d  -- ellip_harm1.pxd, _legacy.pxd
 logit -- logitf: f->f, logit: d->d, logitl: g->g           -- _logit.h
 expit -- expitf: f->f, expit: d->d, expitl: g->g           -- _logit.h
 bdtrc -- bdtrc: iid->d, bdtrc_unsafe: ddd->d               -- cephes.h, _legacy.pxd
