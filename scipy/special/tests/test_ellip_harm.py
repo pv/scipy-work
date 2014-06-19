@@ -1,15 +1,13 @@
 #
 # Tests for the Ellipsoidal Harmonic Function,
-# Adapted from the MPMath tests [1] by Yosef Meller, mellerf@netvision.net.il
 # Distributed under the same license as SciPy itself.
 #
 
 from __future__ import division, print_function, absolute_import
 
 import numpy as np
-from numpy.testing import assert_, assert_equal, assert_array_almost_equal
 from scipy.special import ellip_harm
-from numpy import nan, inf, pi, e, isnan, log, r_, array, sqrt, complex_
+from numpy import array, sqrt
 
 from scipy.special._testutils import FuncData
 

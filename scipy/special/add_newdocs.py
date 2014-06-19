@@ -21,7 +21,31 @@ def add_newdoc(place, name, doc):
 
 add_newdoc("scipy.special", "ellip_harm",
     """
-    ----.
+    E^p_n(l)
+
+    Ellipsoidal harmonic function, the first kind.
+
+    Parameters
+    ----------
+    coord_a, coord_b, coord_c:
+    The ellipsoidal coordinate system is defined by three axes a >= b >= c
+    - a,b,c can be the semiaxes of the reference ellipsoid
+    - a,b can be a list of points and radii so that an ellipse can be estimated
+
+    n: degree
+    p: order, can range between [1,2n+1]
+    signm: Specifies the sign of \mu
+    signn: Specifies the sign of \nu
+    - The signs of \mu and \nu are necessary in order to determine the sign of \psi
+     
+    Returns
+    -------
+    E^p_n(l) : double
+
+    Notes
+    -----
+    Uses LAPACK subroutine DSTEVR
+
     """)
 
 add_newdoc("scipy.special", "_lambertw",
