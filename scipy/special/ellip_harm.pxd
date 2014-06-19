@@ -8,7 +8,7 @@ from libc.math cimport sqrt, fabs, pow, M_PI as pi
 from libc.stdlib cimport abs, malloc
 
 cdef extern from "lapack_defs.h":
-    void c_dstev( char *jobz, int *n, double *d, double *e, double *z, int *ldz, double *work, int *info) nogil
+    void c_dstevr( char *jobz, char *range, int *n, double *d, double *e, double *vl, double *vu, int *il, int *iu, double *abstol, int *m, double *w, double *z, int *ldz, int *isuppz, double *work, int *lwork, int *iwork, int *liwork, int *info) nogil
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
@@ -29,8 +29,8 @@ cdef inline double ellip_harmonic( double coord_a, double coord_b, double coord_
     n: the order
 
     """
-    cdef double h2, k2, l2, alpha, beta, gamma, lamba_romain, pp, psi, t1
-    cdef int r, tp, j, size, i, info
+    cdef double h2, k2, l2, alpha, beta, gamma, lamba_romain, pp, psi, t1, tol
+    cdef int r, tp, j, size, i, info, lwork, liwork, c, iu
     cdef char t
 
     if coord_a < coord_b:
@@ -71,15 +71,20 @@ cdef inline double ellip_harmonic( double coord_a, double coord_b, double coord_
     if t == 'N':
         size = r	
         psi = pow(l,  n - 2*r) * signm * signn * sqrt(fabs((l2 - h2) * (l2 - k2)))
+    lwork = 60 * size
+    liwork = 30 * size
 
     cdef double *g =  <double *> malloc(sizeof(double) * size)
     cdef double *d =  <double *> malloc(sizeof(double) * size)
     cdef double *f =  <double *> malloc(sizeof(double) * size)
     cdef double *s =  <double *> malloc(sizeof(double) * size)
-    cdef double *work =  <double *> malloc(sizeof(double) * (2*size-2))
-    cdef double *dd = <double *> malloc(sizeof(double) * size)
-    cdef double *m = <double *> malloc(sizeof(double) * (size * size))
-    cdef double *eigv = <double *> malloc(sizeof(double) * (size * size))
+    cdef double *dd = <double *> malloc(sizeof(double) * (size-1))
+    cdef double *m = <double *> malloc(sizeof(double) * (size *size ))
+    cdef double *eigv = <double *> malloc(sizeof(double) * size) 
+    cdef double *work = <double *> malloc(sizeof(double) * lwork)
+    cdef double *w = <double *> malloc(sizeof(double) * size)
+    cdef int * iwork = <int *> malloc(sizeof(int) * liwork)
+    cdef int * isuppz = <int *> malloc(sizeof(int) * 2 * size)
     
     alpha = h2
     beta = k2 - h2
@@ -147,9 +152,9 @@ cdef inline double ellip_harmonic( double coord_a, double coord_b, double coord_
            if(i==j-1):
               dd[i] = m[i*size + j] * s[i] / s[j]
 
-    
-
-    c_dstev("V", &size, <double *> d, dd, eigv, &size, work, &info)              	 
+    tp = tp+1
+    tol = 0.0
+    c_dstevr("V", "I", &size, <double *> d, <double *>dd, NULL, NULL, &tp, &tp, &tol, &c, <double *> w,  <double *>eigv,  &size, <int *> isuppz,<double *> work, &lwork,<int *> iwork, &liwork, &info)              	 
     if info != 0: 
         sf_error.error("ellip_harm",sf_error.ARG,"illegal")
         return nan   
@@ -157,21 +162,21 @@ cdef inline double ellip_harmonic( double coord_a, double coord_b, double coord_
     for i in range(0,size):
         s[i] = 1 / s[i]
 
-
+    if coord_a > 0:
+        return coord_a  
     lambda_romain = 1.0 - <double> l2 / <double> h2
-    d = eigv + tp*size
 
     for i in range(0,size):
-        d[i] = d[i]*s[i]
+        eigv[i] = eigv[i]*s[i]
 
 
     for i in range(0,size):
-        d[i] = d[i]/ (d[size - 1]/pow(-h2, size - 1))
+        eigv[i] = eigv[i]/ (eigv[size - 1]/pow(-h2, size - 1))
 
-    pp = d[size - 1]
+    pp = eigv[size - 1]
 
     for j in range(size - 2, -1, -1):
-        pp = pp * lambda_romain + d[j]
+        pp = pp * lambda_romain + eigv[j]
 
     return psi *pp 
  
