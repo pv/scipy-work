@@ -62,15 +62,14 @@ def E37(h2, k2, s):
 
 
 def ortho(h2, k2, n1, p1, n2, p2):
-    def func(x, y):
+    def func(y, x):
         l,m=1,1
-        if(y<0):
-            m = -1
         if(x<0):
+            m = -1
+        if(y<0):
             l = -1
-        return ellip_harm(h2, k2, n1, p1, x,l,m)*ellip_harm(h2, k2, n1, p1, y,l,m)*ellip_harm(h2, k2, n2, p2,x,l,m)*ellip_harm(h2, k2, n2, p2, y,l,m)*(-y*y + x*x)/(sqrt((k2 - x*x)*(x*x - h2)*(h2-y*y)*(k2 - y*y)))
-
-    return dblquad(func, -sqrt(h2),sqrt(h2),lambda x:sqrt(h2),lambda x:sqrt(k2))
+        return ellip_harm(h2, k2, n1, p1, x, m, l)*ellip_harm(h2, k2, n1, p1, y, m, l)*ellip_harm(h2, k2, n2, p2, x, m, l)*ellip_harm(h2, k2, n2, p2, y, m, l)*(x*x - y*y)/(sqrt((k2 - x*x)*(x*x - h2)*(h2 - y*y)*(k2 - y*y)))
+    return dblquad(func, -1*sqrt(h2), sqrt(h2),lambda x:sqrt(h2),lambda x:sqrt(k2))
 
 def test_values():
     assert_equal(ellip_harm(5,8,1,2,2.5,1,1), ellip_harm(5,8,1,2,2.5))
@@ -111,16 +110,19 @@ def test_values():
         ]
 
     data = array(data, dtype=float)
+    z = ellip_harm(5,8,2,1,2.5,1,1)
+    print(z)
     z = ortho(5,8,1,2,2,5)
     print (z)
-    z = ortho(1,8,3,2,2,1)
+    z = ortho(1,8,2,1,2,1)
     print (z)
     z = ortho(1,8,1,3,3,7)
     print (z)
-    z = ortho(1,8,5,3,9,7)
+    z = ortho(1,8,3,3,2,1)
     print (z)
-    z = ortho(1,8,4,2,2,5)
+    z = ortho(1,8,3,2,2,5)
     print (z)
+
     def w(a, b, c, d, e, f, g):
         return ellip_harm(a, b, c, d, e, f, g)
     olderr = np.seterr(all='ignore')
