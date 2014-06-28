@@ -76,7 +76,7 @@ def configuration(parent_package='',top_path=None):
     ufuncs_dep = (headers + ufuncs_src + amos_src + c_misc_src + cephes_src
                   + mach_src + cdf_src + specfun_src)
     cfg = dict(get_system_info('lapack_opt'))
-    cfg.setdefault('include_dirs', []).extend([curdir] + inc_dirs)
+    cfg.setdefault('include_dirs', []).extend([curdir] + inc_dirs + [numpy.get_include()])
     cfg.setdefault('libraries', []).extend(['sc_amos','sc_c_misc','sc_cephes','sc_mach',
                                             'sc_cdf', 'sc_specfun'])
     cfg.setdefault('define_macros', []).extend(define_macros)
@@ -97,7 +97,10 @@ def configuration(parent_package='',top_path=None):
                          include_dirs=[curdir],
                          define_macros=define_macros,
                          extra_info=get_info("npymath"))
-
+    config.add_extension('ellip_harm_2',
+                         sources=['ellip_harm_2.c','_ufuncs_cxx.cxx', 
+                                  '_faddeeva.cxx','sf_error.c',],
+                         **cfg)
     config.add_data_files('tests/*.py')
     config.add_data_files('tests/data/README')
     config.add_data_files('tests/data/*.npz')
