@@ -60,9 +60,22 @@ extern double MACHEP;
 double ellik(phi, m)
 double phi, m;
 {
-    double a, b, c, e, temp, t, K, denom;
+    double a, b, c, e, temp, t, K, denom, scale;
     int d, mod, sign, npio2;
 
+    if (isnan(phi) || isnan(m))
+        return NPY_NAN;
+    if (m > 1.0)
+        return NPY_NAN;
+    if (isinf(phi) || isinf(m))
+    {
+        if (isinf(m) && isfinite(phi))
+            return 0.0;
+        else if (isinf(phi) && isfinite(m))
+            return phi;
+        else
+            return NPY_NAN;
+    }
     if (m == 0.0)
 	return (phi);
     a = 1.0 - m;
@@ -88,6 +101,23 @@ double phi, m;
     }
     else
 	sign = 0;
+    if (a > 1.0) {
+        /* first try transforming the amplitude (DLMF 19.11 ii)
+         * but only use it if it results in a smaller amplitude. */
+        t = tan(phi);
+        e = 1.0 / (sqrt(a) * t);
+        if (e < t) {
+            temp = ellpk(a) - ellik(atan(e), m);
+            goto done;
+        }
+        /* use the  imaginary modulus transform (DLMF 19.7.5-6) */
+        scale = 1.0 / sqrt(a);
+        phi = asin(sqrt(a)*sin(phi)/sqrt(1 - m * sin(phi)*sin(phi)));
+        a = 1.0 / a;
+        m = 1-a;
+        temp = ellik(phi, m) * scale;
+        goto done;
+    }
     b = sqrt(a);
     t = tan(phi);
     if (fabs(t) > 10.0) {

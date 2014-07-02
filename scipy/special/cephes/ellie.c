@@ -61,9 +61,17 @@ double ellie(phi, m)
 double phi, m;
 {
     double a, b, c, e, temp;
-    double lphi, t, E, denom;
+    double lphi, t, E, denom, scale;
     int d, mod, npio2, sign;
 
+    if (isnan(phi) || isnan(m))
+        return NPY_NAN;
+    if (m > 1.0)
+        return NPY_NAN;
+    if (isinf(phi))
+        return phi;
+    if (isinf(m))
+        return -m;
     if (m == 0.0)
 	return (phi);
     lphi = phi;
@@ -84,6 +92,26 @@ double phi, m;
 	temp = sin(lphi);
 	goto done;
     }
+    if (a > 1.0) {
+        /* first try transforming the amplitude (DLMF 19.11 ii)
+         * but only use it if it results in a smaller amplitude. */
+        t = tan(lphi);
+        e = 1.0 / (sqrt(a) * t);
+        if (e < t) {
+            e = atan(e);
+            temp = E + m * sin(lphi) * sin(e) -  ellie(e, m);
+            goto done;
+        }
+        /* use the  imaginary modulus transform (DLMF 19.7.5-6) */
+        scale = sqrt(a);
+        phi = sqrt(a)*sin(lphi)/sqrt(1 - m * sin(lphi)*sin(lphi));
+        a = 1.0 / a;
+        m = 1-a;
+        temp = ellie(asin(phi), m) - m * (phi * sqrt(1.0 - phi*phi)) / sqrt(1.0 - m*phi*phi);
+        temp *= scale;
+        goto done;
+    }
+ 
     t = tan(lphi);
     b = sqrt(a);
     /* Thanks to Brian Fitzgerald <fitzgb@mml0.meche.rpi.edu>
