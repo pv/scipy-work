@@ -104,6 +104,12 @@ def configuration(parent_package='',top_path=None):
                                   "specfun_wrappers.c","amos_wrappers.c"],
                          **cfg
                          )
+    config.add_extension('ellip_normal',
+                         sources=['ellip_normal.c', '_ufuncs.c',
+                                  'Faddeeva.cc','sf_error.c','_logit.c.src',"cdf_wrappers.c",
+                                  "specfun_wrappers.c","amos_wrappers.c"],
+                         **cfg
+                         )
 
     config.add_data_files('tests/*.py')
     config.add_data_files('tests/data/README')

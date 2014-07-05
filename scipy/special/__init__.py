@@ -564,6 +564,7 @@ from .orthogonal import *
 from .spfun_stats import multigammaln
 from .ellip_harm import ellip_harm
 from .ellip_harm2 import ellip_harm2
+from .ellip_norm import ellip_normal
 from .lambertw import lambertw
 
 __all__ = [s for s in dir() if not s.startswith('_')]
