@@ -9,121 +9,66 @@ import numpy as np
 from numpy.testing import assert_equal, assert_almost_equal
 from scipy.special import ellip_harm, ellip_harm_2, ellip_normal
 from numpy import array, sqrt, pi
-
 from scipy.special._testutils import FuncData
 
-def E01(h2, k2, s):
-    return 1
+def test_ellip_norm():
 
-def E11(h2, k2, s):
-    return s
+    def G01(h2, k2):
+        return 4*pi
 
-def E12(h2, k2, s):
-    return sqrt(abs(s*s - h2))
+    def G11(h2, k2):
+        return 4*pi*h2*k2/3
 
-def E13(h2, k2, s):
-    return sqrt(abs(s*s - k2))
+    def G12(h2, k2):
+        return 4*pi*h2*(k2 - h2)/3
 
-def E21(h2, k2, s):
-    return s*s - 1/3*((h2 + k2) + sqrt(abs((h2 + k2)*(h2 + k2)-3*h2*k2)))
+    def G13(h2, k2):
+        return 4*pi*k2*(k2 - h2)/3
 
-def E22(h2, k2, s):
-    return s*s - 1/3*((h2 + k2) - sqrt(abs((h2 + k2)*(h2 + k2)-3*h2*k2)))
+    def G22(h2, k2):
+        res = 2*(h2**4 + k2**4) - 4*h2*k2*(h2**2 + k2**2) + 6*h2**2*k2**2 + sqrt(h2**2 + k2**2 - h2*k2)*(-2*(h2**3 + k2**3) + 3*h2*k2*(h2 + k2) ) 
+        return 16*pi/405*res
 
-def E23(h2, k2, s):
-    return s * sqrt(abs(s*s - h2))
+    def G21(h2, k2):
+        res = 2*(h2**4 + k2**4) - 4*h2*k2*(h2**2 + k2**2) + 6*h2**2*k2**2 + sqrt(h2**2 + k2**2 - h2*k2)*(2*(h2**3 + k2**3) - 3*h2*k2*(h2 + k2) ) 
+        return 16*pi/405*res
 
-def E24(h2, k2, s):
-    return s * sqrt(abs(s*s - k2))
+    def G23(h2, k2):
+        return 4*pi*h2**2*k2*(k2 - h2)/15
 
-def E25(h2, k2, s):
-    return sqrt(abs((s*s - h2)*(s*s - k2)))
+    def G24(h2, k2):
+        return 4*pi*h2*k2**2*(k2 - h2)/15
 
-def E31(h2, k2, s):
-    return s*s*s - (s/5)*(2*(h2 + k2) + sqrt(4*(h2 + k2)*(h2 + k2) - 15*h2*k2))
+    def G25(h2, k2):
+        return 4*pi*h2*k2*(k2 - h2)**2/15
 
-def E32(h2, k2, s):
-    return s*s*s - (s/5)*(2*(h2 + k2) - sqrt(4*(h2 + k2)*(h2 + k2) - 15*h2*k2))
+    def G31(h2, k2):
+        res = 16*(h2**4 + k2**4) - 36*h2*k2*(h2**2 + k2**2) + 46*h2**2*k2**2 + sqrt(4*(h2**2 + k2**2) - 7*h2*k2)*(-8*(h2**3 + k2**3) + 11*h2*k2*(h2 + k2))
+        return 16*pi/13125*k2*h2*res
 
-def E33(h2, k2, s):
-    return sqrt(abs(s*s - h2))*(s*s - 1/5*((h2 + 2*k2) + sqrt(abs((h2 + 2*k2)*(h2 + 2*k2) - 5*h2*k2))))
+    def G32(h2, k2):
+        res = 16*(h2**4 + k2**4) - 36*h2*k2*(h2**2 + k2**2) + 46*h2**2*k2**2 + sqrt(4*(h2**2 + k2**2) - 7*h2*k2)*(8*(h2**3 + k2**3) - 11*h2*k2*(h2 + k2))
+        return 16*pi/13125*h2*k2*res
 
-def E34(h2, k2, s):
-    return sqrt(abs(s*s - h2))*(s*s - 1/5*((h2 + 2*k2) - sqrt(abs((h2 + 2*k2)*(h2 + 2*k2) - 5*h2*k2))))
+    def G33(h2, k2):
+        res = 6*h2**4 + 16*k2**4 - 12*h2**3*k2 - 28*h2*k2**3 + 34*h2**2*k2**2 + sqrt(h2**2 + 4*k2**2 - h2*k2)*(-6*h2**3 - 8*k2**3 + 9*h2**2*k2 + 13*h2*k2**2)
+        return 16*pi/13125*h2*(k2 - h2)*res
 
-def E35(h2, k2, s):
-    return sqrt(abs(s*s - k2))*(s*s - 1/5*((2*h2 + k2) + sqrt(abs((2*h2 + k2)*(2*h2 + k2) - 5*h2*k2))))
+    def G34(h2, k2):
+        res = 6*h2**4 + 16*k2**4 - 12*h2**3*k2 - 28*h2*k2**3 + 34*h2**2*k2**2 + sqrt(h2**2 + 4*k2**2 - h2*k2)*(6*h2**3 + 8*k2**3 - 9*h2**2*k2 - 13*h2*k2**2)
+        return 16*pi/13125*h2*(k2 - h2)*res
 
-def E36(h2, k2, s):
-    return sqrt(abs(s*s - k2))*(s*s - 1/5*((2*h2 + k2) - sqrt(abs((2*h2 + k2)*(2*h2 + k2) - 5*h2*k2))))
+    def G35(h2, k2):
+        res = 16*h2**4 + 6*k2**4 - 28*h2**3*k2 - 12*h2*k2**3 + 34*h2**2*k2**2 + sqrt(4*h2**2 + k2**2 - h2*k2)*(-8*h2**3 - 6*k2**3 + 13*h2**2*k2 + 9*h2*k2**2)
+        return 16*pi/13125*k2*(k2 - h2)*res
 
-def E37(h2, k2, s):
-    return s * sqrt(abs((s*s - h2)*(s*s - k2)))
+    def G36(h2, k2):
+        res = 16*h2**4 + 6*k2**4 - 28*h2**3*k2 - 12*h2*k2**3 + 34*h2**2*k2**2 + sqrt(4*h2**2 + k2**2 - h2*k2)*(8*h2**3 + 6*k2**3 - 13*h2**2*k2 - 9*h2*k2**2)
+        return 16*pi/13125*k2*(k2 - h2)*res
 
-def G01(h2, k2):
-    return 4*pi
+    def G37(h2, k2):
+        return 4*pi*h2**2*k2**2*(k2 - h2)**2/105
 
-def G11(h2, k2):
-    return 4*pi*h2*k2/3
-
-def G12(h2, k2):
-    return 4*pi*h2*(k2 - h2)/3
-
-def G13(h2, k2):
-    return 4*pi*k2*(k2 - h2)/3
-
-def G22(h2, k2):
-    res = 2*(h2**4 + k2**4) - 4*h2*k2*(h2**2 + k2**2) + 6*h2**2*k2**2 + sqrt(h2**2 + k2**2 - h2*k2)*(-2*(h2**3 + k2**3) + 3*h2*k2*(h2 + k2) ) 
-    return 16*pi/405*res
-
-def G21(h2, k2):
-    res = 2*(h2**4 + k2**4) - 4*h2*k2*(h2**2 + k2**2) + 6*h2**2*k2**2 + sqrt(h2**2 + k2**2 - h2*k2)*(2*(h2**3 + k2**3) - 3*h2*k2*(h2 + k2) ) 
-    return 16*pi/405*res
-
-def G23(h2, k2):
-    return 4*pi*h2**2*k2*(k2 - h2)/15
-
-def G24(h2, k2):
-    return 4*pi*h2*k2**2*(k2 - h2)/15
-
-def G25(h2, k2):
-    return 4*pi*h2*k2*(k2 - h2)**2/15
-
-def G31(h2, k2):
-    res = 16*(h2**4 + k2**4) - 36*h2*k2*(h2**2 + k2**2) + 46*h2**2*k2**2 + sqrt(4*(h2**2 + k2**2) - 7*h2*k2)*(-8*(h2**3 + k2**3) + 11*h2*k2*(h2 + k2))
-    return 16*pi/13125*k2*h2*res
-
-def G32(h2, k2):
-    res = 16*(h2**4 + k2**4) - 36*h2*k2*(h2**2 + k2**2) + 46*h2**2*k2**2 + sqrt(4*(h2**2 + k2**2) - 7*h2*k2)*(8*(h2**3 + k2**3) - 11*h2*k2*(h2 + k2))
-    return 16*pi/13125*h2*k2*res
-
-def G33(h2, k2):
-    res = 6*h2**4 + 16*k2**4 - 12*h2**3*k2 - 28*h2*k2**3 + 34*h2**2*k2**2 + sqrt(h2**2 + 4*k2**2 - h2*k2)*(-6*h2**3 - 8*k2**3 + 9*h2**2*k2 + 13*h2*k2**2)
-    return 16*pi/13125*h2*(k2 - h2)*res
-
-def G34(h2, k2):
-    res = 6*h2**4 + 16*k2**4 - 12*h2**3*k2 - 28*h2*k2**3 + 34*h2**2*k2**2 + sqrt(h2**2 + 4*k2**2 - h2*k2)*(6*h2**3 + 8*k2**3 - 9*h2**2*k2 - 13*h2*k2**2)
-    return 16*pi/13125*h2*(k2 - h2)*res
-
-def G35(h2, k2):
-    res = 16*h2**4 + 6*k2**4 - 28*h2**3*k2 - 12*h2*k2**3 + 34*h2**2*k2**2 + sqrt(4*h2**2 + k2**2 - h2*k2)*(-8*h2**3 - 6*k2**3 + 13*h2**2*k2 + 9*h2*k2**2)
-    return 16*pi/13125*k2*(k2 - h2)*res
-
-def G36(h2, k2):
-    res = 16*h2**4 + 6*k2**4 - 28*h2**3*k2 - 12*h2*k2**3 + 34*h2**2*k2**2 + sqrt(4*h2**2 + k2**2 - h2*k2)*(8*h2**3 + 6*k2**3 - 13*h2**2*k2 - 9*h2*k2**2)
-    return 16*pi/13125*k2*(k2 - h2)*res
-
-def G37(h2, k2):
-    return 4*pi*h2**2*k2**2*(k2 - h2)**2/105
-
-def I1(h2, k2, s):
-    res = ellip_harm_2(h2, k2, 1, 1, s)/(3 * ellip_harm(h2, k2, 1, 1, s)) + ellip_harm_2(h2, k2, 1, 2, s)/(3 * ellip_harm(h2, k2, 1, 2, s)) + ellip_harm_2(h2, k2, 1, 3, s)/(3 * ellip_harm(h2, k2, 1, 3, s))
-    return res
-
-
-def test_values():
-   
-    assert_equal(ellip_harm(5,8,1,2,2.5,1,1), ellip_harm(5,8,1,2,2.5))
     assert_almost_equal(ellip_normal(5, 8, 0, 1), G01(5, 8))
     assert_almost_equal(ellip_normal(5, 8, 1, 1), G11(5, 8))
     assert_almost_equal(ellip_normal(5, 8, 1, 2), G12(5, 8))
@@ -140,12 +85,72 @@ def test_values():
     assert_almost_equal(ellip_normal(5, 8, 3, 5), G36(5, 8))
     assert_almost_equal(ellip_normal(5, 8, 3, 6), G35(5, 8))
     assert_almost_equal(ellip_normal(5, 8, 3, 7), G37(5, 8))
+
+def test_ellip_harm_2():
+
+    def I1(h2, k2, s):
+        res = ellip_harm_2(h2, k2, 1, 1, s)/(3 * ellip_harm(h2, k2, 1, 1, s)) + ellip_harm_2(h2, k2, 1, 2, s)/(3 * ellip_harm(h2, k2, 1, 2, s)) + ellip_harm_2(h2, k2, 1, 3, s)/(3 * ellip_harm(h2, k2, 1, 3, s))
+        return res
+
     assert_almost_equal(I1(5, 8, 10), 1/(10*sqrt((100-5)*(100-8))))
     assert_almost_equal(ellip_harm_2(5, 8, 2, 1, 10), 0.00108056853382)
     assert_almost_equal(ellip_harm_2(5, 8, 2, 2, 10), 0.00105820513809)
     assert_almost_equal(ellip_harm_2(5, 8, 2, 3, 10), 0.00106058384743)
     assert_almost_equal(ellip_harm_2(5, 8, 2, 4, 10), 0.00106774492306)
     assert_almost_equal(ellip_harm_2(5, 8, 2, 5, 10), 0.00107976356454)
+
+def test_ellip_harm():
+
+    def E01(h2, k2, s):
+        return 1
+
+    def E11(h2, k2, s):
+        return s
+
+    def E12(h2, k2, s):
+        return sqrt(abs(s*s - h2))
+
+    def E13(h2, k2, s):
+        return sqrt(abs(s*s - k2))
+
+    def E21(h2, k2, s):
+        return s*s - 1/3*((h2 + k2) + sqrt(abs((h2 + k2)*(h2 + k2)-3*h2*k2)))
+
+    def E22(h2, k2, s):
+        return s*s - 1/3*((h2 + k2) - sqrt(abs((h2 + k2)*(h2 + k2)-3*h2*k2)))
+
+    def E23(h2, k2, s):
+        return s * sqrt(abs(s*s - h2))
+
+    def E24(h2, k2, s):
+        return s * sqrt(abs(s*s - k2))
+
+    def E25(h2, k2, s):
+        return sqrt(abs((s*s - h2)*(s*s - k2)))
+
+    def E31(h2, k2, s):
+        return s*s*s - (s/5)*(2*(h2 + k2) + sqrt(4*(h2 + k2)*(h2 + k2) - 15*h2*k2))
+
+    def E32(h2, k2, s):
+        return s*s*s - (s/5)*(2*(h2 + k2) - sqrt(4*(h2 + k2)*(h2 + k2) - 15*h2*k2))
+
+    def E33(h2, k2, s):
+        return sqrt(abs(s*s - h2))*(s*s - 1/5*((h2 + 2*k2) + sqrt(abs((h2 + 2*k2)*(h2 + 2*k2) - 5*h2*k2))))
+
+    def E34(h2, k2, s):
+        return sqrt(abs(s*s - h2))*(s*s - 1/5*((h2 + 2*k2) - sqrt(abs((h2 + 2*k2)*(h2 + 2*k2) - 5*h2*k2))))
+
+    def E35(h2, k2, s):
+        return sqrt(abs(s*s - k2))*(s*s - 1/5*((2*h2 + k2) + sqrt(abs((2*h2 + k2)*(2*h2 + k2) - 5*h2*k2))))
+
+    def E36(h2, k2, s):
+        return sqrt(abs(s*s - k2))*(s*s - 1/5*((2*h2 + k2) - sqrt(abs((2*h2 + k2)*(2*h2 + k2) - 5*h2*k2))))
+
+    def E37(h2, k2, s):
+        return s * sqrt(abs((s*s - h2)*(s*s - k2)))
+
+   
+    assert_equal(ellip_harm(5,8,1,2,2.5,1,1), ellip_harm(5,8,1,2,2.5))
 
 
     data = [
