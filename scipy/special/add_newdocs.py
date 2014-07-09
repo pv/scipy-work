@@ -62,6 +62,11 @@ add_newdoc("scipy.special", "_ellip_harm",
     Internal function, use `ellip_harm` instead.
     """)
 
+add_newdoc("scipy.special", "_ellip_norm",
+    """
+    Internal function, use `ellip_norm` instead.
+    """)
+
 add_newdoc("scipy.special", "_lambertw",
     """
     Internal function, use `lambertw` instead.
