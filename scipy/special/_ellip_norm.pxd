@@ -172,13 +172,13 @@ cdef inline double ellip_norm(double h2, double k2, int n, int p) nogil:
         if n%2:
             cnorm[0] = 0
             for j in range(1, n + 1):
-                cnorm[j] = h2*dnorm[j-1]
+                cnorm[j] = h2*dnorm[j-1]* -1
         else:
             cnorm[0] = 0
-            cnorm[1] = h2*h2*dnorm[0]
+            cnorm[1] = h2*h2*dnorm[0]* -1
             for j in range(2, n):
-                cnorm[j] = h2*h2*(dnorm[j-1] - dnorm[j-2])
-            cnorm[n] = -h2*h2*dnorm[n-2]
+                cnorm[j] = h2*h2*(dnorm[j-1] - dnorm[j-2]) * -1
+            cnorm[n] = -h2*h2*dnorm[n-2] * -1
 
     elif t =='M':
         if n%2:
@@ -191,29 +191,33 @@ cdef inline double ellip_norm(double h2, double k2, int n, int p) nogil:
             cnorm[1] = h2*(k2 - h2)*dnorm[1] + h2*(2*h2 - k2)*dnorm[0]
             for j in range(2, n-1):
                 cnorm[j] = h2*(k2 - h2)*dnorm[j] + h2*(2*h2 - k2)*dnorm[j-1] - h2*h2*dnorm[j-2]
-            cnorm[n-1] = h2*(2*h2 - k2)*dnorm[n-2] - h2*h2*dnorm[n-2]
+            if n > 2:
+                cnorm[n-1] = h2*(2*h2 - k2)*dnorm[n-2] - h2*h2*dnorm[n-3]
+            if n == 2:
+                cnorm[n-1] = h2*(2*h2 - k2)*dnorm[n-2]
             cnorm[n] = -h2*h2*dnorm[n-2]
 
     elif t == 'N':
         if n%2:
             cnorm[0] = 0
-            cnorm[1] = h2*h2*(k2 - h2)*dnorm[0]
-            cnorm[2] = h2*h2*((k2 - h2)*dnorm[1] + (2*h2 - k2)*dnorm[0])
+            cnorm[1] = h2*h2*(k2 - h2)*dnorm[0] * -1
+            cnorm[2] = h2*h2*((k2 - h2)*dnorm[1] + (2*h2 - k2)*dnorm[0]) * -1
             for j in range(3, n-1):
-                cnorm[j] = h2*h2*((k2 - h2)*dnorm[j-1] + (2*h2 - k2)*dnorm[j-2] - h2*dnorm[j-3])
-            cnorm[n-1] = h2*h2*((2*h2 - k2)*dnorm[n-3] - h2*dnorm[n-4])
-            cnorm[n] = -h2*h2*h2*dnorm[n-3]
+                cnorm[j] = h2*h2*((k2 - h2)*dnorm[j-1] + (2*h2 - k2)*dnorm[j-2] - h2*dnorm[j-2]) * -1
+            if n > 3:
+                cnorm[n-1] = h2*h2*((2*h2 - k2)*dnorm[n-3] - h2*dnorm[n-4]) * -1
+            cnorm[n] = -h2*h2*h2*dnorm[n-3] * -1
         else:
-            cnorm[0] = 0
-            cnorm[1] = h2*(k2 - h2)*dnorm[0]
+            cnorm[0] = 0 * -1
+            cnorm[1] = h2*(k2 - h2)*dnorm[0] * -1
             for j in range(2, n):
-                cnorm[j] = h2*((k2 - h2)*dnorm[j-1] + h2*dnorm[j-1])
-            cnorm[n] = h2*h2*dnorm[n-2]
+                cnorm[j] = h2*((k2 - h2)*dnorm[j-1] + h2*dnorm[j-2]) * -1
+            cnorm[n] = h2*h2*dnorm[n-2] * -1
 
     for j in range(0, n+1):
         tou[j] = -0.5*cnorm[j]
     tou1[0] = -0.5*h2*cnorm[0]
-    for j in range(0, n+1):
+    for j in range(1, n+1):
         tou1[j] = -0.5*h2*(cnorm[j]-cnorm[j-1])
     tou1[n+1] = 0.5*h2*cnorm[n]
 
@@ -228,6 +232,10 @@ cdef inline double ellip_norm(double h2, double k2, int n, int p) nogil:
         yy[j] = (2*j/(2*j + 1))*(2 - k2/h2)*yy[j+1] + ((2*j + 1)/(2*j + 3))*(k2/h2 - 1)*yy[j+2] + tou1[j]
     res = yy[0]*y[1] - y[0]*yy[1]
 
+    pp = cnorm[n]
+
+    for j in range(n - 1, -1, -1):
+        pp = pp*(1 - 6.25/5) + cnorm[j]
     free(buffer)
-    return res*16*pi/h2
+    return res*16*pi/h2 
  
