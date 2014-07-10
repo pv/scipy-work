@@ -42,50 +42,79 @@ def test_ellip_norm():
     def G25(h2, k2):
         return 4*pi*h2*k2*(k2 - h2)**2/15
 
-    def G31(h2, k2):
+    def G32(h2, k2):
         res = 16*(h2**4 + k2**4) - 36*h2*k2*(h2**2 + k2**2) + 46*h2**2*k2**2 + sqrt(4*(h2**2 + k2**2) - 7*h2*k2)*(-8*(h2**3 + k2**3) + 11*h2*k2*(h2 + k2))
         return 16*pi/13125*k2*h2*res
 
-    def G32(h2, k2):
+    def G31(h2, k2):
         res = 16*(h2**4 + k2**4) - 36*h2*k2*(h2**2 + k2**2) + 46*h2**2*k2**2 + sqrt(4*(h2**2 + k2**2) - 7*h2*k2)*(8*(h2**3 + k2**3) - 11*h2*k2*(h2 + k2))
         return 16*pi/13125*h2*k2*res
 
-    def G33(h2, k2):
+    def G34(h2, k2):
         res = 6*h2**4 + 16*k2**4 - 12*h2**3*k2 - 28*h2*k2**3 + 34*h2**2*k2**2 + sqrt(h2**2 + 4*k2**2 - h2*k2)*(-6*h2**3 - 8*k2**3 + 9*h2**2*k2 + 13*h2*k2**2)
         return 16*pi/13125*h2*(k2 - h2)*res
 
-    def G34(h2, k2):
+    def G33(h2, k2):
         res = 6*h2**4 + 16*k2**4 - 12*h2**3*k2 - 28*h2*k2**3 + 34*h2**2*k2**2 + sqrt(h2**2 + 4*k2**2 - h2*k2)*(6*h2**3 + 8*k2**3 - 9*h2**2*k2 - 13*h2*k2**2)
         return 16*pi/13125*h2*(k2 - h2)*res
 
-    def G35(h2, k2):
+    def G36(h2, k2):
         res = 16*h2**4 + 6*k2**4 - 28*h2**3*k2 - 12*h2*k2**3 + 34*h2**2*k2**2 + sqrt(4*h2**2 + k2**2 - h2*k2)*(-8*h2**3 - 6*k2**3 + 13*h2**2*k2 + 9*h2*k2**2)
         return 16*pi/13125*k2*(k2 - h2)*res
 
-    def G36(h2, k2):
+    def G35(h2, k2):
         res = 16*h2**4 + 6*k2**4 - 28*h2**3*k2 - 12*h2*k2**3 + 34*h2**2*k2**2 + sqrt(4*h2**2 + k2**2 - h2*k2)*(8*h2**3 + 6*k2**3 - 13*h2**2*k2 - 9*h2*k2**2)
         return 16*pi/13125*k2*(k2 - h2)*res
 
     def G37(h2, k2):
         return 4*pi*h2**2*k2**2*(k2 - h2)**2/105
 
-    assert_almost_equal(ellip_normal(5, 8, 0, 1), G01(5, 8))
-    assert_almost_equal(ellip_normal(5, 8, 1, 1), G11(5, 8))
-    assert_almost_equal(ellip_normal(5, 8, 1, 2), G12(5, 8))
-    assert_almost_equal(ellip_normal(5, 8, 1, 3), G13(5, 8))
-    assert_almost_equal(ellip_normal(5, 8, 2, 1), G21(5, 8))
-    assert_almost_equal(ellip_normal(5, 8, 2, 2), G22(5, 8))
-    assert_almost_equal(ellip_normal(5, 8, 2, 3), G23(5, 8))
-    assert_almost_equal(ellip_normal(5, 8, 2, 4), G24(5, 8))
-    assert_almost_equal(ellip_normal(5, 8, 2, 5), G25(5, 8))
-    assert_almost_equal(ellip_normal(5, 8, 3, 1), G32(5, 8))
-    assert_almost_equal(ellip_normal(5, 8, 3, 2), G31(5, 8))
-    assert_almost_equal(ellip_normal(5, 8, 3, 3), G34(5, 8))
-    assert_almost_equal(ellip_normal(5, 8, 3, 4), G33(5, 8))
-    assert_almost_equal(ellip_normal(5, 8, 3, 5), G36(5, 8))
-    assert_almost_equal(ellip_normal(5, 8, 3, 6), G35(5, 8))
-    assert_almost_equal(ellip_normal(5, 8, 3, 7), G37(5, 8))
+    data = [
+        (5,8,0,1, G01(5, 8)),
+        (5,8,1,1, G11(5, 8)),
+        (5,8,1,2, G12(5, 8)),
+        (5,8,1,3, G13(5, 8)),
+        (5,8,2,1, G21(5, 8)),
+        (5,8,2,2, G22(5, 8)),
+        (5,8,2,3, G23(5, 8)),
+        (5,8,2,4, G24(5, 8)),
+        (5,8,2,5, G25(5, 8)),
+        (5,8,3,1, G31(5, 8)),
+        (5,8,3,2, G32(5, 8)),
+        (5,8,3,3, G33(5, 8)),
+        (5,8,3,4, G34(5, 8)),
+        (5,8,3,5, G35(5, 8)),
+        (5,8,3,6, G36(5, 8)),
+        (5,8,3,7, G37(5, 8)),
+        (6.25,36,0,1, G01(6.25, 36)),
+        (6.25,36,1,1, G11(6.25, 36)),
+        (6.25,36,1,2, G12(6.25, 36)),
+        (6.25,36,1,3, G13(6.25, 36)),
+        (6.25,36,2,1, G21(6.25, 36)),
+        (6.25,36,2,2, G22(6.25, 36)),
+        (6.25,36,2,3, G23(6.25, 36)),
+        (6.25,36,2,4, G24(6.25, 36)),
+        (6.25,36,2,5, G25(6.25, 36)),
+        (6.25,36,3,1, G31(6.25, 36)),
+        (6.25,36,3,2, G32(6.25, 36)),
+        (6.25,36,3,3, G33(6.25, 36)),
+        (6.25,36,3,4, G34(6.25, 36)),
+        (6.25,36,3,5, G35(6.25, 36)),
+        (6.25,36,3,6, G36(6.25, 36)),
+        (6.25,36,3,7, G37(6.25, 36)),
+        ]
 
+    data = array(data, dtype=float)
+
+    def w(a, b, c, d):
+        return ellip_normal(a, b, c, d)
+
+    olderr = np.seterr(all='ignore')
+    try:
+        FuncData(w, data, (0,1,2,3), 4, rtol=1e-10, atol=1e-13).check()
+
+    finally:
+        np.seterr(**olderr)
 def test_ellip_harm_2():
 
     def I1(h2, k2, s):

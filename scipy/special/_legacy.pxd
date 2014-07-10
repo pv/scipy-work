@@ -9,7 +9,7 @@ Here, we define such unsafe wrappers manually.
 
 cimport sf_error
 
-from ellipsoid_harm cimport ellip_harmonic
+from ellipsoid_harm cimport ellip_harmonic, ellip_norm
 
 from sph_harm cimport sph_harmonic
 
@@ -50,6 +50,9 @@ cdef inline double complex sph_harmonic_unsafe(double m, double n, double theta,
 cdef inline double ellip_harmonic_unsafe(double h2, double k2, double n, double p, double l, double signm, double signn) nogil:
     _legacy_cast_check("_ellip_harm", n, p)
     return ellip_harmonic(h2, k2, <int>n, <int>p, l, signm, signn)
+cdef inline double ellip_norm_unsafe(double h2, double k2, double n, double p) nogil:
+    _legacy_cast_check("ellip_norm", n, p)
+    return ellip_norm(h2, k2, <int>n, <int>p)
 cdef inline double bdtrc_unsafe(double k, double n, double p) nogil:
     _legacy_cast_check("bdtrc", k, n)
     return bdtrc(<int>k, <int>n, p)

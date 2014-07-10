@@ -66,7 +66,7 @@ def errprint(inflag=None):
         return sf_error.set_print(int(bool(inflag)))
     else:
         return sf_error.get_print()
-cdef void loop_d_dddd__As_ffff_f(char **args, np.npy_intp *dims, np.npy_intp *steps, void *data) nogil:
+cdef void loop_D_iidd__As_lldd_D(char **args, np.npy_intp *dims, np.npy_intp *steps, void *data) nogil:
     cdef np.npy_intp i, n = dims[0]
     cdef void *func = (<void**>data)[0]
     cdef char *func_name = <char*>(<void**>data)[1]
@@ -75,10 +75,14 @@ cdef void loop_d_dddd__As_ffff_f(char **args, np.npy_intp *dims, np.npy_intp *st
     cdef char *ip2 = args[2]
     cdef char *ip3 = args[3]
     cdef char *op0 = args[4]
-    cdef double ov0
+    cdef double complex ov0
     for i in range(n):
-        ov0 = (<double(*)(double, double, double, double) nogil>func)(<double>(<float*>ip0)[0], <double>(<float*>ip1)[0], <double>(<float*>ip2)[0], <double>(<float*>ip3)[0])
-        (<float *>op0)[0] = <float>ov0
+        if <int>(<long*>ip0)[0] == (<long*>ip0)[0] and <int>(<long*>ip1)[0] == (<long*>ip1)[0]:
+            ov0 = (<double complex(*)(int, int, double, double) nogil>func)(<int>(<long*>ip0)[0], <int>(<long*>ip1)[0], <double>(<double*>ip2)[0], <double>(<double*>ip3)[0])
+        else:
+            sf_error.error(func_name, sf_error.DOMAIN, "invalid input argument")
+            ov0 = <double complex>NPY_NAN
+        (<double complex *>op0)[0] = <double complex>ov0
         ip0 += steps[0]
         ip1 += steps[1]
         ip2 += steps[2]
@@ -167,6 +171,32 @@ cdef void loop_D_dD__As_dD_D(char **args, np.npy_intp *dims, np.npy_intp *steps,
         ip0 += steps[0]
         ip1 += steps[1]
         op0 += steps[2]
+    sf_error.check_fpe(func_name)
+
+cdef void loop_i_d_dddd_As_f_ffff(char **args, np.npy_intp *dims, np.npy_intp *steps, void *data) nogil:
+    cdef np.npy_intp i, n = dims[0]
+    cdef void *func = (<void**>data)[0]
+    cdef char *func_name = <char*>(<void**>data)[1]
+    cdef char *ip0 = args[0]
+    cdef char *op0 = args[1]
+    cdef char *op1 = args[2]
+    cdef char *op2 = args[3]
+    cdef char *op3 = args[4]
+    cdef double ov0
+    cdef double ov1
+    cdef double ov2
+    cdef double ov3
+    for i in range(n):
+        (<int(*)(double, double *, double *, double *, double *) nogil>func)(<double>(<float*>ip0)[0], &ov0, &ov1, &ov2, &ov3)
+        (<float *>op0)[0] = <float>ov0
+        (<float *>op1)[0] = <float>ov1
+        (<float *>op2)[0] = <float>ov2
+        (<float *>op3)[0] = <float>ov3
+        ip0 += steps[0]
+        op0 += steps[1]
+        op1 += steps[2]
+        op2 += steps[3]
+        op3 += steps[4]
     sf_error.check_fpe(func_name)
 
 cdef void loop_D_iidd__As_llff_F(char **args, np.npy_intp *dims, np.npy_intp *steps, void *data) nogil:
@@ -356,30 +386,24 @@ cdef void loop_i_d_DDDD_As_f_FFFF(char **args, np.npy_intp *dims, np.npy_intp *s
         op3 += steps[4]
     sf_error.check_fpe(func_name)
 
-cdef void loop_i_D_DDDD_As_F_FFFF(char **args, np.npy_intp *dims, np.npy_intp *steps, void *data) nogil:
+cdef void loop_d_dddd__As_ffff_f(char **args, np.npy_intp *dims, np.npy_intp *steps, void *data) nogil:
     cdef np.npy_intp i, n = dims[0]
     cdef void *func = (<void**>data)[0]
     cdef char *func_name = <char*>(<void**>data)[1]
     cdef char *ip0 = args[0]
-    cdef char *op0 = args[1]
-    cdef char *op1 = args[2]
-    cdef char *op2 = args[3]
-    cdef char *op3 = args[4]
-    cdef double complex ov0
-    cdef double complex ov1
-    cdef double complex ov2
-    cdef double complex ov3
+    cdef char *ip1 = args[1]
+    cdef char *ip2 = args[2]
+    cdef char *ip3 = args[3]
+    cdef char *op0 = args[4]
+    cdef double ov0
     for i in range(n):
-        (<int(*)(double complex, double complex *, double complex *, double complex *, double complex *) nogil>func)(<double complex>(<float complex*>ip0)[0], &ov0, &ov1, &ov2, &ov3)
-        (<float complex *>op0)[0] = <float complex>ov0
-        (<float complex *>op1)[0] = <float complex>ov1
-        (<float complex *>op2)[0] = <float complex>ov2
-        (<float complex *>op3)[0] = <float complex>ov3
+        ov0 = (<double(*)(double, double, double, double) nogil>func)(<double>(<float*>ip0)[0], <double>(<float*>ip1)[0], <double>(<float*>ip2)[0], <double>(<float*>ip3)[0])
+        (<float *>op0)[0] = <float>ov0
         ip0 += steps[0]
-        op0 += steps[1]
-        op1 += steps[2]
-        op2 += steps[3]
-        op3 += steps[4]
+        ip1 += steps[1]
+        ip2 += steps[2]
+        ip3 += steps[3]
+        op0 += steps[4]
     sf_error.check_fpe(func_name)
 
 cdef void loop_d_dddi_d_As_dddl_dd(char **args, np.npy_intp *dims, np.npy_intp *steps, void *data) nogil:
@@ -583,44 +607,24 @@ cdef void loop_D_ddD__As_ddD_D(char **args, np.npy_intp *dims, np.npy_intp *step
         op0 += steps[3]
     sf_error.check_fpe(func_name)
 
-cdef void loop_D_Dld__As_Flf_F(char **args, np.npy_intp *dims, np.npy_intp *steps, void *data) nogil:
+cdef void loop_D_dddD__As_dddD_D(char **args, np.npy_intp *dims, np.npy_intp *steps, void *data) nogil:
     cdef np.npy_intp i, n = dims[0]
     cdef void *func = (<void**>data)[0]
     cdef char *func_name = <char*>(<void**>data)[1]
     cdef char *ip0 = args[0]
     cdef char *ip1 = args[1]
     cdef char *ip2 = args[2]
-    cdef char *op0 = args[3]
+    cdef char *ip3 = args[3]
+    cdef char *op0 = args[4]
     cdef double complex ov0
     for i in range(n):
-        ov0 = (<double complex(*)(double complex, long, double) nogil>func)(<double complex>(<float complex*>ip0)[0], <long>(<long*>ip1)[0], <double>(<float*>ip2)[0])
-        (<float complex *>op0)[0] = <float complex>ov0
+        ov0 = (<double complex(*)(double, double, double, double complex) nogil>func)(<double>(<double*>ip0)[0], <double>(<double*>ip1)[0], <double>(<double*>ip2)[0], <double complex>(<double complex*>ip3)[0])
+        (<double complex *>op0)[0] = <double complex>ov0
         ip0 += steps[0]
         ip1 += steps[1]
         ip2 += steps[2]
-        op0 += steps[3]
-    sf_error.check_fpe(func_name)
-
-cdef void loop_i_ddd_dd_As_ddd_dd(char **args, np.npy_intp *dims, np.npy_intp *steps, void *data) nogil:
-    cdef np.npy_intp i, n = dims[0]
-    cdef void *func = (<void**>data)[0]
-    cdef char *func_name = <char*>(<void**>data)[1]
-    cdef char *ip0 = args[0]
-    cdef char *ip1 = args[1]
-    cdef char *ip2 = args[2]
-    cdef char *op0 = args[3]
-    cdef char *op1 = args[4]
-    cdef double ov0
-    cdef double ov1
-    for i in range(n):
-        (<int(*)(double, double, double, double *, double *) nogil>func)(<double>(<double*>ip0)[0], <double>(<double*>ip1)[0], <double>(<double*>ip2)[0], &ov0, &ov1)
-        (<double *>op0)[0] = <double>ov0
-        (<double *>op1)[0] = <double>ov1
-        ip0 += steps[0]
-        ip1 += steps[1]
-        ip2 += steps[2]
-        op0 += steps[3]
-        op1 += steps[4]
+        ip3 += steps[3]
+        op0 += steps[4]
     sf_error.check_fpe(func_name)
 
 cdef void loop_i_d_dddd_As_d_dddd(char **args, np.npy_intp *dims, np.npy_intp *steps, void *data) nogil:
@@ -733,24 +737,26 @@ cdef void loop_i_d_DDDD_As_d_DDDD(char **args, np.npy_intp *dims, np.npy_intp *s
         op3 += steps[4]
     sf_error.check_fpe(func_name)
 
-cdef void loop_D_dddD__As_dddD_D(char **args, np.npy_intp *dims, np.npy_intp *steps, void *data) nogil:
+cdef void loop_i_ddd_dd_As_ddd_dd(char **args, np.npy_intp *dims, np.npy_intp *steps, void *data) nogil:
     cdef np.npy_intp i, n = dims[0]
     cdef void *func = (<void**>data)[0]
     cdef char *func_name = <char*>(<void**>data)[1]
     cdef char *ip0 = args[0]
     cdef char *ip1 = args[1]
     cdef char *ip2 = args[2]
-    cdef char *ip3 = args[3]
-    cdef char *op0 = args[4]
-    cdef double complex ov0
+    cdef char *op0 = args[3]
+    cdef char *op1 = args[4]
+    cdef double ov0
+    cdef double ov1
     for i in range(n):
-        ov0 = (<double complex(*)(double, double, double, double complex) nogil>func)(<double>(<double*>ip0)[0], <double>(<double*>ip1)[0], <double>(<double*>ip2)[0], <double complex>(<double complex*>ip3)[0])
-        (<double complex *>op0)[0] = <double complex>ov0
+        (<int(*)(double, double, double, double *, double *) nogil>func)(<double>(<double*>ip0)[0], <double>(<double*>ip1)[0], <double>(<double*>ip2)[0], &ov0, &ov1)
+        (<double *>op0)[0] = <double>ov0
+        (<double *>op1)[0] = <double>ov1
         ip0 += steps[0]
         ip1 += steps[1]
         ip2 += steps[2]
-        ip3 += steps[3]
-        op0 += steps[4]
+        op0 += steps[3]
+        op1 += steps[4]
     sf_error.check_fpe(func_name)
 
 cdef void loop_d_ddii__As_ddll_d(char **args, np.npy_intp *dims, np.npy_intp *steps, void *data) nogil:
@@ -906,52 +912,6 @@ cdef void loop_d_dddd__As_dddd_d(char **args, np.npy_intp *dims, np.npy_intp *st
         op0 += steps[4]
     sf_error.check_fpe(func_name)
 
-cdef void loop_D_iidd__As_lldd_D(char **args, np.npy_intp *dims, np.npy_intp *steps, void *data) nogil:
-    cdef np.npy_intp i, n = dims[0]
-    cdef void *func = (<void**>data)[0]
-    cdef char *func_name = <char*>(<void**>data)[1]
-    cdef char *ip0 = args[0]
-    cdef char *ip1 = args[1]
-    cdef char *ip2 = args[2]
-    cdef char *ip3 = args[3]
-    cdef char *op0 = args[4]
-    cdef double complex ov0
-    for i in range(n):
-        if <int>(<long*>ip0)[0] == (<long*>ip0)[0] and <int>(<long*>ip1)[0] == (<long*>ip1)[0]:
-            ov0 = (<double complex(*)(int, int, double, double) nogil>func)(<int>(<long*>ip0)[0], <int>(<long*>ip1)[0], <double>(<double*>ip2)[0], <double>(<double*>ip3)[0])
-        else:
-            sf_error.error(func_name, sf_error.DOMAIN, "invalid input argument")
-            ov0 = <double complex>NPY_NAN
-        (<double complex *>op0)[0] = <double complex>ov0
-        ip0 += steps[0]
-        ip1 += steps[1]
-        ip2 += steps[2]
-        ip3 += steps[3]
-        op0 += steps[4]
-    sf_error.check_fpe(func_name)
-
-cdef void loop_d_iid__As_lld_d(char **args, np.npy_intp *dims, np.npy_intp *steps, void *data) nogil:
-    cdef np.npy_intp i, n = dims[0]
-    cdef void *func = (<void**>data)[0]
-    cdef char *func_name = <char*>(<void**>data)[1]
-    cdef char *ip0 = args[0]
-    cdef char *ip1 = args[1]
-    cdef char *ip2 = args[2]
-    cdef char *op0 = args[3]
-    cdef double ov0
-    for i in range(n):
-        if <int>(<long*>ip0)[0] == (<long*>ip0)[0] and <int>(<long*>ip1)[0] == (<long*>ip1)[0]:
-            ov0 = (<double(*)(int, int, double) nogil>func)(<int>(<long*>ip0)[0], <int>(<long*>ip1)[0], <double>(<double*>ip2)[0])
-        else:
-            sf_error.error(func_name, sf_error.DOMAIN, "invalid input argument")
-            ov0 = <double>NPY_NAN
-        (<double *>op0)[0] = <double>ov0
-        ip0 += steps[0]
-        ip1 += steps[1]
-        ip2 += steps[2]
-        op0 += steps[3]
-    sf_error.check_fpe(func_name)
-
 cdef void loop_D_DD__As_FF_F(char **args, np.npy_intp *dims, np.npy_intp *steps, void *data) nogil:
     cdef np.npy_intp i, n = dims[0]
     cdef void *func = (<void**>data)[0]
@@ -966,6 +926,24 @@ cdef void loop_D_DD__As_FF_F(char **args, np.npy_intp *dims, np.npy_intp *steps,
         ip0 += steps[0]
         ip1 += steps[1]
         op0 += steps[2]
+    sf_error.check_fpe(func_name)
+
+cdef void loop_D_Dld__As_Flf_F(char **args, np.npy_intp *dims, np.npy_intp *steps, void *data) nogil:
+    cdef np.npy_intp i, n = dims[0]
+    cdef void *func = (<void**>data)[0]
+    cdef char *func_name = <char*>(<void**>data)[1]
+    cdef char *ip0 = args[0]
+    cdef char *ip1 = args[1]
+    cdef char *ip2 = args[2]
+    cdef char *op0 = args[3]
+    cdef double complex ov0
+    for i in range(n):
+        ov0 = (<double complex(*)(double complex, long, double) nogil>func)(<double complex>(<float complex*>ip0)[0], <long>(<long*>ip1)[0], <double>(<float*>ip2)[0])
+        (<float complex *>op0)[0] = <float complex>ov0
+        ip0 += steps[0]
+        ip1 += steps[1]
+        ip2 += steps[2]
+        op0 += steps[3]
     sf_error.check_fpe(func_name)
 
 cdef void loop_i_d_DD_As_d_DD(char **args, np.npy_intp *dims, np.npy_intp *steps, void *data) nogil:
@@ -1110,7 +1088,7 @@ cdef void loop_D_ddD__As_ffF_F(char **args, np.npy_intp *dims, np.npy_intp *step
         op0 += steps[3]
     sf_error.check_fpe(func_name)
 
-cdef void loop_i_d_dddd_As_f_ffff(char **args, np.npy_intp *dims, np.npy_intp *steps, void *data) nogil:
+cdef void loop_i_D_DDDD_As_F_FFFF(char **args, np.npy_intp *dims, np.npy_intp *steps, void *data) nogil:
     cdef np.npy_intp i, n = dims[0]
     cdef void *func = (<void**>data)[0]
     cdef char *func_name = <char*>(<void**>data)[1]
@@ -1119,16 +1097,16 @@ cdef void loop_i_d_dddd_As_f_ffff(char **args, np.npy_intp *dims, np.npy_intp *s
     cdef char *op1 = args[2]
     cdef char *op2 = args[3]
     cdef char *op3 = args[4]
-    cdef double ov0
-    cdef double ov1
-    cdef double ov2
-    cdef double ov3
+    cdef double complex ov0
+    cdef double complex ov1
+    cdef double complex ov2
+    cdef double complex ov3
     for i in range(n):
-        (<int(*)(double, double *, double *, double *, double *) nogil>func)(<double>(<float*>ip0)[0], &ov0, &ov1, &ov2, &ov3)
-        (<float *>op0)[0] = <float>ov0
-        (<float *>op1)[0] = <float>ov1
-        (<float *>op2)[0] = <float>ov2
-        (<float *>op3)[0] = <float>ov3
+        (<int(*)(double complex, double complex *, double complex *, double complex *, double complex *) nogil>func)(<double complex>(<float complex*>ip0)[0], &ov0, &ov1, &ov2, &ov3)
+        (<float complex *>op0)[0] = <float complex>ov0
+        (<float complex *>op1)[0] = <float complex>ov1
+        (<float complex *>op2)[0] = <float complex>ov2
+        (<float complex *>op3)[0] = <float complex>ov3
         ip0 += steps[0]
         op0 += steps[1]
         op1 += steps[2]
@@ -1328,20 +1306,26 @@ cdef void loop_d_ddiiddd__As_ffllfff_f(char **args, np.npy_intp *dims, np.npy_in
         op0 += steps[7]
     sf_error.check_fpe(func_name)
 
-cdef void loop_d_ld__As_lf_f(char **args, np.npy_intp *dims, np.npy_intp *steps, void *data) nogil:
+cdef void loop_d_iid__As_lld_d(char **args, np.npy_intp *dims, np.npy_intp *steps, void *data) nogil:
     cdef np.npy_intp i, n = dims[0]
     cdef void *func = (<void**>data)[0]
     cdef char *func_name = <char*>(<void**>data)[1]
     cdef char *ip0 = args[0]
     cdef char *ip1 = args[1]
-    cdef char *op0 = args[2]
+    cdef char *ip2 = args[2]
+    cdef char *op0 = args[3]
     cdef double ov0
     for i in range(n):
-        ov0 = (<double(*)(long, double) nogil>func)(<long>(<long*>ip0)[0], <double>(<float*>ip1)[0])
-        (<float *>op0)[0] = <float>ov0
+        if <int>(<long*>ip0)[0] == (<long*>ip0)[0] and <int>(<long*>ip1)[0] == (<long*>ip1)[0]:
+            ov0 = (<double(*)(int, int, double) nogil>func)(<int>(<long*>ip0)[0], <int>(<long*>ip1)[0], <double>(<double*>ip2)[0])
+        else:
+            sf_error.error(func_name, sf_error.DOMAIN, "invalid input argument")
+            ov0 = <double>NPY_NAN
+        (<double *>op0)[0] = <double>ov0
         ip0 += steps[0]
         ip1 += steps[1]
-        op0 += steps[2]
+        ip2 += steps[2]
+        op0 += steps[3]
     sf_error.check_fpe(func_name)
 
 cdef void loop_d_id__As_ld_d(char **args, np.npy_intp *dims, np.npy_intp *steps, void *data) nogil:
@@ -1414,6 +1398,22 @@ cdef void loop_d_ddd__As_ddd_d(char **args, np.npy_intp *dims, np.npy_intp *step
         ip1 += steps[1]
         ip2 += steps[2]
         op0 += steps[3]
+    sf_error.check_fpe(func_name)
+
+cdef void loop_d_ld__As_lf_f(char **args, np.npy_intp *dims, np.npy_intp *steps, void *data) nogil:
+    cdef np.npy_intp i, n = dims[0]
+    cdef void *func = (<void**>data)[0]
+    cdef char *func_name = <char*>(<void**>data)[1]
+    cdef char *ip0 = args[0]
+    cdef char *ip1 = args[1]
+    cdef char *op0 = args[2]
+    cdef double ov0
+    for i in range(n):
+        ov0 = (<double(*)(long, double) nogil>func)(<long>(<long*>ip0)[0], <double>(<float*>ip1)[0])
+        (<float *>op0)[0] = <float>ov0
+        ip0 += steps[0]
+        ip1 += steps[1]
+        op0 += steps[2]
     sf_error.check_fpe(func_name)
 
 cdef void loop_i_D_DDDD_As_D_DDDD(char **args, np.npy_intp *dims, np.npy_intp *steps, void *data) nogil:
@@ -1499,6 +1499,9 @@ cdef _proto_ellip_harmonic_unsafe_t *_proto_ellip_harmonic_unsafe_t_var = &_func
 from ellipsoid_harm cimport ellip_norm as _func_ellip_norm
 ctypedef double _proto_ellip_norm_t(double, double, int, int) nogil
 cdef _proto_ellip_norm_t *_proto_ellip_norm_t_var = &_func_ellip_norm
+from _legacy cimport ellip_norm_unsafe as _func_ellip_norm_unsafe
+ctypedef double _proto_ellip_norm_unsafe_t(double, double, double, double) nogil
+cdef _proto_ellip_norm_unsafe_t *_proto_ellip_norm_unsafe_t_var = &_func_ellip_norm_unsafe
 from lambertw cimport lambertw_scalar as _func_lambertw_scalar
 ctypedef double complex _proto_lambertw_scalar_t(double complex, long, double) nogil
 cdef _proto_lambertw_scalar_t *_proto_lambertw_scalar_t_var = &_func_lambertw_scalar
@@ -2168,31 +2171,49 @@ ufunc__ellip_harm_data[2] = &ufunc__ellip_harm_ptr[2*2]
 ufunc__ellip_harm_data[3] = &ufunc__ellip_harm_ptr[2*3]
 _ellip_harm = np.PyUFunc_FromFuncAndData(ufunc__ellip_harm_loops, ufunc__ellip_harm_data, ufunc__ellip_harm_types, 4, 7, 1, 0, "_ellip_harm", ufunc__ellip_harm_doc, 0)
 
-cdef np.PyUFuncGenericFunction ufunc__ellip_norm_loops[2]
-cdef void *ufunc__ellip_norm_ptr[4]
-cdef void *ufunc__ellip_norm_data[2]
-cdef char ufunc__ellip_norm_types[10]
+cdef np.PyUFuncGenericFunction ufunc__ellip_norm_loops[4]
+cdef void *ufunc__ellip_norm_ptr[8]
+cdef void *ufunc__ellip_norm_data[4]
+cdef char ufunc__ellip_norm_types[20]
 cdef char *ufunc__ellip_norm_doc = (
     "Internal function, use `ellip_norm` instead.")
 ufunc__ellip_norm_loops[0] = <np.PyUFuncGenericFunction>loop_d_ddii__As_ffll_f
-ufunc__ellip_norm_loops[1] = <np.PyUFuncGenericFunction>loop_d_ddii__As_ddll_d
+ufunc__ellip_norm_loops[1] = <np.PyUFuncGenericFunction>loop_d_dddd__As_ffff_f
+ufunc__ellip_norm_loops[2] = <np.PyUFuncGenericFunction>loop_d_ddii__As_ddll_d
+ufunc__ellip_norm_loops[3] = <np.PyUFuncGenericFunction>loop_d_dddd__As_dddd_d
 ufunc__ellip_norm_types[0] = <char>NPY_FLOAT
 ufunc__ellip_norm_types[1] = <char>NPY_FLOAT
 ufunc__ellip_norm_types[2] = <char>NPY_LONG
 ufunc__ellip_norm_types[3] = <char>NPY_LONG
 ufunc__ellip_norm_types[4] = <char>NPY_FLOAT
-ufunc__ellip_norm_types[5] = <char>NPY_DOUBLE
-ufunc__ellip_norm_types[6] = <char>NPY_DOUBLE
-ufunc__ellip_norm_types[7] = <char>NPY_LONG
-ufunc__ellip_norm_types[8] = <char>NPY_LONG
-ufunc__ellip_norm_types[9] = <char>NPY_DOUBLE
+ufunc__ellip_norm_types[5] = <char>NPY_FLOAT
+ufunc__ellip_norm_types[6] = <char>NPY_FLOAT
+ufunc__ellip_norm_types[7] = <char>NPY_FLOAT
+ufunc__ellip_norm_types[8] = <char>NPY_FLOAT
+ufunc__ellip_norm_types[9] = <char>NPY_FLOAT
+ufunc__ellip_norm_types[10] = <char>NPY_DOUBLE
+ufunc__ellip_norm_types[11] = <char>NPY_DOUBLE
+ufunc__ellip_norm_types[12] = <char>NPY_LONG
+ufunc__ellip_norm_types[13] = <char>NPY_LONG
+ufunc__ellip_norm_types[14] = <char>NPY_DOUBLE
+ufunc__ellip_norm_types[15] = <char>NPY_DOUBLE
+ufunc__ellip_norm_types[16] = <char>NPY_DOUBLE
+ufunc__ellip_norm_types[17] = <char>NPY_DOUBLE
+ufunc__ellip_norm_types[18] = <char>NPY_DOUBLE
+ufunc__ellip_norm_types[19] = <char>NPY_DOUBLE
 ufunc__ellip_norm_ptr[2*0] = <void*>_func_ellip_norm
 ufunc__ellip_norm_ptr[2*0+1] = <void*>(<char*>"_ellip_norm")
-ufunc__ellip_norm_ptr[2*1] = <void*>_func_ellip_norm
+ufunc__ellip_norm_ptr[2*1] = <void*>_func_ellip_norm_unsafe
 ufunc__ellip_norm_ptr[2*1+1] = <void*>(<char*>"_ellip_norm")
+ufunc__ellip_norm_ptr[2*2] = <void*>_func_ellip_norm
+ufunc__ellip_norm_ptr[2*2+1] = <void*>(<char*>"_ellip_norm")
+ufunc__ellip_norm_ptr[2*3] = <void*>_func_ellip_norm_unsafe
+ufunc__ellip_norm_ptr[2*3+1] = <void*>(<char*>"_ellip_norm")
 ufunc__ellip_norm_data[0] = &ufunc__ellip_norm_ptr[2*0]
 ufunc__ellip_norm_data[1] = &ufunc__ellip_norm_ptr[2*1]
-_ellip_norm = np.PyUFunc_FromFuncAndData(ufunc__ellip_norm_loops, ufunc__ellip_norm_data, ufunc__ellip_norm_types, 2, 4, 1, 0, "_ellip_norm", ufunc__ellip_norm_doc, 0)
+ufunc__ellip_norm_data[2] = &ufunc__ellip_norm_ptr[2*2]
+ufunc__ellip_norm_data[3] = &ufunc__ellip_norm_ptr[2*3]
+_ellip_norm = np.PyUFunc_FromFuncAndData(ufunc__ellip_norm_loops, ufunc__ellip_norm_data, ufunc__ellip_norm_types, 4, 4, 1, 0, "_ellip_norm", ufunc__ellip_norm_doc, 0)
 
 cdef np.PyUFuncGenericFunction ufunc__lambertw_loops[2]
 cdef void *ufunc__lambertw_ptr[4]
