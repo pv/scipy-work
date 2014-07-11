@@ -6,11 +6,46 @@
 from __future__ import division, print_function, absolute_import
 
 import numpy as np
-from numpy.testing import assert_equal, assert_almost_equal
+from numpy.testing import assert_equal, assert_almost_equal, assert_allclose
 from scipy.special import ellip_harm, ellip_harm_2, ellip_normal
+from scipy.integrate import quad
 from numpy import array, sqrt, pi
 from scipy.special._testutils import FuncData
 
+def ellip_norm_integral(h2, k2, n, p):
+    h = sqrt(h2)
+    k = sqrt(k2)
+    def func1(t):
+        t2 = t*t
+        i = ellip_harm( h2, k2, n, p, t)
+        result = i*i/sqrt((t + h)*(t + k))
+        return result
+
+    def func2(t):
+        t2 = t*t
+        i = ellip_harm( h2, k2, n, p, t)
+        result = t2*i*i/sqrt((t + h)*(t + k))
+        return result
+
+    def func3(t):
+        t2 = t*t
+        i = ellip_harm( h2, k2, n, p, t)
+        result = i*i/sqrt((t + h)*(k2 - t2))
+        return result
+
+    def func4(t):
+        t2 = t*t
+        i = ellip_harm( h2, k2, n, p, t)
+        result = t2*i*i/sqrt((t + h)*(k2 - t2))
+        return result
+
+    res1, err1 = quad(func1, h, k, epsabs=1e-08, epsrel=1e-15, weight="alg", wvar=(-0.5, -0.5))
+    res2, err2 = quad(func2, h, k, epsabs=1e-08, epsrel=1e-15, weight="alg", wvar=(-0.5, -0.5))
+    res3, err3 = quad(func3, 0, h, epsabs=1e-08, epsrel=1e-15, weight="alg", wvar=(0, -0.5))
+    res4, err4 = quad(func4, 0, h, epsabs=1e-08, epsrel=1e-15, weight="alg", wvar=(0, -0.5))
+    error = 8*(res3*err2 + err3*res2 + res1*err4 + res4*err1)
+    return 8*(res2*res3 - res1*res4), error
+        
 def test_ellip_norm():
 
     def G01(h2, k2):
@@ -110,6 +145,28 @@ def test_ellip_norm():
         return ellip_normal(a, b, c, d)
 
     olderr = np.seterr(all='ignore')
+
+    integral_result, total_err = ellip_norm_integral(5, 8, 4, 1)
+    assert_allclose(ellip_normal(5,8,4,1), integral_result, atol=10*total_err)
+    integral_result, total_err = ellip_norm_integral(5, 8, 4, 2)
+    assert_allclose(ellip_normal(5,8,4,2), integral_result, atol=10*total_err)
+    integral_result, total_err = ellip_norm_integral(5, 8, 4, 3)
+    assert_allclose(ellip_normal(5,8,4,3), integral_result, atol=10*total_err)
+    integral_result, total_err = ellip_norm_integral(5, 8, 4, 4)
+    assert_allclose(ellip_normal(5,8,4,4), integral_result, atol=10*total_err)
+    integral_result, total_err = ellip_norm_integral(5, 8, 4, 5)
+    assert_allclose(ellip_normal(5,8,4,5), integral_result, atol=10*total_err)
+    integral_result, total_err = ellip_norm_integral(5, 8, 4, 6)
+    assert_allclose(ellip_normal(5,8,4,6), integral_result, atol=10*total_err)
+    integral_result, total_err = ellip_norm_integral(5, 8, 4, 7)
+    assert_allclose(ellip_normal(5,8,4,7), integral_result, atol=10*total_err)
+    integral_result, total_err = ellip_norm_integral(5, 8, 4, 8)
+    assert_allclose(ellip_normal(5,8,4,8), integral_result, atol=10*total_err)
+    integral_result, total_err = ellip_norm_integral(5, 8, 4, 9)
+    assert_allclose(ellip_normal(5,8,4,9), integral_result, atol=10*total_err)
+    integral_result, total_err = ellip_norm_integral(5, 8, 5, 5)
+    assert_allclose(ellip_normal(5,8,5,5), integral_result, atol=10*total_err)
+   
     try:
         FuncData(w, data, (0,1,2,3), 4, rtol=1e-10, atol=1e-13).check()
 
