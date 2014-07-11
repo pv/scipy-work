@@ -43,7 +43,7 @@ cdef extern from "lapack_defs.h":
 @cython.wraparound(False)
 @cython.boundscheck(False)
 @cython.cdivision(True)
-cdef inline double* ellipse(double h2, double k2, int n, int p) nogil:
+cdef inline double* lame_coefficients(double h2, double k2, int n, int p, void **bufferp) nogil:
    
     cdef double s2, alpha, beta, gamma, lamba_romain, pp, psi, t1, tol, vl, vu
     cdef int r, tp, j, size, i, info, lwork, liwork, c, iu
@@ -71,8 +71,10 @@ cdef inline double* ellipse(double h2, double k2, int n, int p) nogil:
     vu = 0
 
     cdef void *buffer =  malloc((sizeof(double)*(7*size + lwork)) + (sizeof(int)*(2*size + liwork)))
-    #if not buffer:
-     #  return nan 
+    bufferp[0] = buffer
+    if not buffer:
+        sf_error.error("ellip_harm", sf_error.NO_RESULT, "failed to allocate memory")
+        return NULL 
 
     cdef double *g = <double *>buffer
     cdef double *d = g + size
@@ -139,10 +141,9 @@ cdef inline double* ellipse(double h2, double k2, int n, int p) nogil:
 
     c_dstevr("V", "I", &size, <double *>d, <double *>dd, &vl, &vu, &tp, &tp, &tol, &c, <double *>w, <double *>eigv, &size, <int *>isuppz, <double *>work, &lwork, <int *>iwork, &liwork, &info)
               	 
-   # if info != 0: 
-      #  sf_error.error("ellip_harm", sf_error.ARG, "illegal")
-      #  free(buffer)
-      #  return nan   
+    if info != 0: 
+        sf_error.error("ellip_harm", sf_error.NO_RESULT, "failed to allocate memory")
+        return NULL   
 
     for i in range(0, size):
         eigv[i] /= ss[i]
@@ -178,14 +179,19 @@ cdef inline double ellip_harmonic(double h2, double k2, int n, int p, double s, 
         size, psi = r, pow(s,  n - 2*r)*signm*signn*sqrt(fabs((s2 - h2)*(s2 - k2)))
     
 
-    cdef double *eigv = <double*> malloc(sizeof(double)*size)
-    eigv = ellipse(h2,k2,n,p)
+    cdef double *eigv
+    cdef void *bufferp
+    eigv = lame_coefficients(h2, k2, n, p, &bufferp)
+    if not eigv:
+        free(bufferp)
+        return nan
     lambda_romain = 1.0 - <double>s2/<double>h2
     pp = eigv[size - 1]
 
     for j in range(size - 2, -1, -1):
         pp = pp*lambda_romain + eigv[j]
     pp = pp*psi
+    free(bufferp)
     return pp 
 
 
@@ -209,19 +215,20 @@ cdef inline double ellip_norm(double h2, double k2, int n, int p) nogil:
     elif p - 1 < 2*n + 1:
         t, size = 'N', r
 
-
-    cdef void *buffer =  malloc((sizeof(double)*(size+ 3*(n+1)+1+(2*size - 1)+ 2*n +7)))
-    cdef double *eigv = <double *> buffer
-    cdef double *dnorm = eigv + size
+    cdef void *buffer =  malloc((sizeof(double)*(3*(n+1)+1+(2*size - 1)+ 2*n +7)))
+    cdef double *eigv
+    cdef double *dnorm = <double *> buffer
     cdef double *cnorm = dnorm + 2*size - 1
     cdef double *tou = cnorm + n + 1
     cdef double *tou1 = tou + n + 1
     cdef double *y = tou1 + n + 2
     cdef double *yy = y + n + 3 
     cdef double *work = yy + n + 4
-
-    eigv = ellipse(h2,k2,n,p)
-
+    cdef void *bufferp
+    eigv = lame_coefficients(h2, k2, n, p, &bufferp)
+    if not eigv:
+        
+        return nan
     for i in range(0, 2*size - 1):
         dnorm[i] = 0
 
@@ -313,7 +320,8 @@ cdef inline double ellip_norm(double h2, double k2, int n, int p) nogil:
     res = yy[0]*y[1] - y[0]*yy[1]
     if t == 'L' or t == 'N':
         res *= -1
-#    free(buffer)
+    free(buffer)
+    free(bufferp)
     res = res*16*pi/h2
     return res    
 
