@@ -7,7 +7,7 @@ import scipy.integrate
 cdef double _global_h2, _global_k2
 cdef int _global_n, _global_p
 
-from .ellip_harm cimport ellip_harmonic
+from .ellipsoid_harm cimport ellip_harmonic
 
 cdef double _F_integrand(double t) nogil:
     cdef double h2, k2, t2, i, a

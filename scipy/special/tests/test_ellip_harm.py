@@ -43,6 +43,10 @@ def ellip_norm_integral(h2, k2, n, p):
     res2, err2 = quad(func2, h, k, epsabs=1e-08, epsrel=1e-15, weight="alg", wvar=(-0.5, -0.5))
     res3, err3 = quad(func3, 0, h, epsabs=1e-08, epsrel=1e-15, weight="alg", wvar=(0, -0.5))
     res4, err4 = quad(func4, 0, h, epsabs=1e-08, epsrel=1e-15, weight="alg", wvar=(0, -0.5))
+    print("--")
+    print(res1, res2, res3, res4)
+    print(res2*res3, res1*res4)
+    print(err1, err2, err3, err4)
     error = 8*(res3*err2 + err3*res2 + res1*err4 + res4*err1)
     return 8*(res2*res3 - res1*res4), error
         
@@ -146,26 +150,14 @@ def test_ellip_norm():
 
     olderr = np.seterr(all='ignore')
 
-    integral_result, total_err = ellip_norm_integral(5, 8, 4, 1)
-    assert_allclose(ellip_normal(5,8,4,1), integral_result, atol=10*total_err)
-    integral_result, total_err = ellip_norm_integral(5, 8, 4, 2)
-    assert_allclose(ellip_normal(5,8,4,2), integral_result, atol=10*total_err)
-    integral_result, total_err = ellip_norm_integral(5, 8, 4, 3)
-    assert_allclose(ellip_normal(5,8,4,3), integral_result, atol=10*total_err)
-    integral_result, total_err = ellip_norm_integral(5, 8, 4, 4)
-    assert_allclose(ellip_normal(5,8,4,4), integral_result, atol=10*total_err)
-    integral_result, total_err = ellip_norm_integral(5, 8, 4, 5)
-    assert_allclose(ellip_normal(5,8,4,5), integral_result, atol=10*total_err)
-    integral_result, total_err = ellip_norm_integral(5, 8, 4, 6)
-    assert_allclose(ellip_normal(5,8,4,6), integral_result, atol=10*total_err)
-    integral_result, total_err = ellip_norm_integral(5, 8, 4, 7)
-    assert_allclose(ellip_normal(5,8,4,7), integral_result, atol=10*total_err)
-    integral_result, total_err = ellip_norm_integral(5, 8, 4, 8)
-    assert_allclose(ellip_normal(5,8,4,8), integral_result, atol=10*total_err)
-    integral_result, total_err = ellip_norm_integral(5, 8, 4, 9)
-    assert_allclose(ellip_normal(5,8,4,9), integral_result, atol=10*total_err)
-    integral_result, total_err = ellip_norm_integral(5, 8, 5, 5)
-    assert_allclose(ellip_normal(5,8,5,5), integral_result, atol=10*total_err)
+    hsks = [(5, 8), (0.01, 0.03), (10.434, 40.4455)]
+    for h2, k2 in hsks:
+        for n in range(1, 20):
+            for p in range(1, 2*n+1):
+                err_msg = "h2=%g k2=%g n=%d p=%d" % (h2, k2, n, p)
+                res, err = ellip_norm_integral(h2,k2,n,p)
+                assert_allclose(ellip_normal(h2,k2,n,p), res,
+                                atol=10*err, err_msg=err_msg)
    
     try:
         FuncData(w, data, (0,1,2,3), 4, rtol=1e-10, atol=1e-13).check()
