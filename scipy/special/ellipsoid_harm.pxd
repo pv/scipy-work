@@ -290,7 +290,7 @@ cdef inline double ellip_norm(double h2, double k2, int n, int p) nogil:
             cnorm[1] = h2*h2*(k2 - h2)*dnorm[0]
             cnorm[2] = h2*h2*((k2 - h2)*dnorm[1] + (2*h2 - k2)*dnorm[0]) 
             for j in range(3, n-1):
-                cnorm[j] = h2*h2*((k2 - h2)*dnorm[j-1] + (2*h2 - k2)*dnorm[j-2] - h2*dnorm[j-2])
+                cnorm[j] = h2*h2*((k2 - h2)*dnorm[j-1] + (2*h2 - k2)*dnorm[j-2] - h2*dnorm[j-3])
             if n > 3:
                 cnorm[n-1] = h2*h2*((2*h2 - k2)*dnorm[n-3] - h2*dnorm[n-4]) 
             cnorm[n] = -h2*h2*h2*dnorm[n-3]
@@ -308,6 +308,18 @@ cdef inline double ellip_norm(double h2, double k2, int n, int p) nogil:
         tou1[j] = -0.5*h2*(cnorm[j]-cnorm[j-1])
     tou1[n+1] = 0.5*h2*cnorm[n]
 
+    with gil:
+        import sys
+        sys.stdout.write("G = {")
+        for j in range(n+1):
+            sys.stdout.write("%.21g, " % (tou[j],))
+        sys.stdout.write("0\n")
+        sys.stdout.write("};\n")
+        sys.stdout.write("Gt = {")
+        for j in range(n+2):
+            sys.stdout.write("%.21g, " % (tou1[j],))
+        sys.stdout.write("};\n")
+
     y[n+2] = 0
     y[n+1] = 0
     for j in range(n, -1, -1):
@@ -318,6 +330,33 @@ cdef inline double ellip_norm(double h2, double k2, int n, int p) nogil:
     for j in range(n+1, -1, -1):
         yy[j] = (2*j/(2*j + 1.0))*(2 - k2/h2)*yy[j+1] + ((2*j + 1)/(2*j + 3.0))*(k2/h2 - 1)*yy[j+2] + tou1[j]
     res = yy[0]*y[1] - y[0]*yy[1]
+
+    cdef double detX = 0.0, bprod = 0.0, maxterm = 0.0, term = 0.0
+    cdef int k
+    for k in range(n+1):
+        bprod = 1.0
+        for j in range(k):
+            bprod *= -((2*j + 1)/(2*j + 3.0)) * (k2/h2 - 1)
+        term = (yy[k+1]*tou[k] - y[k+1]*tou1[k]) * bprod
+        with gil:
+            print(term, bprod)
+        detX += term
+        if fabs(term) > maxterm:
+            maxterm = fabs(term)
+        #detX = -((2*j + 1)/(2*j + 3.0)) * (k2/h2 - 1) * detX + yy[j+1]*tou[j] - y[j+1]*tou1[j]
+        #with gil:
+        #    try:
+        #        print(detX / (y[j+1]*tou1[j]), (yy[j+1]*tou[j] - y[j+1]*tou1[j])/ (y[j+1]*tou1[j]))
+        #    except:
+        #        pass
+
+    with gil:
+        print("->", -detX*16*pi/h2)
+        print("precloss", maxterm/detX)
+    res = -detX
+
+    with gil:
+        print yy[0]*y[1], y[0]*yy[1]
     if t == 'L' or t == 'N':
         res *= -1
     free(buffer)

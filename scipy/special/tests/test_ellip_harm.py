@@ -39,10 +39,10 @@ def ellip_norm_integral(h2, k2, n, p):
         result = t2*i*i/sqrt((t + h)*(k2 - t2))
         return result
 
-    res1, err1 = quad(func1, h, k, epsabs=1e-08, epsrel=1e-15, weight="alg", wvar=(-0.5, -0.5))
-    res2, err2 = quad(func2, h, k, epsabs=1e-08, epsrel=1e-15, weight="alg", wvar=(-0.5, -0.5))
-    res3, err3 = quad(func3, 0, h, epsabs=1e-08, epsrel=1e-15, weight="alg", wvar=(0, -0.5))
-    res4, err4 = quad(func4, 0, h, epsabs=1e-08, epsrel=1e-15, weight="alg", wvar=(0, -0.5))
+    res1, err1 = quad(func1, h, k, epsabs=1e-100, epsrel=1e-15, weight="alg", wvar=(-0.5, -0.5))
+    res2, err2 = quad(func2, h, k, epsabs=1e-100, epsrel=1e-15, weight="alg", wvar=(-0.5, -0.5))
+    res3, err3 = quad(func3, 0, h, epsabs=1e-100, epsrel=1e-15, weight="alg", wvar=(0, -0.5))
+    res4, err4 = quad(func4, 0, h, epsabs=1e-100, epsrel=1e-15, weight="alg", wvar=(0, -0.5))
     print("--")
     print(res1, res2, res3, res4)
     print(res2*res3, res1*res4)
@@ -157,7 +157,8 @@ def test_ellip_norm():
                 err_msg = "h2=%g k2=%g n=%d p=%d" % (h2, k2, n, p)
                 res, err = ellip_norm_integral(h2,k2,n,p)
                 assert_allclose(ellip_normal(h2,k2,n,p), res,
-                                atol=10*err, err_msg=err_msg)
+                                #atol=10*err,
+                                rtol=1e-7, err_msg=err_msg)
    
     try:
         FuncData(w, data, (0,1,2,3), 4, rtol=1e-10, atol=1e-13).check()
