@@ -3,7 +3,8 @@ from ._ufuncs import _ellip_harm
 from ._ellip_harm_2 import _ellipsoid, _ellipsoid_norm
 import threading
 import numpy as np
-
+# the functions _ellipsoid, _ellipsoid_norm use global variables, the lock  
+# protects them if the function is called from multiple threads simultaneously
 _ellip_lock = threading.Lock()
 
 def ellip_harm(h2, k2, n, p, s, signm=1, signn=1):
@@ -16,54 +17,58 @@ def ellip_harm(h2, k2, n, p, s, signm=1, signn=1):
 
     Parameters
     ----------
-    h2: double
+    h2 : double
         :math:`h^2`
-    k2: double
+    k2 : double
         :math:`k^2`
-    n: int
+    n : int
        degree
-    p: int
+    p : int
        order, can range between [1,2n+1]
-    signm: double, optional
+    signm : double, optional
            determines the sign of prefactor of functions. See Notes 
-    signn: double, optional
+    signn : double, optional
            determines the sign of prefactor of functions. See Notes
     
     Returns
     -------
-    E^p_n(s) : double
+    ellip_harm : double
+        the harmonic :math:`E^p_n(s)`
+
+    See Also
+    --------
+    ellip_harm2, ellip_normal
 
     Notes
     -----
     Uses LAPACK subroutine DSTEVR
-    The geometric intepretation is in accordance with [2],[3],[4]
+    The geometric intepretation is in accordance with [2]_,[3]_,[4]_
     signm and signn control the sign of prefactor for functions according to their type.
-    K: +1
-    L: signm
-    M: signn
-    N: signm*signn
+    K : +1
+    L : signm
+    M : signn
+    N : signm*signn
 
     References
     ----------
     .. [1] Digital Libary of Mathematical Functions 29.12
        http://dlmf.nist.gov/29.12
-    .. [2] Bardhan and Knepley.Computational science and 
+    .. [2] Bardhan and Knepley, "Computational science and 
        re-discovery: open-source implementations of 
-       ellipsoidal harmonics for problems in potential theory
-       http://arxiv.org/abs/1204.0267
-    .. [3] G. Romain and B. Jean-Pierre. Ellipsoidal harmonic expansions
-       of the gravitational potential: theory and applications.
-       http://link.springer.com/article/10.1023%2FA%3A1017555515763#close
-    .. [4] David J.and Dechambre P. Computation of Ellipsoidal
-       Gravity Field Harmonics for small solar system bodies
-       http://ccar.colorado.edu/scheeres/scheeres/assets/Theses%20and%20Abstracts/dechambre_thesis.pdf
+       ellipsoidal harmonics for problems in potential theory",
+       pp. 8-10, 2012
+    .. [3] David J.and Dechambre P, "Computation of Ellipsoidal
+       Gravity Field Harmonics for small solar system bodies"
+       pp. 30-36, 2000
+    .. [4] George Dassios, "Ellipsoidal Harmonics: Theory and Applications"
+       pp. 418, 2012
     
     Examples
     --------
     >>> from scipy.special import ellip_harm
     >>> w = ellip_harm(5,8,1,1,2.5)
     >>> w
-    >>> 2.5
+    2.5
 
     """
     return _ellip_harm(h2, k2, n, p, s, signm, signn)
@@ -78,45 +83,30 @@ def ellip_harm_2(h2, k2, n, p, s):
 
     Parameters
     ----------
-    h2: double
+    h2 : double
         :math:`h^2`
-    k2: double
+    k2 : double
         :math:`k^2`
-    n: int
+    n : int
        degree
-    p: int
+    p : int
        order, can range between [1,2n+1]
     
     Returns
     -------
-    F^p_n(s) : double
+    ellip_harm_2 : double
+        the harmonic :math:`F^p_n(s)`
 
-    Notes
-    -----
-    The geometric intepretation is in accordance with [2],[3],[4]
+    See Also
+    --------
+    ellip_harm
 
-    References
-    ----------
-    .. [1] Digital Libary of Mathematical Functions 29.12
-       http://dlmf.nist.gov/29.12
-    .. [2] Bardhan and Knepley.Computational science and 
-       re-discovery: open-source implementations of 
-       ellipsoidal harmonics for problems in potential theory
-       http://arxiv.org/abs/1204.0267
-    .. [3] G. Romain and B. Jean-Pierre. Ellipsoidal harmonic expansions
-       of the gravitational potential: theory and applications.
-       http://link.springer.com/article/10.1023%2FA%3A1017555515763#close
-    .. [4] David J.and Dechambre P. Computation of Ellipsoidal
-       Gravity Field Harmonics for small solar system bodies
-       http://ccar.colorado.edu/scheeres/scheeres/assets/Theses%20and%20Abstracts/dechambre_thesis.pdf
-    .. [5]George Dassios. Ellipsoidal Harmonics: Theory and Applications
-    
     Examples
     --------
     >>> from scipy.special import ellip_harm_2
     >>> w = ellip_harm_2(5,8,2,1,10)
     >>> w
-    >>> 0.00108056853382
+    0.00108056853382
 
     """
     with _ellip_lock:
@@ -143,34 +133,20 @@ def ellip_normal(h2, k2, n, p):
 
     Returns
     -------
-    \gamma^p_n(s) : double
+    ellip_normal : double
+        the normalization constant :math:`\gamma^p_n`
 
-    Notes
-    -----
-    The geometric intepretation is in accordance with [2],[3],[4]
-
-    References
-    ----------
-    .. [1] Digital Libary of Mathematical Functions 29.12
-       http://dlmf.nist.gov/29.12
-    .. [2] Bardhan and Knepley.Computational science and 
-       re-discovery: open-source implementations of 
-       ellipsoidal harmonics for problems in potential theory
-       http://arxiv.org/abs/1204.0267
-    .. [3] G. Romain and B. Jean-Pierre. Ellipsoidal harmonic expansions
-       of the gravitational potential: theory and applications.
-       http://link.springer.com/article/10.1023%2FA%3A1017555515763#close
-    .. [4] David J.and Dechambre P. Computation of Ellipsoidal
-       Gravity Field Harmonics for small solar system bodies
-       http://ccar.colorado.edu/scheeres/scheeres/assets/Theses%20and%20Abstracts/dechambre_thesis.pdf
-    .. [5]George Dassios. Ellipsoidal Harmonics: Theory and Applications
+    See Also
+    --------
+    ellip_harm
 
     Examples
     --------
     >>> from scipy.special import ellip_harm_2
     >>> w = ellip_normal(5,8,3,7)
     >>> w
-    >>> 1723.38796997
+    1723.38796997
 
     """
-    return _ellipsoid_norm(h2, k2, n, p)
+    with _ellip_lock:
+        return _ellipsoid_norm(h2, k2, n, p)
