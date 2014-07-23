@@ -13,6 +13,37 @@ from scipy.integrate import quad
 from numpy import array, sqrt, pi
 from scipy.special._testutils import FuncData
 
+def test_ellip_norm1():
+    def change_coefficient(lambda1, mu, nu, h2, k2):
+        coeff = []
+        x = sqrt(lambda1**2*mu**2*nu**2/(h2*k2))
+        coeff.append(x)
+        y = sqrt((lambda1**2 - h2)*(mu**2 - h2)*(h2 - nu**2)/(h2*(k2 - h2)))
+        coeff.append(y)
+        z = sqrt((lambda1**2 - k2)*(k2 - mu**2)*(k2 - nu**2)/(k2*(k2 - h2)))
+        coeff.append(z)
+        return coeff
+
+    def solid_int_ellip(lambda1, mu, nu, n, p, h2, k2):
+        return ellip_harm(h2, k2, n, p, lambda1)*ellip_harm(h2, k2, n, p, mu)*ellip_harm(h2, k2, n, p, nu)
+
+    def solid_int_ellip2(lambda1, mu, nu, n, p, h2, k2):
+        return ellip_harm_2(h2, k2, n, p, lambda1)*ellip_harm(h2, k2, n, p, mu)*ellip_harm(h2, k2, n, p, nu)
+
+    def recursion(lambda1, mu1, nu1, lambda2, mu2, nu2, h2, k2):
+        sum1 = 0
+        for n in range(10):
+            for p in range(1, 2*n+1):
+                sum1 += 4*pi*(solid_int_ellip(lambda2, mu2, nu2, n, p, h2, k2)*solid_int_ellip2(lambda1, mu1, nu1, n, p, h2, k2))/(ellip_normal(h2, k2, n, p)*(2*n + 1))
+        return sum1
+
+    def potential(lambda1, mu1, nu1, lambda2, mu2, nu2, h2, k2):
+        x1, y1, z1 = change_coefficient(lambda1, mu1, nu1, h2, k2)
+        x2, y2, z2 = change_coefficient(lambda2, mu2, nu2, h2, k2)
+        res = sqrt((x2 - x1)**2 + (y2 - y1)**2 + (z2 - z1)**2)
+        return 1/res
+
+    print(recursion(51, 5.9, 3, 45, 6, 2, 15, 40), potential(51, 5.9, 3, 45, 6, 2, 15, 40)) 
 
 def test_ellip_norm():
 
