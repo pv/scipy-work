@@ -56,7 +56,8 @@ def ellip_harm(h2, k2, n, p, s, signm=1, signn=1):
     .. [2] Bardhan and Knepley, "Computational science and 
        re-discovery: open-source implementations of 
        ellipsoidal harmonics for problems in potential theory",
-       pp. 8-10, 2012
+       Comput. Sci. Disc. 5, 014006 (2012)
+       doi:10.1088/1749-4699/5/1/014006
     .. [3] David J.and Dechambre P, "Computation of Ellipsoidal
        Gravity Field Harmonics for small solar system bodies"
        pp. 30-36, 2000
@@ -72,6 +73,12 @@ def ellip_harm(h2, k2, n, p, s, signm=1, signn=1):
 
     """
     return _ellip_harm(h2, k2, n, p, s, signm, signn)
+
+# np.vectorize does not work on Cython functions on Numpy < 1.8, so a wrapper is needed
+def _ellip_harm_2_vec(h2, k2, n, p, s):
+    return _ellipsoid(h2, k2, n, p, s)
+
+_ellip_harm_2_vec = np.vectorize(_ellip_harm_2_vec, otypes='d')
 
 def ellip_harm_2(h2, k2, n, p, s):
     r"""
@@ -110,7 +117,12 @@ def ellip_harm_2(h2, k2, n, p, s):
 
     """
     with _ellip_lock:
-        return _ellipsoid(h2, k2, n, p, s)
+        return _ellip_harm_2_vec(h2, k2, n, p, s)
+
+def _ellip_normal_vec(h2, k2, n, p):
+    return _ellipsoid_norm(h2, k2, n, p)
+
+_ellip_normal_vec = np.vectorize(_ellip_normal_vec, otypes='d')
 
 def ellip_normal(h2, k2, n, p):
     r"""
@@ -149,4 +161,4 @@ def ellip_normal(h2, k2, n, p):
 
     """
     with _ellip_lock:
-        return _ellipsoid_norm(h2, k2, n, p)
+        return _ellip_normal_vec(h2, k2, n, p)

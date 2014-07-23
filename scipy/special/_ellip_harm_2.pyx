@@ -4,10 +4,13 @@ from _complexstuff cimport *
 from libc.math cimport sqrt, fabs
 import scipy.integrate
 
+# The access to global variables is protected by  
+# is protected by _ellip_lock in _ellip_harm.py
+
 cdef double _global_h2, _global_k2
 cdef int _global_n, _global_p
 
-from .ellip_harm cimport ellip_harmonic
+from ._ellip_harm cimport ellip_harmonic
 
 cdef double _F_integrand(double t) nogil:
     cdef double h2, k2, t2, i, a
