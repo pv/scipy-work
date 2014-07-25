@@ -12,7 +12,97 @@ from scipy.special import ellip_harm, ellip_harm_2, ellip_normal
 from scipy.integrate import quad
 from numpy import array, sqrt, pi
 from scipy.special._testutils import FuncData
+try:
+    import mpmath
+except ImportError:
+    try:
+        import sympy.mpmath as mpmath
+    except ImportError:
+        mpmath = None
 
+def mpmath_check(min_ver):
+    if mpmath is None:
+        return dec.skipif(True, "mpmath is not installed")
+    return dec.skipif(LooseVersion(mpmath.__version__) < LooseVersion(min_ver),
+                      "mpmath version >= %s required" % min_ver)
+def test_mpmath():
+    def test_norm_mpmath(h2, k2, n, p):
+        def integrand1(t):
+            t2 = t*t
+            i = ellip_harm( h2, k2, n, p, float(t))
+            result = i*i/sqrt((t2 - h2)*(k2 - t2))    
+            return result
+
+        def integrand2(t):
+            t2 = t*t
+            i = ellip_harm( h2, k2, n, p, float(t))
+            result = t2*i*i/sqrt((t2 - h2)*(k2 - t2))    
+            return result
+
+        def integrand3(t):
+            t2 = t*t
+            i = ellip_harm( h2, k2, n, p, float(t))
+            result = i*i/sqrt((h2 - t2)*(k2 - t2))
+            return result
+
+        def integrand4(t):
+            t2 = t*t
+            i = ellip_harm( h2, k2, n, p, float(t))
+            result = i*i*t2/sqrt((h2 - t2)*(k2 - t2))
+            return result
+
+        h = sqrt(h2)
+        k = sqrt(k2)
+        res = mpmath.quad(integrand1, [h, k], method='tanh-sinh')
+        res1 = mpmath.quad(integrand2, [h, k], method='tanh-sinh')
+        res2 = mpmath.quad(integrand3, [0, h], method='tanh-sinh')
+        res3 = mpmath.quad(integrand4, [0, h], method='tanh-sinh')
+        result = 8*(res1*res2 - res*res3)
+        return result
+
+    print(test_norm_mpmath(5,8,1,1), ellip_normal(5,8,1,1))
+
+    def test_harm2_mpmath(h2, k2, n, p ,s):
+        def integrand(t):
+            t2 = t*t   
+            i = ellip_harm( h2, k2, n, p, float(1/t))
+            result = 1/(i*i*sqrt(1 - t2*k2)*sqrt(1 - t2*h2))
+            return result
+    
+        res = mpmath.quad(integrand, [0, 1/s])
+        res = res*(2*n + 1)*ellip_harm( h2, k2, n, p, float(s))
+        return res
+    
+    print(test_harm2_mpmath(5,8,0,1,10),ellip_harm_2(5,8,0,1,10))
+
+    def change_coefficient(lambda1, mu, nu, h2, k2):
+        coeff = []
+        x = sqrt(lambda1**2*mu**2*nu**2/(h2*k2))
+        coeff.append(x)
+        y = sqrt((lambda1**2 - h2)*(mu**2 - h2)*(h2 - nu**2)/(h2*(k2 - h2)))
+        coeff.append(y)
+        z = sqrt((lambda1**2 - k2)*(k2 - mu**2)*(k2 - nu**2)/(k2*(k2 - h2)))
+        coeff.append(z)
+        return coeff
+
+    def solid_int_ellip(lambda1, mu, nu, n, p, h2, k2):
+        return ellip_harm(h2, k2, n, p, lambda1)*ellip_harm(h2, k2, n, p, mu)*ellip_harm(h2, k2, n, p, nu)
+    def solid_int_ellip2(lambda1, mu, nu, n, p, h2, k2):
+        return test_harm2_mpmath(h2, k2, n, p, lambda1)*ellip_harm(h2, k2, n, p, mu)*ellip_harm(h2, k2, n, p, nu)
+    def recursion(lambda1, mu1, nu1, lambda2, mu2, nu2, h2, k2):
+        sum1 = 0
+        for n in range(10):
+            for p in range(1, 2*n+2):
+                sum1 += 4*pi*(solid_int_ellip(lambda2, mu2, nu2, n, p, h2, k2)*solid_int_ellip2(lambda1, mu1, nu1, n, p, h2, k2))/(test_norm_mpmath(h2, k2, n, p)*(2*n + 1))
+        return sum1
+
+    def potential(lambda1, mu1, nu1, lambda2, mu2, nu2, h2, k2):
+        x1, y1, z1 = change_coefficient(lambda1, mu1, nu1, h2, k2)
+        x2, y2, z2 = change_coefficient(lambda2, mu2, nu2, h2, k2)
+        res = sqrt((x2 - x1)**2 + (y2 - y1)**2 + (z2 - z1)**2)
+        return 1/res
+    print(recursion(120, sqrt(19), 2, 41, sqrt(17), 2, 15, 25), potential(120, sqrt(19), 2, 41, sqrt(17), 2, 15, 25)) 
+    
 def test_ellip_norm1():
     def change_coefficient(lambda1, mu, nu, h2, k2):
         coeff = []
@@ -33,7 +123,7 @@ def test_ellip_norm1():
     def recursion(lambda1, mu1, nu1, lambda2, mu2, nu2, h2, k2):
         sum1 = 0
         for n in range(10):
-            for p in range(1, 2*n+1):
+            for p in range(1, 2*n+2):
                 sum1 += 4*pi*(solid_int_ellip(lambda2, mu2, nu2, n, p, h2, k2)*solid_int_ellip2(lambda1, mu1, nu1, n, p, h2, k2))/(ellip_normal(h2, k2, n, p)*(2*n + 1))
         return sum1
 
@@ -42,8 +132,7 @@ def test_ellip_norm1():
         x2, y2, z2 = change_coefficient(lambda2, mu2, nu2, h2, k2)
         res = sqrt((x2 - x1)**2 + (y2 - y1)**2 + (z2 - z1)**2)
         return 1/res
-
-    print(recursion(51, 5.9, 3, 45, 6, 2, 15, 40), potential(51, 5.9, 3, 45, 6, 2, 15, 40)) 
+    print(recursion(120, sqrt(19), 2, 41, sqrt(17), 2, 15, 25), potential(120, sqrt(19), 2, 41, sqrt(17), 2, 15, 25)) 
 
 def test_ellip_norm():
 
@@ -141,7 +230,6 @@ def test_ellip_norm():
             points.append((h2, k2, n*np.ones(h2.size), p*np.ones(h2.size)))
     points = np.array(points)
     assert_func_equal(ellip_normal, ellip_normal_known, points, rtol=1e-12)
-
 
 def test_ellip_harm_2():
 
