@@ -119,20 +119,25 @@ def test_ellip_norm1():
 
     def solid_int_ellip2(lambda1, mu, nu, n, p, h2, k2):
         return ellip_harm_2(h2, k2, n, p, lambda1)*ellip_harm(h2, k2, n, p, mu)*ellip_harm(h2, k2, n, p, nu)
-
-    def recursion(lambda1, mu1, nu1, lambda2, mu2, nu2, h2, k2):
-        sum1 = 0
-        for n in range(10):
-            for p in range(1, 2*n+2):
-                sum1 += 4*pi*(solid_int_ellip(lambda2, mu2, nu2, n, p, h2, k2)*solid_int_ellip2(lambda1, mu1, nu1, n, p, h2, k2))/(ellip_normal(h2, k2, n, p)*(2*n + 1))
-        return sum1
-
     def potential(lambda1, mu1, nu1, lambda2, mu2, nu2, h2, k2):
         x1, y1, z1 = change_coefficient(lambda1, mu1, nu1, h2, k2)
         x2, y2, z2 = change_coefficient(lambda2, mu2, nu2, h2, k2)
         res = sqrt((x2 - x1)**2 + (y2 - y1)**2 + (z2 - z1)**2)
         return 1/res
-    print(recursion(120, sqrt(19), 2, 41, sqrt(17), 2, 15, 25), potential(120, sqrt(19), 2, 41, sqrt(17), 2, 15, 25)) 
+
+    exact = potential(90, sqrt(19), 2, 41, sqrt(17), 2, 15, 25)
+
+    def recursion(lambda1, mu1, nu1, lambda2, mu2, nu2, h2, k2):
+        sum1 = 0
+        for n in range(20):
+            xsum = 0
+            for p in range(1, 2*n+2):
+                xsum += 4*pi*(solid_int_ellip(lambda2, mu2, nu2, n, p, h2, k2)*solid_int_ellip2(lambda1, mu1, nu1, n, p, h2, k2))/(ellip_normal(h2, k2, n, p)*(2*n + 1))
+            sum1 += xsum
+            print(n, abs(xsum)/abs(sum1), abs(sum1/exact - 1))
+        return sum1
+
+    print(recursion(90, sqrt(19), 2, 41, sqrt(17), 2, 15, 25) / exact - 1) 
 
 def test_ellip_norm():
 

@@ -87,9 +87,9 @@ cdef inline double ellip_harmonic(double h2, double k2, int n, int p, double s, 
         size = r	
         psi = pow(s,  n - 2*r)*signm*signn*sqrt(fabs((s2 - h2)*(s2 - k2)))
 
-    lwork = 60*size
-    liwork = 30*size
-    tol = 0.0
+    lwork = 600*size
+    liwork = 300*size
+    tol = 1e-35
     vl = 0
     vu = 0
 
@@ -127,7 +127,7 @@ cdef inline double ellip_harmonic(double h2, double k2, int n, int p, double s, 
                f[j] = (-alpha*(2*(r- (j + 1)) + 2)*(2*((j + 1) + r) + 1))
                d[j] = (2*r + 1)*(2*r + 2)*alpha - (2*j + 1)*(2*j + 1)*gamma
            else:
-               f[j] = (-alpha*(2*(r - (j + 1)))*(2*(r*(j + 1)) + 1))
+               f[j] = (-alpha*(2*(r - (j + 1)))*(2*r + 2*(j + 1) + 1))
                d[j] = (2*r*(2*r + 1) - (2*j + 1)*(2*j + 1))*alpha + (2*j + 2)*(2*j + 2)*beta
 		
     elif t == 'M':
@@ -137,19 +137,18 @@ cdef inline double ellip_harmonic(double h2, double k2, int n, int p, double s, 
                f[j] = (-alpha*(2*(r - (j + 1)) + 2)*(2*((j + 1) + r) + 1))
                d[j] = ((2*r + 1)*(2*r + 2) - (2*j + 1)*(2*j + 1))*alpha + 4*j*j*beta
            else:
-               f[j] = (-alpha*(2*(r - (j + 1)))*(2*(r*(j + 1)) + 1))
-               d[j] = 2*r*(2*r + 1)*(2*r + 2) - (2*j + 1)*(2*j + 1)*gamma	
+               f[j] = (-alpha*(2*(r - (j + 1)))*(2*r + 2*(j + 1) + 1))
+               d[j] = 2*r*(2*r + 1)*alpha - (2*j + 1)*(2*j + 1)*gamma	
 
     elif t == 'N':
         for j in range(0, r):
            g[j] = (-(2*j + 2)*(2*j + 3)*beta) 
            if n%2:
-               f[j] = (-alpha*(2*(r- (j + 1)) + 2)*(2*((j + 1) + r) + 3))
+               f[j] = (-alpha*(2*(r- (j + 1)))*(2*((j + 1) + r) + 3))
                d[j] = (2*r + 1)*(2*r + 2)*alpha - (2*j + 2)*(2*j + 2)*gamma	
            else:
-               f[j] = (-alpha*(2*(r - (j + 1)))*(2*(r*(j + 1)) + 1))   
+               f[j] = (-alpha*(2*(r - (j + 1)))*(2*r + 2*(j + 1) + 1))   
                d[j] = 2*r*(2*r + 1)*alpha - (2*j + 2)*(2*j +2)*alpha + (2*j + 1)*(2*j + 1)*beta
-    
 
     for i in range(0, size):
         if i == 0:
@@ -161,7 +160,7 @@ cdef inline double ellip_harmonic(double h2, double k2, int n, int p, double s, 
         dd[i] = g[i]*ss[i]/ss[i+1]
 
     c_dstevr("V", "I", &size, <double *>d, <double *>dd, &vl, &vu, &tp, &tp, &tol, &c, <double *>w, <double *>eigv, &size, <int *>isuppz, <double *>work, &lwork, <int *>iwork, &liwork, &info)
-              	 
+
     if info != 0: 
         sf_error.error("ellip_harm", sf_error.ARG, "illegal")
         free(buffer)
@@ -179,7 +178,7 @@ cdef inline double ellip_harmonic(double h2, double k2, int n, int p, double s, 
 
     for j in range(size - 2, -1, -1):
         pp = pp*lambda_romain + eigv[j]
-    
- #   free(buffer)
+
+    free(buffer)
     return psi*pp 
  

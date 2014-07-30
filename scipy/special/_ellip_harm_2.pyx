@@ -120,7 +120,7 @@ def _ellipsoid(double h2, double k2, int n, int p, double s):
     _global_p = p
 
     res, err = scipy.integrate.quad(_F_integrand_ctypes, 0, 1/s,
-                                    epsabs=1e-08, epsrel=1e-15)
+                                    epsabs=1e-300, epsrel=1e-15)
     if abs(err) > 1e-10 * abs(res):
         return nan
     res = res*(2*n + 1)*ellip_harmonic( h2, k2, n, p, s, 1, 1)
@@ -139,16 +139,16 @@ def _ellipsoid_norm(double h2, double k2, int n, int p):
     h = sqrt(h2)
     k = sqrt(k2)
     res, err = scipy.integrate.quad(_F_integrand1_ctypes, h, k,
-                                    epsabs=1e-08, epsrel=1e-15, weight="alg", wvar=(-0.5, -0.5))
+                                    epsabs=1e-300, epsrel=1e-15, weight="alg", wvar=(-0.5, -0.5))
 
     res1, err1 = scipy.integrate.quad(_F_integrand2_ctypes, h, k,
-                                    epsabs=1e-08, epsrel=1e-15, weight="alg", wvar=(-0.5, -0.5))
+                                    epsabs=1e-300, epsrel=1e-15, weight="alg", wvar=(-0.5, -0.5))
 
     res2, err2 = scipy.integrate.quad(_F_integrand3_ctypes, 0, h,
-                                    epsabs=1e-08, epsrel=1e-15, weight="alg", wvar=(0, -0.5))
+                                    epsabs=1e-300, epsrel=1e-15, weight="alg", wvar=(0, -0.5))
 
     res3, err3 = scipy.integrate.quad(_F_integrand4_ctypes, 0, h,
-                                    epsabs=1e-08, epsrel=1e-15, weight="alg", wvar=(0, -0.5))
+                                    epsabs=1e-300, epsrel=1e-15, weight="alg", wvar=(0, -0.5))
     error = 8*(res2*err1 + err2*res1 + res*err3 + res3*err)
     result = 8*(res1*res2 - res*res3)
     if  error > 10e-8*fabs(result):
