@@ -1,0 +1,3 @@
+Cython>=0.19
+numpy>=1.5.1
+nose
