@@ -1314,7 +1314,7 @@ class _TestCommon:
         for format in ['bsr','coo','csc','csr','dia','dok','lil']:
             a = A.asformat(format)
             assert_equal(a.format,format)
-            assert_array_equal(a.todense(), D)
+            assert_array_equal(a.todense(), D, err_msg=format)
 
             b = self.spmatrix(D+3j).asformat(format)
             assert_equal(b.format,format)
@@ -3847,10 +3847,6 @@ class _NonCanonicalMixin(object):
 
     @dec.knownfailureif(True, 'min/max broken with non-canonical matrix')
     def test_minmax(self):
-        pass
-
-    @dec.knownfailureif(True, 'format conversion broken with non-canonical matrix')
-    def test_sparse_format_conversions(self):
         pass
 
     @dec.knownfailureif(True, 'unary ufunc overrides broken with non-canonical matrix')

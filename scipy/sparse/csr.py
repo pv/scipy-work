@@ -133,6 +133,7 @@ class csr_matrix(_cs_matrix, IndexMixin):
         from .lil import lil_matrix
         lil = lil_matrix(self.shape,dtype=self.dtype)
 
+        self.sum_duplicates()
         self.sort_indices()  # lil_matrix needs sorted column indices
 
         ptr,ind,dat = self.indptr,self.indices,self.data
