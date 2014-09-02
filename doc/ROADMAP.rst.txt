@@ -98,9 +98,9 @@ fftpack
 ```````
 Needed:
 
-  - solve issues with single precision: large errors, disabled for difficult sizes
-  - fix caching bug
+  - solve issues with single precision: large errors for difficult sizes; currently disabled
   - Bluestein algorithm nice to have, padding is alternative
+  - fix potential caching bugs
   - deprecate fftpack.convolve as public function (was not meant to be public),
     resolve differences between ``signal.fftconvolve`` / ``fftpack.convolve`` /
     ``signal.convolve`` and ``numpy.convolve`` 
@@ -118,32 +118,33 @@ Needed for ODE solvers:
   - figure out if/how to integrate scikits.odes (Sundials wrapper)
   - figure out what to deprecate 
 
-The numerical integration functions are in good shape.  Support for integrating
-complex-valued functions and integrating multiple intervals (see gh-3325) could
-be added, but is not required for Scipy 1.0.
+The numerical integration functions are in good shape.  Support for
+integrating complex-valued and/or vector-valued functions would be
+desirable.  Integrating multiple intervals (see gh-3325) would also be
+useful for Scipy 1.0.
 
 
 interpolate
 ```````````
 Needed:
 
-  - Transparant B-splines and their usage in the interpolation routines is needed.
-  - Both fitpack and fitpack2 interfaces will be kept.
-  - splmake should go; is different spline representation --> need exactly one
-  - interp1d/interp2d are somewhat ugly but widely used, so we keep them.
-  - Regular grid interpolation routines needed
+  - Transparent B-splines and their usage in the interpolation routines is needed.
+  - Both fitpack and fitpack2 interfaces will be kept, but for backward compatibility only.
+  - splmake et al are to be deprecated: different spline representation, inefficient
+  - interp1d/interp2d are somewhat ugly but widely used, so keep
+  - Dealing with NaN/missing data for regular grid interpolation; local interpolation methods?
 
 
 io
 --
 wavfile;
 
-    - PCM float will be supported, for anything else use audiolab or other
-      specialized libraries.
-    - raise errors instead of warnings if data not understood.
+ - PCM float will be supported, for anything else use audiolab or other
+   specialized libraries.
+ - Raise errors instead of warnings if data not understood.
 
 Other sub-modules (matlab, netcdf, idl, harwell-boeing, arff, matrix market)
-are in good shape.
+are in reasonably good shape.
 
 
 lib
@@ -155,7 +156,7 @@ linalg
 ``````
 Needed:
 
-  - remove functions that are duplicate with numpy.linalg
+  - deprecate functions that are duplicate with numpy.linalg
   - get_lapack_funcs should always use flapack
   - cblas, clapack are deprecated, will go away
   - wrap more lapack functions
@@ -247,17 +248,17 @@ there now doesn't make much sense.
 sparse
 ``````
 The sparse matrix formats are getting feature-complete but are slow ...
-reimplement parts in Cython?
 
-    - Small matrices are slower than PySparse, needs fixing
+  - Need fast matrix format suitable for assembly
+  - Catch up with PySparse on small matrix speed
 
-There are a lot of formats.  These should be kept, but
-improvements/optimizations should go into CSR/CSC, which are the preferred
-formats.  LIL may be the exception, it's inherently inefficient.  It could be
-dropped if DOK is extended to support all the operations LIL currently
-provides.
+There are a lot of formats.  These should be kept, but main
+improvements/optimizations should focus on CSR/CSC, which are the
+preferred formats.  LIL and DOK are inherently inefficient due to use
+of Python data structures.
 
-Don't emulate np.matrix behavior, drop 2-D?
+Don't emulate np.matrix behavior, drop 2-D? Possible transition path
+adding new classes CSRArray, CSCArray, etc.
 
 
 sparse.csgraph
@@ -271,16 +272,15 @@ Arpack is in good shape.
 
 isolve:
 
-    - callback keyword is inconsistent 
-    - tol keyword is broken, should be relative tol
-    - Fortran code not re-entrant (but we don't solve, maybe re-use from
-        PyKrilov)
+  - callback keyword is inconsistent 
+  - tol keyword is broken, should be relative tol
+  - Fortran code not re-entrant (but we don't solve, maybe re-use from
+    PyKrylov)
 
 dsolve:
 
-    - remove umfpack wrapper due to license reasons
-    - add sparse Cholesky or incomplete Cholesky
-    - look at CHOLMOD
+  - Fix up scikit.sparse; SuperLU performance is not enough for all purposes
+  - Add sparse Cholesky or incomplete Cholesky; CHOLMOD?
 
 
 spatial
