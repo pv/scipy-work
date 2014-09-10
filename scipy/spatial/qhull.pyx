@@ -56,6 +56,7 @@ cdef extern from "qhull/src/qset.h":
 
     int qh_setsize(setT *set) nogil
     void qh_setappend(setT **setp, void *elem) nogil
+    void qh_settempfree(setT **set) nogil
 
 cdef extern from "qhull/src/libqhull.h":
     ctypedef double realT
@@ -129,6 +130,7 @@ cdef extern from "qhull/src/libqhull.h":
     extern qhT *qh_qh
     extern int qh_PRINToff
     extern int qh_ALL
+    extern int qh_ASvoronoi
 
     void qh_init_A(void *inp, void *out, void *err, int argc, char **argv) nogil
     void qh_init_B(realT *points, int numpoints, int dim, boolT ismalloc) nogil
@@ -140,10 +142,16 @@ cdef extern from "qhull/src/libqhull.h":
     void qh_qhull() nogil
     void qh_check_output() nogil
     void qh_produce_output() nogil
+    void qh_clearcenters(int) nogil
+    void qh_vertexneighbors() nogil
+    void qh_produce_output() nogil
     void qh_triangulate() nogil
     void qh_checkpolygon() nogil
     void qh_findgood_all() nogil
     void qh_appendprint(int format) nogil
+    setT *qh_markvoronoi(facetT *facetlist, setT *facets, boolT printall, boolT *isLowerp, int *numcentersp) nogil
+    void qh_printvdiagram(void *fp, int format, facetT *facetlist, setT *facets, boolT printall) nogil
+    int qh_printvdiagram2(void *fp, void *printvridge, setT *vertices, qh_RIDGE innerouter, boolT inorder) nogil
     setT *qh_pointvertex() nogil
     realT *qh_readpoints(int* num, int *dim, boolT* ismalloc) nogil
     int qh_new_qhull(int dim, int numpoints, realT *points,
@@ -716,6 +724,9 @@ cdef class _Qhull:
         cdef vertexT *vertex
         cdef facetT *neighbor
         cdef facetT *facet
+        cdef setT *vertices
+        cdef boolT isLower
+        cdef int numcenters
 
         cdef object tmp
         cdef np.ndarray[np.double_t, ndim=2] voronoi_vertices
@@ -736,8 +747,15 @@ cdef class _Qhull:
         self._ridge_points = np.empty((10, 2), np.intc)
         self._ridge_vertices = []
 
+        #vertices = qh_markvoronoi(qh_qh.facet_list, NULL, 1, &isLower, &numcenters)
+        #qh_printvdiagram2(NULL, NULL, vertices, qh_RIDGEinner, 0)
+        #qh_printvdiagram2(<void*>self, &_visit_voronoi, vertices, qh_RIDGEinner, 0)
+        #qh_settempfree(&vertices)
+
         qh_eachvoronoi_all(<void*>self, &_visit_voronoi, qh_qh.UPPERdelaunay,
                            qh_RIDGEall, 1)
+
+        print "FFFFF"
 
         self._ridge_points = self._ridge_points[:self._nridges]
 
