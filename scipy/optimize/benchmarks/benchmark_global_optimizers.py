@@ -5,17 +5,19 @@ benchmarks for the global optimization algorithms
 import numpy as np
 
 import time
+import inspect
 from scipy.optimize import basinhopping, differential_evolution, OptimizeResult
 
-import test_functions as funcs
+import go_benchmark_functions as gbf
 from numpy.testing import Tester, TestCase, assert_array_almost_equal
 from collections import defaultdict
 
-NUMTRIALS = 10
+NUMTRIALS = 100
 
 
 class _BenchOptimizers(object):
-    """a framework for benchmarking the optimizer
+    """
+    A framework for benchmarking optimizers
 
     Parameters
     ----------
@@ -33,15 +35,9 @@ class _BenchOptimizers(object):
         if hasattr(function, 'der'):
             self.der = function.der
 
-        upper_limit = function.xmax
-        lower_limit = function.xmin
-        limits = np.c_[lower_limit, upper_limit].T
-        self.bounds = [(limits[0, idx], limits[1, idx])
-                       for idx in range(np.size(limits, 1))]
+        self.bounds = function.bounds
 
         self.minimizer_kwargs = minimizer_kwargs
-        self.tol = 1e-4
-
         self.results = []
 
     def reset(self):
@@ -51,16 +47,15 @@ class _BenchOptimizers(object):
         return self.fun(x), self.function.der(x)
 
     # for basinhopping
-    def get_random_configuration(self):
-        if hasattr(self.function, "get_random_configuration"):
-            return self.function.get_random_configuration()
-        xmin, xmax = self.function.xmin, self.function.xmax
-        x = np.random.uniform(xmin[0] + .01, xmax[0] - .01)
-        y = np.random.uniform(xmin[1] + .01, xmax[1] - .01)
-        return np.array([x, y])
-
-    # for basinhopping
     def accept_test(self, x_new=None, *args, **kwargs):
+        """
+        Does the new candidate vector lie inbetween the bounds?
+
+        Returns
+        -------
+        accept_test : bool
+            The candidate vector lies inbetween the bounds
+        """
         if not hasattr(self.function, "xmin"):
             return True
         if np.any(x_new < self.function.xmin):
@@ -69,26 +64,20 @@ class _BenchOptimizers(object):
             return False
         return True
 
-    # for basinhopping
-    def stop_criterion(self, coords, E, accepted):
-        if accepted and E < self.function.target_E + self.tol:
-            return True
-        else:
-            return False
-
-    def found_target(self, res):
-        try:
-            assert_array_almost_equal(np.abs(res.x),
-                                          np.abs(self.function.solution),
-                                          decimal=4)
-            return True
-        except (AssertionError):
-            return False
-
     def add_result(self, result, t, name):
         """
-        add a result to the list
+        Add a result to the list
+
+        Parameters
+        ----------
+        result : OptimizeResult
+            The result from the minimization
+        t : float
+            Time taken to perform the minimisation
+        name : str
+            The name of the minimizer used
         """
+
         result.time = t
         result.name = name
         if not hasattr(result, "njev"):
@@ -99,7 +88,7 @@ class _BenchOptimizers(object):
 
     def print_results(self):
         """
-        print the current list of results
+        Print the current list of results
         """
         results = self.average_results()
         results = sorted(results, key=lambda x: (x.nfail, x.mean_time))
@@ -144,7 +133,7 @@ class _BenchOptimizers(object):
 
     def bench_run(self, **minimizer_kwargs):
         """
-        do an optimization test starting at x0 for all the optimizers
+        Do an optimization test starting at x0 for all the optimizers
         """
         kwargs = self.minimizer_kwargs
 
@@ -153,66 +142,60 @@ class _BenchOptimizers(object):
         if hasattr(self.fun, "stepsize"):
             kwargs["stepsize"] = self.function.stepsize
         minimizer_kwargs = {"method": "L-BFGS-B"}
-        x0 = self.get_random_configuration()
-
-        # basinhopping - with gradient
-        if hasattr(self.function, 'der'):
-            minimizer_kwargs['jac'] = True
-            t0 = time.time()
-            res = basinhopping(
-                self.energy_gradient, x0, accept_test=self.accept_test,
-                callback=self.stop_criterion, niter=1000,
-                minimizer_kwargs=minimizer_kwargs,
-                **kwargs)
-            t1 = time.time()
-            res.success = True
-            if not self.found_target(res):
-                res.success = False
-            self.add_result(res, t1 - t0, 'basinhopping')
+        x0 = self.function.initial_vector()
 
         # basinhopping - no gradient
-        x0 = self.get_random_configuration()
         minimizer_kwargs['jac'] = False
+        self.function.nfev = 0
+
         t0 = time.time()
 
         res = basinhopping(
             self.fun, x0, accept_test=self.accept_test,
-            callback=self.stop_criterion, niter=1000,
             minimizer_kwargs=minimizer_kwargs,
             **kwargs)
 
         t1 = time.time()
-        res.success = True
-        if not self.found_target(res):
-            res.success = False
-        self.add_result(res, t1 - t0, 'basinhopping - no gradient')
+        res.success = self.function.success(res.x)
+        res.nfev = self.function.nfev
+        self.add_result(res, t1 - t0, 'basinhopping')
 
         # differential_evolution
+        self.function.nfev = 0
+
         t0 = time.time()
 
         res = differential_evolution(self.fun,
                                      self.bounds,
-                                     popsize=20,
-                                     polish=True)
+                                     popsize=20)
 
         t1 = time.time()
-        if not self.found_target(res):
-            res.success = False
+        res.success = self.function.success(res.x)
+        res.nfev = self.function.nfev
         self.add_result(res, t1 - t0, 'differential_evolution')
 
 
 class BenchGlobalOptimizers(TestCase):
-    """Benchmark the global optimizers"""
+    """
+    Benchmark the global optimizers using the go_benchmark_functions
+    suite
+    """
 
     def bench_all(self):
-        functions = ['Ackley', 'Levi', 'HolderTable', 'EggHolder',
-                     'Schaffer2', 'Schaffer4', 'CrossInTray',
-                     'Booth', 'Beale']
+        bench_members = inspect.getmembers(gbf, inspect.isclass)
+        functions = [item for item in bench_members if
+                                    issubclass(item[1], gbf.Benchmark)]
 
-        for function in functions:
-            f = getattr(funcs, function)()
+        for name, klass in functions:
+            f = klass()
+            if name == 'Benchmark':
+                continue
+            if name is 'LennardJones':
+                continue
+            if name.startswith('Problem'):
+                continue
 
-            b = _BenchOptimizers(function, f)
+            b = _BenchOptimizers(name, f)
             for i in range(NUMTRIALS):
                 b.bench_run()
 
