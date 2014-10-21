@@ -151,6 +151,9 @@ SITECFG = {"sse3" : {'BLAS': 'None', 'LAPACK': 'None', 'ATLAS': r'C:\local\lib\y
                       'LAPACK': r'C:\local\lib\yop\nosse'}}
 
 # Wine config for win32 builds
+WINE = os.environ.get('WINE', 'wine')
+WINEPREFIX = os.environ.get('WINEPREFIX', os.environ['HOME'] + "/.wine")
+
 if sys.platform == "win32":
     WINE_PY26 = [r"C:\Python26\python26.exe"]
     WINE_PY27 = [r"C:\Python27\python27.exe"]
@@ -159,20 +162,20 @@ if sys.platform == "win32":
     WINDOWS_ENV = os.environ
     MAKENSIS = ["makensis"]
 elif sys.platform == "darwin":
-    WINE_PY26 = ["wine", os.environ['HOME'] + "/.wine/drive_c/Python26/python.exe"]
-    WINE_PY27 = ["wine", os.environ['HOME'] + "/.wine/drive_c/Python27/python.exe"]
-    WINE_PY32 = ["wine", os.environ['HOME'] + "/.wine/drive_c/Python32/python.exe"]
-    WINE_PY33 = ["wine", os.environ['HOME'] + "/.wine/drive_c/Python33/python.exe"]
+    WINE_PY26 = [WINE, WINEPREFIX + "/drive_c/Python26/python.exe"]
+    WINE_PY27 = [WINE, WINEPREFIX + "/drive_c/Python27/python.exe"]
+    WINE_PY32 = [WINE, WINEPREFIX + "/drive_c/Python32/python.exe"]
+    WINE_PY33 = [WINE, WINEPREFIX + "/drive_c/Python33/python.exe"]
     WINDOWS_ENV = os.environ
     WINDOWS_ENV["DYLD_FALLBACK_LIBRARY_PATH"] = "/usr/X11/lib:/usr/lib"
-    MAKENSIS = ["wine", "makensis"]
+    MAKENSIS = [WINE, "makensis"]
 else:
-    WINE_PY26 = [os.environ['HOME'] + "/.wine/drive_c/Python26/python.exe"]
-    WINE_PY27 = [os.environ['HOME'] + "/.wine/drive_c/Python27/python.exe"]
-    WINE_PY32 = [os.environ['HOME'] + "/.wine/drive_c/Python32/python.exe"],
-    WINE_PY33 = [os.environ['HOME'] + "/.wine/drive_c/Python33/python.exe"],
+    WINE_PY26 = [WINE, WINEPREFIX + "/drive_c/Python26/python.exe"]
+    WINE_PY27 = [WINE, WINEPREFIX + "/drive_c/Python27/python.exe"]
+    WINE_PY32 = [WINE, WINEPREFIX + "/drive_c/Python32/python.exe"],
+    WINE_PY33 = [WINE, WINEPREFIX + "/drive_c/Python33/python.exe"],
     WINDOWS_ENV = os.environ
-    MAKENSIS = ["wine", "makensis"]
+    MAKENSIS = [WINE, "makensis"]
 WINE_PYS = {'3.3':WINE_PY33, '3.2':WINE_PY32,
             '2.7':WINE_PY27, '2.6':WINE_PY26}
 
