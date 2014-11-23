@@ -1,0 +1,43 @@
+==========================
+SciPy 0.14.1 Release Notes
+==========================
+
+SciPy 0.14.1 is a bug-fix release with no new features compared to 0.14.0.
+
+
+Issues closed for 0.14.1
+------------------------
+
+- `#3630 <https://github.com/scipy/scipy/issues/3630>`__: NetCDF reading results in a segfault
+- `#3631 <https://github.com/scipy/scipy/issues/3631>`__: SuperLU object not working as expected for complex matrices
+- `#3733 <https://github.com/scipy/scipy/issues/3733>`__: segfault from map_coordinates
+- `#3780 <https://github.com/scipy/scipy/issues/3780>`__: Segfault when using CSR/CSC matrix and uint32/uint64
+- `#3802 <https://github.com/scipy/scipy/issues/3802>`__: 0.14.0 API breakage: _gen generators are missing from scipy.stats.distributions API
+- `#3805 <https://github.com/scipy/scipy/issues/3805>`__: ndimge test failures with numpy 1.10
+- `#3812 <https://github.com/scipy/scipy/issues/3812>`__: == sometimes wrong on csr_matrix
+- `#3853 <https://github.com/scipy/scipy/issues/3853>`__: Many scipy.sparse test errors/failures with numpy 1.9.0b2
+- `#4149 <https://github.com/scipy/scipy/issues/4149>`__: Bug in expm for integer arrays
+- `#4154 <https://github.com/scipy/scipy/issues/4154>`__: Backport gh-4041 for 0.14.1 (Ensure that the 'size' argument of PIL's 'resize' method is a tuple)
+- `#4163 <https://github.com/scipy/scipy/issues/4163>`__: Backport #4142 (ZeroDivisionError in scipy.sparse.linalg.lsqr)
+- `#4164 <https://github.com/scipy/scipy/issues/4164>`__: Backport gh-4153 (remove use of deprecated numpy API in lib/lapack/ f2py wrapper)
+
+
+Pull requests for 0.14.1
+------------------------
+
+- `#3635 <https://github.com/scipy/scipy/pull/3635>`__: BUG: sparse/superlu: fix || vs && mistake in L/U attributes +...
+- `#3685 <https://github.com/scipy/scipy/pull/3685>`__: DEP: put back veccdf/vecfunc/vec_generic_momemt in stats.distributions.
+- `#3781 <https://github.com/scipy/scipy/pull/3781>`__: BUG: sparse: fix omitted types in sparsetools typemaps
+- `#3804 <https://github.com/scipy/scipy/pull/3804>`__: MAINT: put more classes back into the scipy.stats.distributions...
+- `#3806 <https://github.com/scipy/scipy/pull/3806>`__: BUG: numpy version checking in ndimage
+- `#3813 <https://github.com/scipy/scipy/pull/3813>`__: BUG: sparse: fix __eq__ for matrices with explicit zeros
+- `#3826 <https://github.com/scipy/scipy/pull/3826>`__: TST: sparse: remove a test made unnecessary by addition of 64-bit...
+- `#3859 <https://github.com/scipy/scipy/pull/3859>`__: BUG: Fix tests that expect numpy 1.9 to implement __numpy_ufunc__.
+- `#3961 <https://github.com/scipy/scipy/pull/3961>`__: Revert segfault-causing netcdf changes in 0.14.x
+- `#3962 <https://github.com/scipy/scipy/pull/3962>`__: TST: sparse: replace __numpy_ufunc__ version checks by functionality...
+- `#4093 <https://github.com/scipy/scipy/pull/4093>`__: BUG: fitpack: avoid a memory error in splev(x, tck, der=k)
+- `#4143 <https://github.com/scipy/scipy/pull/4143>`__: BUG: fix ndimage functions for large data
+- `#4162 <https://github.com/scipy/scipy/pull/4162>`__: Backport expm integer fix
+- `#4167 <https://github.com/scipy/scipy/pull/4167>`__: Backport gh-4153
+- `#4180 <https://github.com/scipy/scipy/pull/4180>`__: backport pil resize support tuple fix
+
