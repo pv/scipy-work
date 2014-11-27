@@ -4,7 +4,9 @@ May 2007
 """
 from __future__ import division, print_function, absolute_import
 
-from numpy.testing import assert_, dec, TestCase, run_module_suite
+import itertools
+
+from numpy.testing import assert_, dec, TestCase, run_module_suite, assert_equal
 
 from scipy.lib.six import xrange
 from scipy.optimize import nonlin, root
@@ -251,6 +253,42 @@ class TestLinear(TestCase):
         # Krylov methods solve linear systems exactly in N inner steps
         self._check(nonlin.KrylovJacobian, 20, 2, False, inner_m=10)
         self._check(nonlin.KrylovJacobian, 20, 2, True, inner_m=10)
+
+
+class TestLowRankMatrix(object):
+    def test_compute_eta(self):
+        np.random.seed(1234)
+
+        sigmas = np.r_[0, np.random.rand(10), 1]
+        xs = np.linspace(1, 10)
+        xs = np.r_[1/xs[1:], -1/xs[1:], -xs, xs, 0, 1e-8, -1e-8]
+
+        def check(x, sigma):
+            eta = nonlin.LowRankMatrix._compute_eta(x, sigma)
+            err_msg = repr(dict(x=x, sigma=sigma, eta=eta))
+
+            eps = 1e-12*(1 + abs(x))
+
+            if sigma > 0:
+                # Check validity
+                assert_(0 <= eta, err_msg)
+                assert_(eta <= 1, err_msg)
+                assert_(sigma - eps <= abs(1 + eta*x), err_msg)
+                assert_(abs(1 + eta*x) <= 1/sigma + eps, err_msg)
+
+                # Check optimality
+                es = np.linspace(0, 1, 100)
+                es = es[(abs(1 + es*x) <= 1.0/sigma) & (sigma <= abs(1 + es*x))]
+                if es.size > 0:
+                    assert_(eta >= es.max())
+            else:
+                assert_equal(eta, 1)
+
+        check(0, 1)
+        check(1, 0)
+        check(1, 0.5)
+        for x, sigma in itertools.product(xs.tolist(), sigmas.tolist()):
+            check(x, sigma)
 
 
 class TestJacobianDotSolve(object):

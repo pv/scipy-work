@@ -768,7 +768,41 @@ class LowRankMatrix(object):
             return solve(self.collapsed.T.conj(), v)
         return LowRankMatrix._solve(v, np.conj(self.alpha), self.ds, self.cs)
 
-    def append(self, c, d):
+    def append(self, c, d, sigma=0):
+        r"""
+        Update the low-rank approximation: B += c d.H
+
+        Parameters
+        ----------
+        c, d : ndarray
+            Vectors to add
+        sigma : float, optional
+            Regularization parameter. Default is no regularization.
+
+        Notes
+        -----
+        Try to bound the determinant such that for `sigma` in [0, 1):
+
+        .. math:: \sigma \det B_k < \det B_{k+1} < \det B_k / \sigma
+
+        see [1]_.
+
+        References
+        ----------
+        .. [1] J.M. Martinez, J. Comp. Appl. Math. 124, 97 (2000)
+
+        """
+        if sigma > 0:
+            # Note that det(B_k + eta c d^dg) = det(B_k) * (1 + eta d^dg B_k^-1 c)
+            #
+            # We want the result be as close to 1 in order to preserve
+            # secant conditions.
+            x = np.vdot(d, self.solve(c))
+
+            # eta = max{ eta in [0,1]: sigma < |1 + eta x| < 1/sigma }
+            eta = LowRankMatrix._compute_eta(x, sigma)
+            c = c*eta
+
         if self.collapsed is not None:
             self.collapsed += c[:,None] * d[None,:].conj()
             return
@@ -778,6 +812,31 @@ class LowRankMatrix(object):
 
         if len(self.cs) > c.size:
             self.collapse()
+
+    @staticmethod
+    def _compute_eta(x, sigma):
+        """
+        Compute max{ eta in [0,1]: sigma < |1 + eta x| < 1/sigma }
+        """
+        if sigma == 0:
+            return 1
+        elif np.iscomplexobj(x):
+            # Fall back to brute force approximate solution
+            eta = np.linspace(0, 1, 100)
+            eta = eta[(sigma <= abs(1 + eta*x)) & (abs(1 + eta*x) <= 1/sigma)]
+            return eta.max()
+        elif x == 0:
+            return 1.0
+        elif x > 0:
+            return min((1.0/sigma - 1.0)/x, 1.0)
+        elif x < 0:
+            eta_1 = (1.0 - sigma) / abs(x)
+            eta_2a = (1.0 + sigma) / abs(x)
+            eta_2b = (1.0 + 1.0/sigma) / abs(x)
+            if eta_2a <= 1:
+                return min(eta_2b, 1.0)
+            else:
+                return min(eta_1, 1.0)
 
     def __array__(self):
         if self.collapsed is not None:
@@ -903,6 +962,10 @@ _doc_parts['broyden_params'] = """
     max_rank : int, optional
         Maximum rank for the Broyden matrix.
         Default is infinity (ie., no rank reduction).
+    sigma : float, optional
+        Regularization parameter in range [0, 1) for bounding the Jacobian
+        determinant, ``sigma det B_k < det B_{k+1} < det B_k / sigma``.
+        Useful values are ~ 0.1. Default: 0
     """.strip()
 
 
@@ -940,10 +1003,11 @@ class BroydenFirst(GenericBroyden):
 
     """
 
-    def __init__(self, alpha=None, reduction_method='restart', max_rank=None):
+    def __init__(self, alpha=None, reduction_method='restart', max_rank=None, sigma=0):
         GenericBroyden.__init__(self)
         self.alpha = alpha
         self.Gm = None
+        self.sigma = sigma
 
         if max_rank is None:
             max_rank = np.inf
@@ -996,7 +1060,7 @@ class BroydenFirst(GenericBroyden):
         c = dx - self.Gm.matvec(df)
         d = v / vdot(df, v)
 
-        self.Gm.append(c, d)
+        self.Gm.append(c, d, sigma=self.sigma)
 
 
 class BroydenSecond(BroydenFirst):
@@ -1036,7 +1100,7 @@ class BroydenSecond(BroydenFirst):
         v = df
         c = dx - self.Gm.matvec(df)
         d = v / df_norm**2
-        self.Gm.append(c, d)
+        self.Gm.append(c, d, sigma=self.sigma)
 
 
 #------------------------------------------------------------------------------
