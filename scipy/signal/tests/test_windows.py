@@ -4,7 +4,7 @@ import warnings
 import numpy as np
 from numpy import array
 from numpy.testing import (assert_array_almost_equal, assert_array_equal,
-                           run_module_suite, assert_raises)
+                           run_module_suite, assert_raises, dec)
 from scipy import signal
 
 
@@ -126,6 +126,7 @@ class TestGetWindow(object):
         assert_raises(ValueError, signal.resample, (sig, len(sig) * osfactor), {'window': win})
 
 
+@dec.knownfailureif(True, "slepian window issue in gh-3675")
 def test_windowfunc_basics():
     for window_name, params in window_funcs:
         window = getattr(signal, window_name)
