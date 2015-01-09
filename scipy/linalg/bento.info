@@ -20,6 +20,12 @@ Library:
         Sources:
              interpolative.pyf,
              src/id_dist/src/*.f
+    Extension: _blas_subroutine_wrappers
+        Sources:
+	    _blas_subroutine_wrappers.f
+    Extension: _lapack_subroutine_wrappers
+        Sources:
+	    _lapack_subroutine_wrappers.f
     Extension: blas_pointers
         Sources:
             blas_pointers.c
