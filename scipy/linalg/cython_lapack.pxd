@@ -361,5 +361,5 @@ cdef:
     zungrq_t *zungrq_f
     zunmqr_t *zunmqr_f
 
-cpdef dlamch(cmach)
-cpdef slamch(cmach)
+cpdef double dlamch(char cmach)
+cpdef float slamch(char cmach)

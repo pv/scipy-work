@@ -1,12 +1,11 @@
 # cython: boundscheck = False
 # cython: wraparound = False
 # cython: cdivision = True
-
 """
-Function pointers to BLAS functions.
+BLAS Functions for Cython
+=========================
 
-BLAS Functions
-==============
+Raw function pointers (Fortran-style pointer arguments):
 
 - caxpy_f
 - ccopy_f
@@ -111,8 +110,29 @@ BLAS Functions
 - ztrmm_f
 - ztrmv_f
 
-"""
+Friendlier Cython interfaces:
 
+- cdotc
+- cdotu
+- dasum
+- ddot
+- dgemm
+- dnrm2
+- dzasum
+- dznrm2
+- icamax
+- idamax
+- isamax
+- izamax
+- sasum
+- scasum
+- scnrm2
+- sdot
+- snrm2
+- zdotc
+- zdotu
+
+"""
 
 #
 # Function pointers

@@ -1,8 +1,8 @@
 """
-Function pointers to LAPACK functions.
+LAPACK functions for Cython
+===========================
 
-LAPACK Functions
-================
+Raw function pointers (Fortran-style pointer arguments):
 
 - cgbsv_f
 - cgbtrf_f
@@ -176,6 +176,11 @@ LAPACK Functions
 - zungqr_f
 - zungrq_f
 - zunmqr_f
+
+Friendlier Cython-style interfaces:
+
+- slamch
+- dlamch
 
 """
 
@@ -406,12 +411,8 @@ WRAPPED_SUBROUTINES = [
 # Friendly wrappers
 #
 
-cpdef dlamch(cmach):
-    cmach_bytes = bytes(cmach)
-    cdef char* cmach_char = cmach_bytes
-    return dlamch_f(cmach_char)
+cpdef double dlamch(char cmach):
+    return dlamch_f(&cmach)
 
-cpdef slamch(cmach):
-    cmach_bytes = bytes(cmach)
-    cdef char* cmach_char = cmach_bytes
-    return slamch_f(cmach_char)
+cpdef float slamch(char cmach):
+    return slamch_f(&cmach)
