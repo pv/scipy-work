@@ -144,7 +144,7 @@ def wrap_fortran_function(signature):
     arg_list = ",".join(args)
     wname = name + "wrapper"
     return """
-cdef extern w{name}_t *_fortran_{name} "F_FUNC({wname},{WNAME})"
+cdef extern w{name}_t _fortran_{name} "F_FUNC({wname},{WNAME})"
 cdef {ret_type} _wrap_{name}({arg_sig}) nogil:
     cdef {ret_type} out
     _fortran_{name}(&out, {arg_list})
@@ -155,8 +155,8 @@ cdef {name}_t *{name} = &_wrap_{name}
 
 def wrap_fortran_subroutine(name):
     return """
-cdef extern {name}_t *_fortran_{name} "F_FUNC({name},{NAME})"
-cdef {name}_t *{name} = _fortran_{name}
+cdef extern {name}_t _fortran_{name} "F_FUNC({name},{NAME})"
+cdef {name}_t *{name} = &_fortran_{name}
 """.format(name=name, NAME=name.upper())
 
 WRAPPED_FUNCTIONS = [
