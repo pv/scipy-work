@@ -124,25 +124,24 @@ def configuration(parent_package='',top_path=None):
     config.add_data_files('blas_pointers.pxd')
     config.add_data_files('lapack_pointers.pxd')
 
-    sources = ['blas_pointers.c',
-               '_blas_subroutine_wrappers.f']
+    sources = ['_blas_subroutine_wrappers.f', '_lapack_subroutine_wrappers.f']
     sources += get_g77_abi_wrappers(lapack_opt)
     sources += get_sgemv_fix(lapack_opt)
-    config.add_extension('blas_pointers',
-                         sources=sources,
-                         include_dirs=['.'],
-                         depends=['fortran_defs.h', 'blas_pointers.pxd', 'blas_pointers.pyx.in'],
-                         **lapack_opt)
+    config.add_library('fwrappers', sources=sources)
 
-    sources = ['lapack_pointers.c',
-               '_lapack_subroutine_wrappers.f']
-    sources += get_g77_abi_wrappers(lapack_opt)
-    sources += get_sgemv_fix(lapack_opt)
-    config.add_extension('lapack_pointers',
-                         sources=sources,
+    config.add_extension('blas_pointers',
+                         sources=['blas_pointers.c'],
+                         depends=['fortran_defs.h', 'blas_pointers.pxd', 'blas_pointers.pyx.in'],
                          include_dirs=['.'],
+                         libraries=['fwrappers'],
+                         extra_info=lapack_opt)
+
+    config.add_extension('lapack_pointers',
+                         sources=['lapack_pointers.c'],
                          depends=['fortran_defs.h', 'lapack_pointers.pxd', 'lapack_pointers.pyx.in'],
-                         **lapack_opt)
+                         include_dirs=['.'],
+                         libraries=['fwrappers'],
+                         extra_info=lapack_opt)
 
     config.add_extension('_cython_blas_wrappers',
                          sources=['_cython_blas_wrappers.c'],
