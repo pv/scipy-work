@@ -136,16 +136,6 @@ Special Matrices
    toeplitz - Toeplitz matrix
    tri - Construct a matrix filled with ones at and below a given diagonal
 
-
-Utility Functions
-=================
-
-.. autosummary::
-   :toctree: generated/
-
-   get_linalg_dir - Get the directory where scipy.linalg is installed
-
-
 Low-level routines
 ==================
 
@@ -162,10 +152,6 @@ Low-level routines
 
    `scipy.linalg.lapack` -- Low-level LAPACK functions
 
-   `scipy.linalg.blas_pointers` -- Function pointers to BLAS functions
-
-   `scipy.linalg.lapack_pointers` -- Function pointers to LAPACK functions
-
 """
 
 from __future__ import division, print_function, absolute_import
@@ -173,7 +159,6 @@ from __future__ import division, print_function, absolute_import
 from .linalg_version import linalg_version as __version__
 
 from .misc import *
-from .utils import *
 from .basic import *
 from .decomp import *
 from .decomp_lu import *

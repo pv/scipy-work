@@ -5,6 +5,10 @@
 BLAS Functions for Cython
 =========================
 
+Usable from Cython via::
+
+    cimport scipy.linalg.cython_blas
+
 Raw function pointers (Fortran-style pointer arguments):
 
 - caxpy_f

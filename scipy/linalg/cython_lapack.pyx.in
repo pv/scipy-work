@@ -2,6 +2,10 @@
 LAPACK functions for Cython
 ===========================
 
+Usable from Cython via::
+
+    cimport scipy.linalg.cython_lapack
+
 Raw function pointers (Fortran-style pointer arguments):
 
 - cgbsv_f
