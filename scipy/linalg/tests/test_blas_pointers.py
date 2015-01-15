@@ -1,7 +1,7 @@
 import numpy as np
 from numpy.testing import (TestCase, run_module_suite, assert_allclose,
                            assert_equal)
-import scipy.linalg._cython_blas_wrappers as blas
+import scipy.linalg.cython_blas as blas
 
 class test_dgemm(TestCase):
     

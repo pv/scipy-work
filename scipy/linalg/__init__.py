@@ -152,6 +152,10 @@ Low-level routines
 
    `scipy.linalg.lapack` -- Low-level LAPACK functions
 
+   `scipy.linalg.cython_blas` -- Low-level BLAS functions for Cython
+
+   `scipy.linalg.cython_lapack` -- Low-level LAPACK functions for Cython
+
 """
 
 from __future__ import division, print_function, absolute_import
