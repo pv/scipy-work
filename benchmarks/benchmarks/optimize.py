@@ -359,7 +359,8 @@ class Global(Benchmark):
 
         f = klass()
         b = _BenchOptimizers.from_funcobj(name, f)
-        b.bench_run_global(methods=[solver], numtrials=numtrials)
+        with np.errstate(all='ignore'):
+            b.bench_run_global(methods=[solver], numtrials=numtrials)
         av_results = b.average_results()
 
         if ret_value == 'success%':
