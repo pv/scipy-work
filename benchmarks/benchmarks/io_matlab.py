@@ -1,9 +1,11 @@
 from __future__ import division, absolute_import, print_function
-from .common import set_mem_rlimit, run_monitored, get_mem_info
+from .common import set_mem_rlimit, get_mem_info
 
 import os
+import sys
 import tempfile
 import collections
+import subprocess
 from io import BytesIO
 
 import numpy as np
@@ -57,35 +59,26 @@ class MemUsage(Benchmark):
         f.close()
         self.filename = f.name
 
+        # Create test file for loadmat in a subprocess, to avoid
+        # increasing peak memory usage due to that
+        code = """
+        import numpy as np;
+        from scipy.io import savemat;
+        x = np.random.rand({0}//8).view(dtype=np.uint8);
+        savemat('{1}', dict(x=x), do_compression={2}, oned_as='row')
+        """.format(size, self.filename, repr(compressed))
+        subprocess.check_call([sys.executable, '-c', code.replace("\n", "").strip()])
+
     def teardown(self, size, compressed):
         os.unlink(self.filename)
 
-    def track_loadmat(self, size, compressed):
-        size = int(self.sizes[size])
+    def peakmem_loadmat(self, size, compressed):
+        loadmat(self.filename)
 
+    def peakmem_savemat(self, size, compressed):
+        size = int(self.sizes[size])
         x = np.random.rand(size//8).view(dtype=np.uint8)
         savemat(self.filename, dict(x=x), do_compression=compressed, oned_as='row')
-        del x
-
-        code = """
-        from scipy.io import loadmat
-        loadmat('%s')
-        """ % (self.filename,)
-        time, peak_mem = run_monitored(code)
-
-        return peak_mem / size
-
-    def track_savemat(self, size, compressed):
-        size = int(self.sizes[size])
-
-        code = """
-        import numpy as np
-        from scipy.io import savemat
-        x = np.random.rand(%d//8).view(dtype=np.uint8)
-        savemat('%s', dict(x=x), do_compression=%r, oned_as='row')
-        """ % (size, self.filename, compressed)
-        time, peak_mem = run_monitored(code)
-        return peak_mem / size
 
 
 class StructArr(Benchmark):
