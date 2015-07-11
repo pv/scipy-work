@@ -128,7 +128,7 @@ def find_names(module, names_dict):
 
     patterns = [re.compile(pattern) for pattern in patterns]
     module_name = module.__name__
-    
+
     for line in module.__doc__.splitlines():
         res = re.search(r"^\s*\.\. (?:currentmodule|module):: ([a-z0-9A-Z_.]+)\s*$", line)
         if res:
@@ -454,11 +454,12 @@ def main(argv):
     modules = []
     names_dict = {}
 
-    module_names = args.module_names
+    module_names = list(args.module_names)
     for name in list(module_names):
         if name in OTHER_MODULE_DOCS:
+            name = OTHER_MODULE_DOCS[name]
             if name not in module_names:
-                module_names.append(OTHER_MODULE_DOCS[name])
+                module_names.append(name)
 
     for submodule_name in module_names:
         module_name = BASE_MODULE + '.' + submodule_name
