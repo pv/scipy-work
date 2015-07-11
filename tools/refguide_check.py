@@ -225,13 +225,17 @@ def report(all_dict, names, deprecated, module_name):
         print("\nNo missing or extraneous items!")
         return True
     else:
+        ok = True
+
         if len(only_all) > 0:
+            ok = False
             print("")
             print("Objects in %s.__all__ but not in refguide::\n" % module_name)
             for name in sorted(only_all):
                 print("    " + name)
 
         if len(only_ref) > 0:
+            ok = False
             print("")
             print("Objects in refguide but not in %s.__all__::\n" % module_name)
             for name in sorted(only_ref):
@@ -243,7 +247,7 @@ def report(all_dict, names, deprecated, module_name):
             for name in sorted(deprecated):
                 print("    " + name)
 
-        return False
+        return ok
 
 
 def check_docstrings(module, verbose):
