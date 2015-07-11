@@ -1977,6 +1977,7 @@ def mood(x, y, axis=0):
     Examples
     --------
     >>> from scipy import stats
+    >>> np.random.seed(1234)
     >>> x2 = np.random.randn(2, 45, 6, 7)
     >>> x1 = np.random.randn(2, 30, 6, 7)
     >>> z, p = stats.mood(x1, x2, axis=1)
@@ -1993,7 +1994,7 @@ def mood(x, y, axis=0):
     >>> x1 = np.random.randn(2, 30)
     >>> x2 = np.random.randn(2, 35) * 10.0
     >>> stats.mood(x1, x2, axis=1)
-    (array([-5.84332354, -5.6840814 ]), array([5.11694980e-09, 1.31517628e-08]))
+    (array([-5.7178125 , -5.25342163]), array([  1.07904114e-08,   1.49299218e-07]))
 
     """
     x = np.asarray(x, dtype=float)

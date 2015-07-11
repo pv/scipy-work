@@ -3319,6 +3319,7 @@ def linregress(x, y=None):
     Examples
     --------
     >>> from scipy import stats
+    >>> np.random.seed(1234)
     >>> x = np.random.random(10)
     >>> y = np.random.random(10)
     >>> slope, intercept, r_value, p_value, std_err = stats.linregress(x,y)
@@ -3327,7 +3328,7 @@ def linregress(x, y=None):
 
     >>> r_squared = r_value**2
     >>> r_squared
-    0.15286643777
+    0.040765301799949707
 
     """
     TINY = 1.0e-20
@@ -4147,7 +4148,7 @@ def power_divergence(f_obs, f_exp=None, ddof=0, axis=0, lambda_=None):
     >>> power_divergence([16, 18, 16, 14, 12, 12],
     ...                  f_exp=[16, 16, 16, 16, 16, 8],
     ...                  lambda_='log-likelihood')
-    (3.5, 0.62338762774958223)
+    (3.3281031458963746, 0.6495419288047497)
 
     When `f_obs` is 2-D, by default the test is applied to each column.
 
