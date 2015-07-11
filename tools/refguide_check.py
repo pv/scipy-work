@@ -87,13 +87,15 @@ DOCTEST_SKIPLIST = set([
     'scipy.misc.who', # comes from numpy
 ])
 
-# these names are ignored in autosummary:: listings in refguide
-# content checks
-REFGUIDE_CONTENT_SKIPLIST = set([
-    'scipy.sparse.csgraph',
-    'scipy.sparse.linalg',
-    'scipy.spatial.distance',
-])
+# these names are not required to be present in ALL despite being in
+# autosummary:: listing
+REFGUIDE_ALL_SKIPLIST = [
+    r'scipy\.sparse\.csgraph',
+    r'scipy\.sparse\.linalg',
+    r'scipy\.spatial\.distance',
+    r'scipy\.linalg\.blas\.[sdczi].*',
+    r'scipy\.linalg\.lapack\.[sdczi].*',
+]
 
 
 def short_path(path, cwd=None):
@@ -144,8 +146,7 @@ def find_names(module, names_dict):
             res = re.match(pattern, line)
             if res is not None:
                 name = res.group(1)
-                if '.'.join([module_name, name]) in REFGUIDE_CONTENT_SKIPLIST:
-                    break
+                entry = '.'.join([module_name, name])
                 names_dict.setdefault(module_name, set()).add(name)
                 break
 
@@ -178,22 +179,31 @@ def get_all_dict(module):
         else:
             not_deprecated.append(name)
 
-    return not_deprecated, deprecated
+    others = set(dir(module)).difference(set(deprecated)).difference(set(not_deprecated))
+
+    return not_deprecated, deprecated, others
 
 
-def compare(all_dict, names):
-    """Return sets of objects only in one of __all__, refguide."""
+def compare(all_dict, others, names, module_name):
+    """Return sets of objects only in __all__, refguide, or completely missing."""
     only_all = set()
     for name in all_dict:
         if name not in names:
             only_all.add(name)
 
     only_ref = set()
+    missing = set()
     for name in names:
         if name not in all_dict:
-            only_ref.add(name)
+            for pat in REFGUIDE_ALL_SKIPLIST:
+                if re.match(pat, module_name + '.' + name):
+                    if name not in others:
+                        missing.add(name)
+                    break
+            else:
+                only_ref.add(name)
 
-    return only_all, only_ref
+    return only_all, only_ref, missing
 
 def is_deprecated(f):
     with warnings.catch_warnings(record=True) as w:
@@ -206,7 +216,7 @@ def is_deprecated(f):
             pass
         return False
 
-def report(all_dict, names, deprecated, module_name):
+def report(all_dict, names, deprecated, others, module_name):
     """Print out a report for the module"""
 
     print("\n\n" + "=" * len(module_name))
@@ -218,37 +228,39 @@ def report(all_dict, names, deprecated, module_name):
     print("Non-deprecated objects in __all__: %i" % num_all)
     print("Objects in refguide: %i" % num_ref)
 
-    only_all, only_ref = compare(all_dict, names)
+    only_all, only_ref, missing = compare(all_dict, others, names, module_name)
     dep_in_ref = set(only_ref).intersection(deprecated)
     only_ref = set(only_ref).difference(deprecated)
 
-    if len(only_all) == len(only_ref) == 0:
+    if len(dep_in_ref) > 0:
+        print("")
+        print("Deprecated objects in refguide::\n")
+        for name in sorted(deprecated):
+            print("    " + name)
+
+    if len(only_all) == len(only_ref) == len(missing) == 0:
         print("\nNo missing or extraneous items!")
         return True
     else:
-        ok = True
-
         if len(only_all) > 0:
-            ok = False
             print("")
             print("Objects in %s.__all__ but not in refguide::\n" % module_name)
             for name in sorted(only_all):
                 print("    " + name)
 
         if len(only_ref) > 0:
-            ok = False
             print("")
             print("Objects in refguide but not in %s.__all__::\n" % module_name)
             for name in sorted(only_ref):
                 print("    " + name)
 
-        if len(dep_in_ref) > 0:
+        if len(missing) > 0:
             print("")
-            print("Deprecated objects in refguide::\n")
-            for name in sorted(deprecated):
+            print("Missing objects::\n")
+            for name in sorted(missing):
                 print("    " + name)
 
-        return ok
+        return False
 
 
 def check_docstrings(module, verbose):
@@ -495,8 +507,9 @@ def main(argv):
     success = True
 
     for module in modules:
-        all_dict, deprecated = get_all_dict(module)
-        ok = report(all_dict, names_dict.get(module.__name__, set()), deprecated, module.__name__)
+        all_dict, deprecated, others = get_all_dict(module)
+        ok = report(all_dict, names_dict.get(module.__name__, set()),
+                    deprecated, others, module.__name__)
         success = success and ok
 
         if args.doctests:
