@@ -287,7 +287,7 @@ def check_docstrings(module, verbose):
     class DTRunner(doctest.DocTestRunner):
         stopwords = {'plt.', '.hist', '.show', '.ylim', '.subplot(',
                      'set_title', 'imshow', 'plt.show', 'ax.axis', 'plt.plot(',
-                     '.title', '.ylabel', '.xlabel', 'set_ylim', 'set_xlim'}
+                     '.bar(', '.title', '.ylabel', '.xlabel', 'set_ylim', 'set_xlim'}
         rndm_markers = {'# random', '# Random', '#random', '#Random', "# may vary"}
         DIVIDER = "\n"
 
