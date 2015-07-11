@@ -428,7 +428,7 @@ def probplot(x, sparams=(), dist='norm', fit=True, plot=None):
     >>> fig = plt.figure()
     >>> ax = fig.add_subplot(111)
     >>> x = stats.loggamma.rvs(c=2.5, size=500)
-    >>> stats.probplot(x, dist=stats.loggamma, sparams=(2.5,), plot=ax)
+    >>> res = stats.probplot(x, dist=stats.loggamma, sparams=(2.5,), plot=ax)
     >>> ax.set_title("Probplot for loggamma dist with shape parameter 2.5")
 
     Show the results with Matplotlib:
@@ -572,9 +572,9 @@ def ppcc_plot(x, a, b, dist='tukeylambda', plot=None, N=80):
     >>> ax1 = fig.add_subplot(131)
     >>> ax2 = fig.add_subplot(132)
     >>> ax3 = fig.add_subplot(133)
-    >>> stats.probplot(x, plot=ax1)
-    >>> stats.boxcox_normplot(x, -5, 5, plot=ax2)
-    >>> stats.ppcc_plot(x, -5, 5, plot=ax3)
+    >>> res = stats.probplot(x, plot=ax1)
+    >>> res = stats.boxcox_normplot(x, -5, 5, plot=ax2)
+    >>> res = stats.ppcc_plot(x, -5, 5, plot=ax3)
     >>> ax3.vlines(-0.7, 0, 1, colors='r', label='Expected shape value')
     >>> plt.show()
 
@@ -795,7 +795,7 @@ def boxcox(x, lmbda=None, alpha=None):
     >>> fig = plt.figure()
     >>> ax1 = fig.add_subplot(211)
     >>> x = stats.loggamma.rvs(5, size=500) + 5
-    >>> stats.probplot(x, dist=stats.norm, plot=ax1)
+    >>> prob = stats.probplot(x, dist=stats.norm, plot=ax1)
     >>> ax1.set_xlabel('')
     >>> ax1.set_title('Probplot against normal distribution')
 
@@ -803,7 +803,7 @@ def boxcox(x, lmbda=None, alpha=None):
 
     >>> ax2 = fig.add_subplot(212)
     >>> xt, _ = stats.boxcox(x)
-    >>> stats.probplot(xt, dist=stats.norm, plot=ax2)
+    >>> prob = stats.probplot(xt, dist=stats.norm, plot=ax2)
     >>> ax2.set_title('Probplot after Box-Cox transformation')
 
     >>> plt.show()
@@ -890,7 +890,7 @@ def boxcox_normmax(x, brack=(-2.0, 2.0), method='pearsonr'):
 
     >>> fig = plt.figure()
     >>> ax = fig.add_subplot(111)
-    >>> stats.boxcox_normplot(x, -10, 10, plot=ax)
+    >>> prob = stats.boxcox_normplot(x, -10, 10, plot=ax)
     >>> ax.axvline(lmax_mle, color='r')
     >>> ax.axvline(lmax_pearsonr, color='g', ls='--')
 
@@ -991,7 +991,7 @@ def boxcox_normplot(x, la, lb, plot=None, N=80):
     >>> x = stats.loggamma.rvs(5, size=500) + 5
     >>> fig = plt.figure()
     >>> ax = fig.add_subplot(111)
-    >>> stats.boxcox_normplot(x, -20, 20, plot=ax)
+    >>> prob = stats.boxcox_normplot(x, -20, 20, plot=ax)
 
     Determine and plot the optimal ``lmbda`` to transform ``x`` and plot it in
     the same plot:

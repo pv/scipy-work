@@ -263,10 +263,10 @@ def find_repeats(arr):
     --------
     >>> from scipy import stats
     >>> stats.find_repeats([2, 1, 2, 3, 2, 2, 5])
-    (array([ 2. ]), array([ 4 ], dtype=int32)
+    RepeatedResults(values=array([ 2.]), counts=array([4], dtype=int32))
 
     >>> stats.find_repeats([[10, 20, 1, 2], [5, 5, 4, 4]])
-    (array([ 4., 5.]), array([2, 2], dtype=int32))
+    RepeatedResults(values=array([ 4.,  5.]), counts=array([2, 2], dtype=int32))
 
     """
     RepeatedResults = namedtuple('RepeatedResults', ('values', 'counts'))
@@ -1266,13 +1266,13 @@ def describe(a, axis=0, ddof=1, bias=True):
     >>> from scipy import stats
     >>> a = np.arange(10)
     >>> stats.describe(a)
-    DescribeResult(nobs=10, minmax=(0, 9), mean=4.5, variance=9.16666666666666
-                   61, skewness=0.0, kurtosis=-1.2242424242424244)
+    DescribeResult(nobs=10, minmax=(0, 9), mean=4.5, variance=9.1666666666666661,
+                   skewness=0.0, kurtosis=-1.2242424242424244)
     >>> b = [[1, 2], [3, 4]]
     >>> stats.describe(b)
-    DescribeResult(nobs=2, minmax=(array([1, 2]), array([3, 4])), mean=array([
-                   2., 3.]), variance=array([2., 2.]), skewness=array([0., 0.]),
-                   kurtosis=array([-2., -2.]))
+    DescribeResult(nobs=2, minmax=(array([1, 2]), array([3, 4])),
+                   mean=array([ 2., 3.]), variance=array([ 2., 2.]), 
+                   skewness=array([ 0., 0.]), kurtosis=array([-2., -2.]))
 
     """
     a, axis = _chk_asarray(a, axis)
@@ -3323,10 +3323,11 @@ def linregress(x, y=None):
     >>> y = np.random.random(10)
     >>> slope, intercept, r_value, p_value, std_err = stats.linregress(x,y)
 
-    # To get coefficient of determination (r_squared)
+    To get coefficient of determination (r_squared):
 
-    >>> print("r-squared:", r_value**2)
-    r-squared: 0.15286643777
+    >>> r_squared = r_value**2
+    >>> r_squared
+    0.15286643777
 
     """
     TINY = 1.0e-20
