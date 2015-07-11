@@ -39,7 +39,6 @@ from argparse import ArgumentParser, REMAINDER
 
 import numpy as np
 
-
 BASE_MODULE = "scipy"
 
 PUBLIC_SUBMODULES = [
@@ -47,6 +46,7 @@ PUBLIC_SUBMODULES = [
     'cluster',
     'cluster.vq',
     'cluster.hierarchy',
+    'constants',
     'fftpack',
     'interpolate',
     'integrate',
@@ -90,16 +90,33 @@ def short_path(path, cwd=None):
 
 def find_funcnames(module):
     funcnames = set()
-    # 3 spaces followed by function name, and maybe some spaces, some
-    # dashes, and an explanation; only function names listed in
-    # refguide are formatted like this (mostly, there may be some false
-    # positives)
-    pattern = re.compile("^\s\s\s([a-z_0-9A-Z]+)(\s+-+.*)?$")
-    for line in module.__doc__.splitlines():
-        res = re.search(pattern, line)
-        if res is not None:
-            funcname = res.groups()[0]
-            funcnames.add(funcname)
+
+    # Refguide entries:
+    #
+    # - 3 spaces followed by function name, and maybe some spaces, some
+    #   dashes, and an explanation; only function names listed in
+    #   refguide are formatted like this (mostly, there may be some false
+    #   positives)
+    #
+    # - special directives, such as data and function
+    #
+    # - (scipy.constants only): quoted list
+    #
+    patterns = [
+        "^\s\s\s([a-z_0-9A-Z]+)(\s+-+.*)?$",
+        "^.. (?:data|function)::\s*([a-z_0-9A-Z]+)\s*$"
+    ]
+
+    if module.__name__ == 'scipy.constants':
+        patterns += ["^``([a-z_0-9A-Z]+)``"]
+
+    for pattern in patterns:
+        pattern = re.compile(pattern)
+        for line in module.__doc__.splitlines():
+            res = re.search(pattern, line)
+            if res is not None:
+                funcname = res.group(1)
+                funcnames.add(funcname)
 
     return funcnames
 
@@ -181,19 +198,19 @@ def report(all_dict, funcnames, deprecated, module_name):
         if len(only_all) > 0:
             print("")
             print("Objects in %s.__all__ but not in refguide::\n" % module_name)
-            for name in only_all:
+            for name in sorted(only_all):
                 print("    " + name)
 
         if len(only_ref) > 0:
             print("")
             print("Objects in refguide but not in %s.__all__::\n" % module_name)
-            for name in only_ref:
+            for name in sorted(only_ref):
                 print("    " + name)
 
         if len(dep_in_ref) > 0:
             print("")
             print("Deprecated objects in refguide::\n")
-            for name in deprecated:
+            for name in sorted(deprecated):
                 print("    " + name)
 
 
