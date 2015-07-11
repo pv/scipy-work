@@ -217,8 +217,10 @@ def report(all_dict, names, deprecated, module_name):
     only_all, only_ref = compare(all_dict, names)
     dep_in_ref = set(only_ref).intersection(deprecated)
     only_ref = set(only_ref).difference(deprecated)
+
     if len(only_all) == len(only_ref) == 0:
         print("\nNo missing or extraneous items!")
+        return True
     else:
         if len(only_all) > 0:
             print("")
@@ -237,6 +239,8 @@ def report(all_dict, names, deprecated, module_name):
             print("Deprecated objects in refguide::\n")
             for name in sorted(deprecated):
                 print("    " + name)
+
+        return False
 
 
 def check_docstrings(module, verbose):
@@ -443,6 +447,8 @@ def check_docstrings(module, verbose):
         # Print at least a success message if no other output was produced
         print("\nAll doctests pass!")
 
+    return all_success
+
 
 def main(argv):
     parser = ArgumentParser(usage=__doc__.lstrip())
@@ -475,12 +481,21 @@ def main(argv):
         if submodule_name in args.module_names:
             modules.append(module)
 
+    success = True
+
     for module in modules:
         all_dict, deprecated = get_all_dict(module)
-        report(all_dict, names_dict.get(module.__name__, set()), deprecated, module.__name__)
+        ok = report(all_dict, names_dict.get(module.__name__, set()), deprecated, module.__name__)
+        success = success and ok
 
         if args.doctests:
-            check_docstrings(module, args.verbose)
+            ok = check_docstrings(module, args.verbose)
+            success = success and ok
+
+    if success:
+        sys.exit(0)
+    else:
+        sys.exit(1)
 
 
 if __name__ == '__main__':
