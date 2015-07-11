@@ -81,6 +81,7 @@ OTHER_MODULE_DOCS = {
 # these names are known to fail doctesting and we like to keep it that way
 # e.g. sometimes pseudocode is acceptable etc
 DOCTEST_SKIPLIST = set([
+    'scipy.stats.kstwobign', # inaccurate cdf or ppf
     'scipy.stats.levy_stable',
     'scipy.special.sinc', # comes from numpy
     'scipy.misc.who', # comes from numpy
@@ -435,6 +436,9 @@ def check_docstrings(module, verbose):
         tmpdir = tempfile.mkdtemp()
         try:
             os.chdir(tmpdir)
+
+            # try to ensure random seed is NOT reproducible
+            np.random.seed(None)
 
             for t in tests:
                 t.filename = short_path(t.filename, cwd)
