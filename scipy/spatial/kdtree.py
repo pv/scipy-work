@@ -9,7 +9,7 @@ import scipy.sparse
 
 __all__ = ['minkowski_distance_p', 'minkowski_distance',
            'distance_matrix',
-           'Rectangle', 'KDTree']
+           'KDTree']
 
 
 def minkowski_distance_p(x, y, p=2):
