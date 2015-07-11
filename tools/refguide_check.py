@@ -298,10 +298,6 @@ def check_docstrings(module, verbose):
 
 
     class DTRunner(doctest.DocTestRunner):
-        stopwords = {'plt.', '.hist', '.show', '.ylim', '.subplot(',
-                     'set_title', 'imshow', 'plt.show', 'ax.axis', 'plt.plot(',
-                     '.bar(', '.title', '.ylabel', '.xlabel', 'set_ylim', 'set_xlim'}
-        rndm_markers = {'# random', '# Random', '#random', '#Random', "# may vary"}
         DIVIDER = "\n"
 
         def __init__(self, item_name, checker=None, verbose=None, optionflags=0):
@@ -316,6 +312,10 @@ def check_docstrings(module, verbose):
                     out("\n")
                 self._item_name = None
 
+        def report_start(self, out, test, example):
+            self._checker._source = example.source
+            return doctest.DocTestRunner.report_start(self, out, test, example)
+
         def report_success(self, out, test, example, got):
             if self._verbose:
                 self._report_item_name(out, new_line=True)
@@ -327,27 +327,33 @@ def check_docstrings(module, verbose):
                 self, out, test, example, exc_info)
 
         def report_failure(self, out, test, example, got):
-            if (any(word in example.source for word in self.stopwords) or
-                any(word in example.want for word in self.rndm_markers)):
-                # do not complain if output does not match
-                pass
-            else:
-                self._report_item_name(out)
-                return doctest.DocTestRunner.report_failure(self, out, test,
-                                                            example, got)
+            self._report_item_name(out)
+            return doctest.DocTestRunner.report_failure(self, out, test,
+                                                        example, got)
 
     class Checker(doctest.OutputChecker):
         obj_pattern = re.compile('at 0x[0-9a-fA-F]+>')
         vanilla = doctest.OutputChecker()
+        rndm_markers = {'# random', '# Random', '#random', '#Random', "# may vary"}
+        stopwords = {'plt.', '.hist', '.show', '.ylim', '.subplot(',
+                     'set_title', 'imshow', 'plt.show', 'ax.axis', 'plt.plot(',
+                     '.bar(', '.title', '.ylabel', '.xlabel', 'set_ylim', 'set_xlim'}
 
         def __init__(self, parse_namedtuples=True, atol=1e-8, rtol=1e-2):
             self.parse_namedtuples = parse_namedtuples
             self.atol, self.rtol = atol, rtol
 
         def check_output(self, want, got, optionflags):
-
             # cut it short if they are equal
             if want == got:
+                return True
+
+            # skip stopwords in source
+            if any(word in self._source for word in self.stopwords):
+                return True
+
+            # skip random stuff
+            if any(word in want for word in self.rndm_markers):
                 return True
 
             # skip function/object addresses
