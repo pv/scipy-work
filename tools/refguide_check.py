@@ -67,6 +67,7 @@ PUBLIC_SUBMODULES = [
     'sparse.csgraph',
     'sparse.linalg',
     'spatial',
+    'spatial.distance',
     'special',
     'stats',
     'stats.mstats',
@@ -89,6 +90,7 @@ DOCTEST_SKIPLIST = set([
 REFGUIDE_CONTENT_SKIPLIST = set([
     'scipy.sparse.csgraph',
     'scipy.sparse.linalg',
+    'scipy.spatial.distance',
 ])
 
 
