@@ -224,6 +224,7 @@ def welch(x, fs=1.0, window='hanning', nperseg=256, noverlap=None, nfft=None,
     --------
     >>> from scipy import signal
     >>> import matplotlib.pyplot as plt
+    >>> np.random.seed(1234)
 
     Generate a test signal, a 2 Vrms sine wave at 1234 Hz, corrupted by
     0.001 V**2/Hz of white noise sampled at 10 kHz.
