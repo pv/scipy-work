@@ -81,6 +81,7 @@ OTHER_MODULE_DOCS = {
 # e.g. sometimes pseudocode is acceptable etc
 DOCTEST_SKIPLIST = set([
     'scipy.stats.levy_stable',
+    'scipy.misc.who', # comes from numpy
 ])
 
 # these names are ignored in autosummary:: listings in refguide
@@ -453,6 +454,8 @@ def main(argv):
 
     modules = []
     names_dict = {}
+
+    os.environ['SCIPY_PIL_IMAGE_VIEWER'] = 'true'
 
     module_names = list(args.module_names)
     for name in list(module_names):
