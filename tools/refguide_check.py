@@ -82,6 +82,7 @@ OTHER_MODULE_DOCS = {
 # e.g. sometimes pseudocode is acceptable etc
 DOCTEST_SKIPLIST = set([
     'scipy.stats.levy_stable',
+    'scipy.special.sinc', # comes from numpy
     'scipy.misc.who', # comes from numpy
 ])
 
