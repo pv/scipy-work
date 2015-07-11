@@ -80,8 +80,6 @@ OTHER_MODULE_DOCS = {
 # these names are known to fail doctesting and we like to keep it that way
 # e.g. sometimes pseudocode is acceptable etc
 DOCTEST_SKIPLIST = set([
-    'scipy.integrate.quad',
-    'scipy.interpolate.UnivariateSpline',
     'scipy.stats.levy_stable'
 ])
 
