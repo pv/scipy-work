@@ -80,7 +80,14 @@ OTHER_MODULE_DOCS = {
 # these names are known to fail doctesting and we like to keep it that way
 # e.g. sometimes pseudocode is acceptable etc
 DOCTEST_SKIPLIST = set([
-    'scipy.stats.levy_stable'
+    'scipy.stats.levy_stable',
+])
+
+# these names are ignored in autosummary:: listings in refguide
+# content checks
+REFGUIDE_CONTENT_SKIPLIST = set([
+    'scipy.sparse.csgraph',
+    'scipy.sparse.linalg',
 ])
 
 
@@ -132,6 +139,8 @@ def find_names(module, names_dict):
             res = re.match(pattern, line)
             if res is not None:
                 name = res.group(1)
+                if '.'.join([module_name, name]) in REFGUIDE_CONTENT_SKIPLIST:
+                    break
                 names_dict.setdefault(module_name, set()).add(name)
                 break
 
