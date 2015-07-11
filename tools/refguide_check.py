@@ -42,27 +42,40 @@ import numpy as np
 BASE_MODULE = "scipy"
 
 PUBLIC_SUBMODULES = [
-    'linalg',
     'cluster',
-    'cluster.vq',
     'cluster.hierarchy',
+    'cluster.vq',
     'constants',
     'fftpack',
-    'interpolate',
+    'fftpack.convolve',
     'integrate',
+    'interpolate',
     'io',
+    'io.arff',
+    'io.netcdf',
+    'io.wavfile',
+    'linalg',
+    'linalg.blas',
+    'linalg.lapack',
+    'linalg.interpolative',
     'misc',
     'ndimage',
     'odr',
     'optimize',
     'signal',
-    'spatial',
     'sparse',
     'sparse.csgraph',
     'sparse.linalg',
+    'spatial',
+    'special',
     'stats',
     'stats.mstats',
 ]
+
+# Docs for these modules are included in the parent module
+OTHER_MODULE_DOCS = {
+    'fftpack.convolve': 'fftpack',
+}
 
 # these names are known to fail doctesting and we like to keep it that way
 # e.g. sometimes pseudocode is acceptable etc
@@ -88,9 +101,7 @@ def short_path(path, cwd=None):
     return relpath
 
 
-def find_funcnames(module):
-    funcnames = set()
-
+def find_names(module, names_dict):
     # Refguide entries:
     #
     # - 3 spaces followed by function name, and maybe some spaces, some
@@ -103,22 +114,28 @@ def find_funcnames(module):
     # - (scipy.constants only): quoted list
     #
     patterns = [
-        "^\s\s\s([a-z_0-9A-Z]+)(\s+-+.*)?$",
-        "^.. (?:data|function)::\s*([a-z_0-9A-Z]+)\s*$"
+        r"^\s\s\s([a-z_0-9A-Z]+)(\s+-+.*)?$",
+        r"^\.\. (?:data|function)::\s*([a-z_0-9A-Z]+)\s*$"
     ]
 
     if module.__name__ == 'scipy.constants':
         patterns += ["^``([a-z_0-9A-Z]+)``"]
 
-    for pattern in patterns:
-        pattern = re.compile(pattern)
-        for line in module.__doc__.splitlines():
-            res = re.search(pattern, line)
-            if res is not None:
-                funcname = res.group(1)
-                funcnames.add(funcname)
+    patterns = [re.compile(pattern) for pattern in patterns]
+    module_name = module.__name__
+    
+    for line in module.__doc__.splitlines():
+        res = re.search(r"^\s*\.\. (?:currentmodule|module):: ([a-z0-9A-Z_.]+)\s*$", line)
+        if res:
+            module_name = res.group(1)
+            continue
 
-    return funcnames
+        for pattern in patterns:
+            res = re.match(pattern, line)
+            if res is not None:
+                name = res.group(1)
+                names_dict.setdefault(module_name, set()).add(name)
+                break
 
 
 def get_all_dict(module):
@@ -152,15 +169,15 @@ def get_all_dict(module):
     return not_deprecated, deprecated
 
 
-def compare(all_dict, funcnames):
+def compare(all_dict, names):
     """Return sets of objects only in one of __all__, refguide."""
     only_all = set()
     for name in all_dict:
-        if name not in funcnames:
+        if name not in names:
             only_all.add(name)
 
     only_ref = set()
-    for name in funcnames:
+    for name in names:
         if name not in all_dict:
             only_ref.add(name)
 
@@ -177,7 +194,7 @@ def is_deprecated(f):
             pass
         return False
 
-def report(all_dict, funcnames, deprecated, module_name):
+def report(all_dict, names, deprecated, module_name):
     """Print out a report for the module"""
 
     print("\n\n" + "=" * len(module_name))
@@ -185,11 +202,11 @@ def report(all_dict, funcnames, deprecated, module_name):
     print("=" * len(module_name) + "\n")
 
     num_all = len(all_dict)
-    num_ref = len(funcnames)
+    num_ref = len(names)
     print("Non-deprecated objects in __all__: %i" % num_all)
     print("Objects in refguide: %i" % num_ref)
 
-    only_all, only_ref = compare(all_dict, funcnames)
+    only_all, only_ref = compare(all_dict, names)
     dep_in_ref = set(only_ref).intersection(deprecated)
     only_ref = set(only_ref).difference(deprecated)
     if len(only_all) == len(only_ref) == 0:
@@ -427,14 +444,28 @@ def main(argv):
     parser.add_argument("--verbose", action="store_true")
     args = parser.parse_args(argv)
 
-    for submodule_name in args.module_names:
+    modules = []
+    names_dict = {}
+
+    module_names = set(args.module_names)
+    for name in list(module_names):
+        if name in OTHER_MODULE_DOCS:
+            module_names.add(OTHER_MODULE_DOCS[name])
+
+    for submodule_name in module_names:
         module_name = BASE_MODULE + '.' + submodule_name
         __import__(module_name)
         module = sys.modules[module_name]
 
-        funcnames = find_funcnames(module)
+        if submodule_name not in OTHER_MODULE_DOCS:
+            find_names(module, names_dict)
+
+        if submodule_name in args.module_names:
+            modules.append(module)
+
+    for module in modules:
         all_dict, deprecated = get_all_dict(module)
-        report(all_dict, funcnames, deprecated, module_name)
+        report(all_dict, names_dict[module.__name__], deprecated, module.__name__)
 
         if args.doctests:
             check_docstrings(module, args.verbose)
