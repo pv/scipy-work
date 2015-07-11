@@ -158,7 +158,7 @@ def get_all_dict(module):
     else:
         all_dict = copy.deepcopy(dir(module))
         all_dict = [name for name in all_dict
-                    if not name.startswith("__")]
+                    if not name.startswith("_")]
     for name in ['absolute_import', 'division', 'print_function']:
         try:
             all_dict.remove(name)
