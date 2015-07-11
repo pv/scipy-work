@@ -52,7 +52,6 @@ PUBLIC_SUBMODULES = [
     'interpolate',
     'io',
     'io.arff',
-    'io.netcdf',
     'io.wavfile',
     'linalg',
     'linalg.blas',
@@ -76,6 +75,8 @@ PUBLIC_SUBMODULES = [
 # Docs for these modules are included in the parent module
 OTHER_MODULE_DOCS = {
     'fftpack.convolve': 'fftpack',
+    'io.wavfile': 'io',
+    'io.arff': 'io',
 }
 
 # these names are known to fail doctesting and we like to keep it that way
