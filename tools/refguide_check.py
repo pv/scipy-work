@@ -245,19 +245,19 @@ def report(all_dict, names, deprecated, others, module_name):
     else:
         if len(only_all) > 0:
             print("")
-            print("Objects in %s.__all__ but not in refguide::\n" % module_name)
+            print("ERROR: objects in %s.__all__ but not in refguide::\n" % module_name)
             for name in sorted(only_all):
                 print("    " + name)
 
         if len(only_ref) > 0:
             print("")
-            print("Objects in refguide but not in %s.__all__::\n" % module_name)
+            print("ERROR: objects in refguide but not in %s.__all__::\n" % module_name)
             for name in sorted(only_ref):
                 print("    " + name)
 
         if len(missing) > 0:
             print("")
-            print("Missing objects::\n")
+            print("ERROR: missing objects::\n")
             for name in sorted(missing):
                 print("    " + name)
 
@@ -295,7 +295,8 @@ def check_docstrings(module, verbose):
 
 
     def format_item_header(name):
-        return "\n\n" + name + "\n" + "-" * len(name)
+        msg = "ERROR: " + name
+        return "\n\n" + msg + "\n" + "-" * len(msg)
 
 
     class DTRunner(doctest.DocTestRunner):
