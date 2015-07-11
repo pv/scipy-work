@@ -86,6 +86,9 @@ Arff files (:mod:`scipy.io.arff`)
    :toctree: generated/
 
    loadarff
+   MetaData
+   ArffError
+   ParseArffError
 
 """
 from __future__ import division, print_function, absolute_import
