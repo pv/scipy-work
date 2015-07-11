@@ -269,7 +269,7 @@ def check_docstrings(module, verbose):
         stopwords = {'plt.', '.hist', '.show', '.ylim', '.subplot(',
                      'set_title', 'imshow', 'plt.show', 'ax.axis', 'plt.plot(',
                      '.title', '.ylabel', '.xlabel', 'set_ylim', 'set_xlim'}
-        rndm_markers = {'# random', '# Random', '#random', '#Random'}
+        rndm_markers = {'# random', '# Random', '#random', '#Random', "# may vary"}
         DIVIDER = "\n"
 
         def __init__(self, item_name, checker=None, verbose=None, optionflags=0):
