@@ -454,10 +454,11 @@ def main(argv):
     modules = []
     names_dict = {}
 
-    module_names = set(args.module_names)
+    module_names = args.module_names
     for name in list(module_names):
         if name in OTHER_MODULE_DOCS:
-            module_names.add(OTHER_MODULE_DOCS[name])
+            if name not in module_names:
+                module_names.append(OTHER_MODULE_DOCS[name])
 
     for submodule_name in module_names:
         module_name = BASE_MODULE + '.' + submodule_name
@@ -472,7 +473,7 @@ def main(argv):
 
     for module in modules:
         all_dict, deprecated = get_all_dict(module)
-        report(all_dict, names_dict[module.__name__], deprecated, module.__name__)
+        report(all_dict, names_dict.get(module.__name__, set()), deprecated, module.__name__)
 
         if args.doctests:
             check_docstrings(module, args.verbose)
