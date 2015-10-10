@@ -222,11 +222,12 @@ case_table5.append(
      'expected': {'testbools':
                   array([[True], [False]])},
      })
-case_table5.append( # Note that this will be popped for roundtripping tests.
+case_table5.append(
+    # Note that this will be popped for roundtripping tests.
     {'name': 'class',
      'classes': {'testclass': 'classname'},
      'expected': {'testclass': MatlabOpaque([])}
-    })
+     })
 
 case_table5_rt = case_table5[:]
 # Matlab objects can't be created from Python, so remove that test case.
@@ -308,7 +309,8 @@ def _load_check_case(name, files, case):
         for k, expected in case.items():
             k_label = "%s, variable %s" % (label, k)
             assert_(k in matdict, "Missing key at %s" % k_label)
-            if expected is None: # Escape MatlabOpaque here.
+            if expected is None:
+                # Escape MatlabOpaque here.
                 _check_level(k_label, expected, matdict[k])
 
 
@@ -322,7 +324,8 @@ def _whos_check_case(name, files, case, classes):
         for i, ((k, expected), (name, shape, tp)) in (
             enumerate(zip(case.items(), whos))):
             expected_whos.append((k, expected.shape, classes[k]))
-            if shape is None: # Escape MatlabOpaque here.
+            if shape is None:
+                # Escape MatlabOpaque here.
                 whos[i] = expected_whos[-1]
 
         whos.sort()
