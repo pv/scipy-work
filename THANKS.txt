@@ -151,8 +151,10 @@ François Magimel for documentation improvements.
 Josh Levy-Kramer for the log survival function of the hypergeometric distribution
 Will Monroe for bug fixes.
 Bernardo Sulzbach for bug fixes.
+Alexander Grigorevskiy for adding extra LAPACK least-square solvers and 
+    modifying linalg.lstsq function accordingly.
+Sam Lewis for enhancements to the basinhopping module.
 Tyler Reddy and Nikolai Nowaczyk for scipy.spatial.SphericalVoronoi
-
 
 Institutions
 ------------
