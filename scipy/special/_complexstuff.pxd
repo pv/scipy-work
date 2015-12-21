@@ -10,6 +10,7 @@ cdef extern from "_complexstuff.h":
     double npy_cabs(np.npy_cdouble z) nogil
     np.npy_cdouble npy_clog(np.npy_cdouble z) nogil
     np.npy_cdouble npy_cexp(np.npy_cdouble z) nogil
+    np.npy_cdouble npy_csqrt(np.npy_cdouble z) nogil
     double npy_log1p(double x) nogil
     int npy_isnan(double x) nogil
     int npy_isinf(double x) nogil
@@ -63,4 +64,12 @@ cdef inline number_t zexp(number_t x) nogil:
         return (<double_complex*>&r)[0]
     else:
         return libc.math.exp(x)
+
+cdef inline number_t zsqrt(number_t x) nogil:
+    cdef np.npy_cdouble r
+    if number_t is double_complex:
+        r = npy_csqrt((<np.npy_cdouble*>&x)[0])
+        return (<double_complex*>&r)[0]
+    else:
+        return libc.math.sqrt(x)
 

@@ -6,6 +6,7 @@ def pre_build(context):
 
     context.tweak_extension("orthogonal_eval", use="NPYMATH")
     context.tweak_extension("lambertw", use="NPYMATH")
+    context.tweak_extension("spherical_bessel", use="NPYMATH")
     context.tweak_extension("_logit", use="NPYMATH")
 
     context.tweak_extension("specfun", features="c fc pyext cshlib bento f2py",

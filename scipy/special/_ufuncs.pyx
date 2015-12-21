@@ -1028,6 +1028,22 @@ cdef void loop_d_ddiiddd__As_ddllddd_d(char **args, np.npy_intp *dims, np.npy_in
         op0 += steps[7]
     sf_error.check_fpe(func_name)
 
+cdef void loop_D_lD__As_lD_D(char **args, np.npy_intp *dims, np.npy_intp *steps, void *data) nogil:
+    cdef np.npy_intp i, n = dims[0]
+    cdef void *func = (<void**>data)[0]
+    cdef char *func_name = <char*>(<void**>data)[1]
+    cdef char *ip0 = args[0]
+    cdef char *ip1 = args[1]
+    cdef char *op0 = args[2]
+    cdef double complex ov0
+    for i in range(n):
+        ov0 = (<double complex(*)(long, double complex) nogil>func)(<long>(<long*>ip0)[0], <double complex>(<double complex*>ip1)[0])
+        (<double complex *>op0)[0] = <double complex>ov0
+        ip0 += steps[0]
+        ip1 += steps[1]
+        op0 += steps[2]
+    sf_error.check_fpe(func_name)
+
 cdef void loop_i_dd_dddd_As_dd_dddd(char **args, np.npy_intp *dims, np.npy_intp *steps, void *data) nogil:
     cdef np.npy_intp i, n = dims[0]
     cdef void *func = (<void**>data)[0]
@@ -1819,6 +1835,30 @@ cdef _proto_sph_harmonic_t *_proto_sph_harmonic_t_var = &_func_sph_harmonic
 from _legacy cimport sph_harmonic_unsafe as _func_sph_harmonic_unsafe
 ctypedef double complex _proto_sph_harmonic_unsafe_t(double, double, double, double) nogil
 cdef _proto_sph_harmonic_unsafe_t *_proto_sph_harmonic_unsafe_t_var = &_func_sph_harmonic_unsafe
+from spherical_bessel cimport spherical_in_real as _func_spherical_in_real
+ctypedef double _proto_spherical_in_real_t(long, double) nogil
+cdef _proto_spherical_in_real_t *_proto_spherical_in_real_t_var = &_func_spherical_in_real
+from spherical_bessel cimport spherical_in_complex as _func_spherical_in_complex
+ctypedef double complex _proto_spherical_in_complex_t(long, double complex) nogil
+cdef _proto_spherical_in_complex_t *_proto_spherical_in_complex_t_var = &_func_spherical_in_complex
+from spherical_bessel cimport spherical_jn_real as _func_spherical_jn_real
+ctypedef double _proto_spherical_jn_real_t(long, double) nogil
+cdef _proto_spherical_jn_real_t *_proto_spherical_jn_real_t_var = &_func_spherical_jn_real
+from spherical_bessel cimport spherical_jn_complex as _func_spherical_jn_complex
+ctypedef double complex _proto_spherical_jn_complex_t(long, double complex) nogil
+cdef _proto_spherical_jn_complex_t *_proto_spherical_jn_complex_t_var = &_func_spherical_jn_complex
+from spherical_bessel cimport spherical_kn_real as _func_spherical_kn_real
+ctypedef double _proto_spherical_kn_real_t(long, double) nogil
+cdef _proto_spherical_kn_real_t *_proto_spherical_kn_real_t_var = &_func_spherical_kn_real
+from spherical_bessel cimport spherical_kn_complex as _func_spherical_kn_complex
+ctypedef double complex _proto_spherical_kn_complex_t(long, double complex) nogil
+cdef _proto_spherical_kn_complex_t *_proto_spherical_kn_complex_t_var = &_func_spherical_kn_complex
+from spherical_bessel cimport spherical_yn_real as _func_spherical_yn_real
+ctypedef double _proto_spherical_yn_real_t(long, double) nogil
+cdef _proto_spherical_yn_real_t *_proto_spherical_yn_real_t_var = &_func_spherical_yn_real
+from spherical_bessel cimport spherical_yn_complex as _func_spherical_yn_complex
+ctypedef double complex _proto_spherical_yn_complex_t(long, double complex) nogil
+cdef _proto_spherical_yn_complex_t *_proto_spherical_yn_complex_t_var = &_func_spherical_yn_complex
 cdef extern from "_ufuncs_defs.h":
     cdef double _func_cdft1_wrap "cdft1_wrap"(double, double) nogil
 cdef extern from "_ufuncs_defs.h":
@@ -9345,6 +9385,199 @@ ufunc_sph_harm_data[0] = &ufunc_sph_harm_ptr[2*0]
 ufunc_sph_harm_data[1] = &ufunc_sph_harm_ptr[2*1]
 ufunc_sph_harm_data[2] = &ufunc_sph_harm_ptr[2*2]
 sph_harm = np.PyUFunc_FromFuncAndData(ufunc_sph_harm_loops, ufunc_sph_harm_data, ufunc_sph_harm_types, 3, 4, 1, 0, "sph_harm", ufunc_sph_harm_doc, 0)
+
+cdef np.PyUFuncGenericFunction ufunc_spherical_in_loops[2]
+cdef void *ufunc_spherical_in_ptr[4]
+cdef void *ufunc_spherical_in_data[2]
+cdef char ufunc_spherical_in_types[6]
+cdef char *ufunc_spherical_in_doc = (
+    "spherical_in(n, z)\n"
+    "\n"
+    "Modified spherical Bessel function of the first kind [1]_.\n"
+    "\n"
+    "Parameters\n"
+    "----------\n"
+    "n : int, array_like\n"
+    "    Order of the Bessel function (n >= 0).\n"
+    "z : complex or float, array_like\n"
+    "    Argument of the Bessel function.\n"
+    "\n"
+    "Returns\n"
+    "-------\n"
+    "s : array\n"
+    "\n"
+    "Notes\n"
+    "-----\n"
+    "\n"
+    "The function is computed using its relation to :math:`I_n`, the modified\n"
+    "cylindrical Bessel function of the first kind [1]_.\n"
+    "\n"
+    ".. versionadded:: 0.18.0\n"
+    "\n"
+    "References\n"
+    "----------\n"
+    ".. [1] http://dlmf.nist.gov/10.47.E7")
+ufunc_spherical_in_loops[0] = <np.PyUFuncGenericFunction>loop_d_ld__As_ld_d
+ufunc_spherical_in_loops[1] = <np.PyUFuncGenericFunction>loop_D_lD__As_lD_D
+ufunc_spherical_in_types[0] = <char>NPY_LONG
+ufunc_spherical_in_types[1] = <char>NPY_DOUBLE
+ufunc_spherical_in_types[2] = <char>NPY_DOUBLE
+ufunc_spherical_in_types[3] = <char>NPY_LONG
+ufunc_spherical_in_types[4] = <char>NPY_CDOUBLE
+ufunc_spherical_in_types[5] = <char>NPY_CDOUBLE
+ufunc_spherical_in_ptr[2*0] = <void*>_func_spherical_in_real
+ufunc_spherical_in_ptr[2*0+1] = <void*>(<char*>"spherical_in")
+ufunc_spherical_in_ptr[2*1] = <void*>_func_spherical_in_complex
+ufunc_spherical_in_ptr[2*1+1] = <void*>(<char*>"spherical_in")
+ufunc_spherical_in_data[0] = &ufunc_spherical_in_ptr[2*0]
+ufunc_spherical_in_data[1] = &ufunc_spherical_in_ptr[2*1]
+spherical_in = np.PyUFunc_FromFuncAndData(ufunc_spherical_in_loops, ufunc_spherical_in_data, ufunc_spherical_in_types, 2, 2, 1, 0, "spherical_in", ufunc_spherical_in_doc, 0)
+
+cdef np.PyUFuncGenericFunction ufunc_spherical_jn_loops[2]
+cdef void *ufunc_spherical_jn_ptr[4]
+cdef void *ufunc_spherical_jn_data[2]
+cdef char ufunc_spherical_jn_types[6]
+cdef char *ufunc_spherical_jn_doc = (
+    "spherical_jn(n, z)\n"
+    "\n"
+    "Spherical Bessel function of the first kind [1]_.\n"
+    "\n"
+    "Parameters\n"
+    "----------\n"
+    "n : int, array_like\n"
+    "    Order of the Bessel function (n >= 0).\n"
+    "z : complex or float, array_like\n"
+    "    Argument of the Bessel function.\n"
+    "\n"
+    "Returns\n"
+    "-------\n"
+    "s : array\n"
+    "\n"
+    "Notes\n"
+    "-----\n"
+    "\n"
+    "For real arguments greater than the order, the function is computed using\n"
+    "the ascending recurrence [2]_.  For small real or complex arguments, the\n"
+    "relation to :math:`J_n`, the cylindrical Bessel function of the first kind\n"
+    "[1]_, is used.\n"
+    "\n"
+    ".. versionadded:: 0.18.0\n"
+    "\n"
+    "References\n"
+    "----------\n"
+    ".. [1] http://dlmf.nist.gov/10.47.E3\n"
+    ".. [2] http://dlmf.nist.gov/10.51.E1")
+ufunc_spherical_jn_loops[0] = <np.PyUFuncGenericFunction>loop_d_ld__As_ld_d
+ufunc_spherical_jn_loops[1] = <np.PyUFuncGenericFunction>loop_D_lD__As_lD_D
+ufunc_spherical_jn_types[0] = <char>NPY_LONG
+ufunc_spherical_jn_types[1] = <char>NPY_DOUBLE
+ufunc_spherical_jn_types[2] = <char>NPY_DOUBLE
+ufunc_spherical_jn_types[3] = <char>NPY_LONG
+ufunc_spherical_jn_types[4] = <char>NPY_CDOUBLE
+ufunc_spherical_jn_types[5] = <char>NPY_CDOUBLE
+ufunc_spherical_jn_ptr[2*0] = <void*>_func_spherical_jn_real
+ufunc_spherical_jn_ptr[2*0+1] = <void*>(<char*>"spherical_jn")
+ufunc_spherical_jn_ptr[2*1] = <void*>_func_spherical_jn_complex
+ufunc_spherical_jn_ptr[2*1+1] = <void*>(<char*>"spherical_jn")
+ufunc_spherical_jn_data[0] = &ufunc_spherical_jn_ptr[2*0]
+ufunc_spherical_jn_data[1] = &ufunc_spherical_jn_ptr[2*1]
+spherical_jn = np.PyUFunc_FromFuncAndData(ufunc_spherical_jn_loops, ufunc_spherical_jn_data, ufunc_spherical_jn_types, 2, 2, 1, 0, "spherical_jn", ufunc_spherical_jn_doc, 0)
+
+cdef np.PyUFuncGenericFunction ufunc_spherical_kn_loops[2]
+cdef void *ufunc_spherical_kn_ptr[4]
+cdef void *ufunc_spherical_kn_data[2]
+cdef char ufunc_spherical_kn_types[6]
+cdef char *ufunc_spherical_kn_doc = (
+    "spherical_kn(n, z)\n"
+    "\n"
+    "Modified spherical Bessel function of the second kind [1]_.\n"
+    "\n"
+    "Parameters\n"
+    "----------\n"
+    "n : int, array_like\n"
+    "    Order of the Bessel function (n >= 0).\n"
+    "z : complex or float, array_like\n"
+    "    Argument of the Bessel function.\n"
+    "\n"
+    "Returns\n"
+    "-------\n"
+    "s : array\n"
+    "\n"
+    "Notes\n"
+    "-----\n"
+    "\n"
+    "The function is computed using its relation to :math:`K_n`, the modified\n"
+    "cylindrical Bessel function of the second kind [1]_.\n"
+    "\n"
+    ".. versionadded:: 0.18.0\n"
+    "\n"
+    "References\n"
+    "----------\n"
+    ".. [1] http://dlmf.nist.gov/10.47.E9")
+ufunc_spherical_kn_loops[0] = <np.PyUFuncGenericFunction>loop_d_ld__As_ld_d
+ufunc_spherical_kn_loops[1] = <np.PyUFuncGenericFunction>loop_D_lD__As_lD_D
+ufunc_spherical_kn_types[0] = <char>NPY_LONG
+ufunc_spherical_kn_types[1] = <char>NPY_DOUBLE
+ufunc_spherical_kn_types[2] = <char>NPY_DOUBLE
+ufunc_spherical_kn_types[3] = <char>NPY_LONG
+ufunc_spherical_kn_types[4] = <char>NPY_CDOUBLE
+ufunc_spherical_kn_types[5] = <char>NPY_CDOUBLE
+ufunc_spherical_kn_ptr[2*0] = <void*>_func_spherical_kn_real
+ufunc_spherical_kn_ptr[2*0+1] = <void*>(<char*>"spherical_kn")
+ufunc_spherical_kn_ptr[2*1] = <void*>_func_spherical_kn_complex
+ufunc_spherical_kn_ptr[2*1+1] = <void*>(<char*>"spherical_kn")
+ufunc_spherical_kn_data[0] = &ufunc_spherical_kn_ptr[2*0]
+ufunc_spherical_kn_data[1] = &ufunc_spherical_kn_ptr[2*1]
+spherical_kn = np.PyUFunc_FromFuncAndData(ufunc_spherical_kn_loops, ufunc_spherical_kn_data, ufunc_spherical_kn_types, 2, 2, 1, 0, "spherical_kn", ufunc_spherical_kn_doc, 0)
+
+cdef np.PyUFuncGenericFunction ufunc_spherical_yn_loops[2]
+cdef void *ufunc_spherical_yn_ptr[4]
+cdef void *ufunc_spherical_yn_data[2]
+cdef char ufunc_spherical_yn_types[6]
+cdef char *ufunc_spherical_yn_doc = (
+    "spherical_yn(n, z)\n"
+    "\n"
+    "Spherical Bessel function of the second kind [1]_.\n"
+    "\n"
+    "Parameters\n"
+    "----------\n"
+    "n : int, array_like\n"
+    "    Order of the Bessel function (n >= 0).\n"
+    "z : complex or float, array_like\n"
+    "    Argument of the Bessel function.\n"
+    "\n"
+    "Returns\n"
+    "-------\n"
+    "s : array\n"
+    "\n"
+    "Notes\n"
+    "-----\n"
+    "\n"
+    "For real arguments, the function is computed using the ascending\n"
+    "recurrence [2]_.  For complex arguments, the relation to :math:`Y_n`, the\n"
+    "cylindrical Bessel function of the second kind [1]_, is used.\n"
+    "\n"
+    ".. versionadded:: 0.18.0\n"
+    "\n"
+    "References\n"
+    "----------\n"
+    ".. [1] http://dlmf.nist.gov/10.47.E4\n"
+    ".. [2] http://dlmf.nist.gov/10.51.E1")
+ufunc_spherical_yn_loops[0] = <np.PyUFuncGenericFunction>loop_d_ld__As_ld_d
+ufunc_spherical_yn_loops[1] = <np.PyUFuncGenericFunction>loop_D_lD__As_lD_D
+ufunc_spherical_yn_types[0] = <char>NPY_LONG
+ufunc_spherical_yn_types[1] = <char>NPY_DOUBLE
+ufunc_spherical_yn_types[2] = <char>NPY_DOUBLE
+ufunc_spherical_yn_types[3] = <char>NPY_LONG
+ufunc_spherical_yn_types[4] = <char>NPY_CDOUBLE
+ufunc_spherical_yn_types[5] = <char>NPY_CDOUBLE
+ufunc_spherical_yn_ptr[2*0] = <void*>_func_spherical_yn_real
+ufunc_spherical_yn_ptr[2*0+1] = <void*>(<char*>"spherical_yn")
+ufunc_spherical_yn_ptr[2*1] = <void*>_func_spherical_yn_complex
+ufunc_spherical_yn_ptr[2*1+1] = <void*>(<char*>"spherical_yn")
+ufunc_spherical_yn_data[0] = &ufunc_spherical_yn_ptr[2*0]
+ufunc_spherical_yn_data[1] = &ufunc_spherical_yn_ptr[2*1]
+spherical_yn = np.PyUFunc_FromFuncAndData(ufunc_spherical_yn_loops, ufunc_spherical_yn_data, ufunc_spherical_yn_types, 2, 2, 1, 0, "spherical_yn", ufunc_spherical_yn_doc, 0)
 
 cdef np.PyUFuncGenericFunction ufunc_stdtr_loops[2]
 cdef void *ufunc_stdtr_ptr[4]

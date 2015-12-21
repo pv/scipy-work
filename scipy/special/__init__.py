@@ -151,6 +151,14 @@ Derivatives of Bessel Functions
 Spherical Bessel Functions
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+.. autosummary::
+   :toctree: generated/
+
+   spherical_jn -- Spherical Bessel function of the first kind, jn(z)
+   spherical_yn -- Spherical Bessel function of the second kind, yn(z)
+   spherical_in -- Modified spherical Bessel function of the first kind, in(z)
+   spherical_kn -- Modified spherical Bessel function of the second kind, kn(z)
+
 These are not universal functions:
 
 .. autosummary::

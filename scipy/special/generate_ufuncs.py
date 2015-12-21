@@ -302,6 +302,10 @@ rel_entr -- rel_entr: dd->d                                -- _convex_analysis.p
 huber -- huber: dd->d                                      -- _convex_analysis.pxd
 pseudo_huber -- pseudo_huber: dd->d                        -- _convex_analysis.pxd
 exprel -- exprel: d->d                                     -- _exprel.pxd
+spherical_yn -- spherical_yn_real: ld->d, spherical_yn_complex: lD->D -- spherical_bessel.pxd
+spherical_jn -- spherical_jn_real: ld->d, spherical_jn_complex: lD->D -- spherical_bessel.pxd
+spherical_in -- spherical_in_real: ld->d, spherical_in_complex: lD->D -- spherical_bessel.pxd
+spherical_kn -- spherical_kn_real: ld->d, spherical_kn_complex: lD->D -- spherical_bessel.pxd
 """
 
 #---------------------------------------------------------------------------------
