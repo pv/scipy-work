@@ -8,7 +8,7 @@
 # Distributed under the same license as SciPy.
 
 import cython
-from libc.math cimport cos, sin, sqrt
+from libc.math cimport cos, sin, sqrt, M_PI_2
 
 from numpy cimport npy_cdouble
 from _complexstuff cimport *
@@ -59,7 +59,7 @@ cdef inline double spherical_jn_real(long n, double x) nogil:
     cdef double s0, s1, sn
     cdef int idx
 
-    if zisnan(x):
+    if npy_isnan(x):
         return x
     if n < 0:
         sf_error.error("spherical_jn", sf_error.DOMAIN, NULL)
@@ -70,7 +70,7 @@ cdef inline double spherical_jn_real(long n, double x) nogil:
         return 0
 
     if n > 1 and n <= x:
-        return sqrt(0.5*pi/x)*cbesj(n + 0.5, x)
+        return sqrt(M_PI_2/x)*cbesj(n + 0.5, x)
 
     s0 = sin(x)/x
     if n == 0:
@@ -83,7 +83,7 @@ cdef inline double spherical_jn_real(long n, double x) nogil:
         sn = (2*idx + 3)/x*s1 - s0
         s0 = s1
         s1 = sn
-        if zisinf(sn):
+        if npy_isinf(sn):
             # Overflow occurred already: terminate recurrence.
             return sn
 
@@ -93,7 +93,7 @@ cdef inline double spherical_jn_real(long n, double x) nogil:
 @cython.cdivision(True)
 cdef inline double complex spherical_jn_complex(long n, double complex z) nogil:
 
-    if npy_isnan(z.real) or npy_isnan(z.imag):
+    if zisnan(z):
         return z
     if n < 0:
         sf_error.error("spherical_jn", sf_error.DOMAIN, NULL)
@@ -107,7 +107,7 @@ cdef inline double complex spherical_jn_complex(long n, double complex z) nogil:
     if z.real == 0 and z.imag == 0:
         return 0
 
-    return sqrt(0.5*pi)/zsqrt(z)*cbesj(n + 0.5, z)
+    return zsqrt(M_PI_2/z)*cbesj(n + 0.5, z)
 
 
 @cython.cdivision(True)
@@ -115,7 +115,7 @@ cdef inline double spherical_yn_real(long n, double x) nogil:
     cdef double s0, s1, sn
     cdef int idx
 
-    if zisnan(x):
+    if npy_isnan(x):
         return x
     if n < 0:
         sf_error.error("spherical_yn", sf_error.DOMAIN, NULL)
@@ -134,7 +134,7 @@ cdef inline double spherical_yn_real(long n, double x) nogil:
         sn = (2*idx + 3)/x*s1 - s0
         s0 = s1
         s1 = sn
-        if zisinf(sn):
+        if npy_isinf(sn):
             # Overflow occurred already: terminate recurrence.
             return sn
 
@@ -144,7 +144,7 @@ cdef inline double spherical_yn_real(long n, double x) nogil:
 @cython.cdivision(True)
 cdef inline double complex spherical_yn_complex(long n, double complex z) nogil:
 
-    if npy_isnan(z.real) or npy_isnan(z.imag):
+    if zisnan(z):
         return z
     if n < 0:
         sf_error.error("spherical_yn", sf_error.DOMAIN, NULL)
@@ -159,13 +159,13 @@ cdef inline double complex spherical_yn_complex(long n, double complex z) nogil:
         else:
             return (1+1j)*inf
 
-    return sqrt(0.5*pi)/zsqrt(z)*cbesy(n + 0.5, z)
+    return zsqrt(M_PI_2/z)*cbesy(n + 0.5, z)
 
 
 @cython.cdivision(True)
 cdef inline double spherical_in_real(long n, double z) nogil:
 
-    if zisnan(z):
+    if npy_isnan(z):
         return z
     if n < 0:
         sf_error.error("spherical_in", sf_error.DOMAIN, NULL)
@@ -173,14 +173,14 @@ cdef inline double spherical_in_real(long n, double z) nogil:
     if z == 0:
         # http://dlmf.nist.gov/10.52.E1
         return 0
-    if zisinf(z):
+    if npy_isinf(z):
         # http://dlmf.nist.gov/10.49.E8
         if z == -inf:
             return (-1)**n*inf
         else:
             return inf
 
-    return sqrt(0.5*pi/z)*iv(n + 0.5, z)
+    return sqrt(M_PI_2/z)*iv(n + 0.5, z)
 
 
 @cython.cdivision(True)
@@ -206,25 +206,25 @@ cdef inline double complex spherical_in_complex(long n, double complex z) nogil:
             return z
 
     s = cbesi_wrap(n + 0.5, (<npy_cdouble*>&z)[0])
-    return sqrt(0.5*pi)/zsqrt(z)*(<double complex*>&s)[0]
+    return zsqrt(M_PI_2/z)*(<double complex*>&s)[0]
 
 
 @cython.cdivision(True)
 cdef inline double spherical_kn_real(long n, double z) nogil:
 
-    if zisnan(z):
+    if npy_isnan(z):
         return z
     if n < 0:
         sf_error.error("spherical_kn", sf_error.DOMAIN, NULL)
         return nan
-    if zisinf(z):
+    if npy_isinf(z):
         # http://dlmf.nist.gov/10.52.E6
         if z == inf:
             return 0
         else:
             return -inf
 
-    return sqrt(0.5*pi/z)*cbesk(n + 0.5, z)
+    return sqrt(M_PI_2/z)*cbesk(n + 0.5, z)
 
 
 @cython.cdivision(True)
@@ -245,4 +245,4 @@ cdef inline double complex spherical_kn_complex(long n, double complex z) nogil:
         else:
             return (1+1j)*inf
 
-    return sqrt(0.5*pi)/zsqrt(z)*cbesk(n + 0.5, z)
+    return zsqrt(M_PI_2/z)*cbesk(n + 0.5, z)
