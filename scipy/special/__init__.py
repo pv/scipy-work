@@ -641,6 +641,8 @@ from .orthogonal import *
 from .spfun_stats import multigammaln
 from ._ellip_harm import ellip_harm, ellip_harm_2, ellip_normal
 from .lambertw import lambertw
+from .spherical_bessel import (spherical_jn, spherical_yn, spherical_in,
+                               spherical_kn)
 
 
 __all__ = [s for s in dir() if not s.startswith('_')]

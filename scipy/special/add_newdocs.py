@@ -3173,135 +3173,6 @@ add_newdoc("scipy.special", "spence",
         -integral(log t / (t-1), t=1..x)
     """)
 
-add_newdoc("scipy.special", "spherical_in",
-    r"""
-    spherical_in(n, z)
-
-    Modified spherical Bessel function of the first kind [1]_.
-
-    Parameters
-    ----------
-    n : int, array_like
-        Order of the Bessel function (n >= 0).
-    z : complex or float, array_like
-        Argument of the Bessel function.
-
-    Returns
-    -------
-    s : array
-
-    Notes
-    -----
-
-    The function is computed using its relation to :math:`I_n`, the modified
-    cylindrical Bessel function of the first kind [1]_.
-
-    .. versionadded:: 0.18.0
-
-    References
-    ----------
-    .. [1] http://dlmf.nist.gov/10.47.E7
-
-    """)
-
-add_newdoc("scipy.special", "spherical_jn",
-    r"""
-    spherical_jn(n, z)
-
-    Spherical Bessel function of the first kind [1]_.
-
-    Parameters
-    ----------
-    n : int, array_like
-        Order of the Bessel function (n >= 0).
-    z : complex or float, array_like
-        Argument of the Bessel function.
-
-    Returns
-    -------
-    s : array
-
-    Notes
-    -----
-
-    For real arguments greater than the order, the function is computed using
-    the ascending recurrence [2]_.  For small real or complex arguments, the
-    relation to :math:`J_n`, the cylindrical Bessel function of the first kind
-    [1]_, is used.
-
-    .. versionadded:: 0.18.0
-
-    References
-    ----------
-    .. [1] http://dlmf.nist.gov/10.47.E3
-    .. [2] http://dlmf.nist.gov/10.51.E1
-
-    """)
-
-add_newdoc("scipy.special", "spherical_kn",
-    r"""
-    spherical_kn(n, z)
-
-    Modified spherical Bessel function of the second kind [1]_.
-
-    Parameters
-    ----------
-    n : int, array_like
-        Order of the Bessel function (n >= 0).
-    z : complex or float, array_like
-        Argument of the Bessel function.
-
-    Returns
-    -------
-    s : array
-
-    Notes
-    -----
-
-    The function is computed using its relation to :math:`K_n`, the modified
-    cylindrical Bessel function of the second kind [1]_.
-
-    .. versionadded:: 0.18.0
-
-    References
-    ----------
-    .. [1] http://dlmf.nist.gov/10.47.E9
-
-    """)
-
-add_newdoc("scipy.special", "spherical_yn",
-    r"""
-    spherical_yn(n, z)
-
-    Spherical Bessel function of the second kind [1]_.
-
-    Parameters
-    ----------
-    n : int, array_like
-        Order of the Bessel function (n >= 0).
-    z : complex or float, array_like
-        Argument of the Bessel function.
-
-    Returns
-    -------
-    s : array
-
-    Notes
-    -----
-
-    For real arguments, the function is computed using the ascending
-    recurrence [2]_.  For complex arguments, the relation to :math:`Y_n`, the
-    cylindrical Bessel function of the second kind [1]_, is used.
-
-    .. versionadded:: 0.18.0
-
-    References
-    ----------
-    .. [1] http://dlmf.nist.gov/10.47.E4
-    .. [2] http://dlmf.nist.gov/10.51.E1
-
-    """)
-
 add_newdoc("scipy.special", "stdtr",
     """
     stdtr(df, t)
@@ -3552,4 +3423,44 @@ add_newdoc("scipy.special", "_struve_bessel_series",
     Returns
     -------
     v, err
+    """)
+
+add_newdoc("scipy.special", "_spherical_jn",
+    """
+    Internal function, use `spherical_jn` instead.
+    """)
+
+add_newdoc("scipy.special", "_spherical_jn_d",
+    """
+    Internal function, use `spherical_jn` instead.
+    """)
+
+add_newdoc("scipy.special", "_spherical_yn",
+    """
+    Internal function, use `spherical_yn` instead.
+    """)
+
+add_newdoc("scipy.special", "_spherical_yn_d",
+    """
+    Internal function, use `spherical_yn` instead.
+    """)
+
+add_newdoc("scipy.special", "_spherical_in",
+    """
+    Internal function, use `spherical_in` instead.
+    """)
+
+add_newdoc("scipy.special", "_spherical_in_d",
+    """
+    Internal function, use `spherical_in` instead.
+    """)
+
+add_newdoc("scipy.special", "_spherical_kn",
+    """
+    Internal function, use `spherical_kn` instead.
+    """)
+
+add_newdoc("scipy.special", "_spherical_kn_d",
+    """
+    Internal function, use `spherical_kn` instead.
     """)

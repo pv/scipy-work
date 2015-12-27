@@ -1,7 +1,7 @@
 # -*-cython-*-
 #
 # Implementation of spherical Bessel functions and modified spherical Bessel
-# functions of the first and second kinds.
+# functions of the first and second kinds, as well as their derivatives.
 #
 # Author: Tadeusz Pudlik
 #
@@ -26,6 +26,7 @@ cdef extern from "amos_wrappers.h":
 
 cdef extern from "cephes.h":
     double iv(double v, double x) nogil
+
 
 # Fused type wrappers
 
@@ -53,6 +54,8 @@ cdef inline number_t cbesk(double v, number_t z) nogil:
         r = cbesk_wrap(v, (<npy_cdouble*>&z)[0])
         return (<number_t*>&r)[0]
 
+
+# Spherical Bessel functions
 
 @cython.cdivision(True)
 cdef inline double spherical_jn_real(long n, double x) nogil:
@@ -246,3 +249,83 @@ cdef inline double complex spherical_kn_complex(long n, double complex z) nogil:
             return (1+1j)*inf
 
     return zsqrt(M_PI_2/z)*cbesk(n + 0.5, z)
+
+
+# Derivatives
+
+@cython.cdivision(True)
+cdef inline double spherical_jn_d_real(long n, double x) nogil:
+    if n == 0:
+        return -spherical_jn_real(1, x)
+    else:
+        if x == 0:
+            return 0
+        return (spherical_jn_real(n - 1, x) -
+                (n + 1)*spherical_jn_real(n, x)/x)
+
+
+@cython.cdivision(True)
+cdef inline double complex spherical_jn_d_complex(long n, double complex x) nogil:
+    if n == 0:
+        return -spherical_jn_complex(1, x)
+    else:
+        return (spherical_jn_complex(n - 1, x) -
+                (n + 1)*spherical_jn_complex(n, x)/x)
+
+
+@cython.cdivision(True)
+cdef inline double spherical_yn_d_real(long n, double x) nogil:
+    if n == 0:
+        return -spherical_yn_real(1, x)
+    else:
+        return (spherical_yn_real(n - 1, x) -
+                (n + 1)*spherical_yn_real(n, x)/x)
+
+
+@cython.cdivision(True)
+cdef inline double complex spherical_yn_d_complex(long n, double complex x) nogil:
+    if n == 0:
+        return -spherical_yn_complex(1, x)
+    else:
+        return (spherical_yn_complex(n - 1, x) -
+                (n + 1)*spherical_yn_complex(n, x)/x)
+
+
+@cython.cdivision(True)
+cdef inline double spherical_in_d_real(long n, double x) nogil:
+    if n == 0:
+        return spherical_in_real(1, x)
+    else:
+        if x == 0:
+            return 0
+        return (spherical_in_real(n - 1, x) -
+                (n + 1)*spherical_in_real(n, x)/x)
+
+
+@cython.cdivision(True)
+cdef inline double complex spherical_in_d_complex(long n, double complex x) nogil:
+    if n == 0:
+        return spherical_in_complex(1, x)
+    else:
+        if x == 0:
+            return 0
+        return (spherical_in_complex(n - 1, x) -
+                (n + 1)*spherical_in_complex(n, x)/x)
+
+
+@cython.cdivision(True)
+cdef inline double spherical_kn_d_real(long n, double x) nogil:
+    if n == 0:
+        return -spherical_kn_real(1, x)
+    else:
+        return (-spherical_kn_real(n - 1, x) -
+                (n + 1)*spherical_kn_real(n, x)/x)
+
+
+@cython.cdivision(True)
+cdef inline double complex spherical_kn_d_complex(long n, double complex x) nogil:
+    if n == 0:
+        return -spherical_kn_complex(1, x)
+    else:
+        return (-spherical_kn_complex(n - 1, x) -
+                (n + 1)*spherical_kn_complex(n, x)/x)
