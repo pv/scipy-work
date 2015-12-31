@@ -6,6 +6,21 @@
 # Author: Tadeusz Pudlik
 #
 # Distributed under the same license as SciPy.
+#
+# I attempt to correctly handle the edge cases (0 and infinity), but this is
+# tricky: the values of the functions often depend on the direction in which
+# the limit is taken. At zero, I follow the convention of numpy (1.9.2),
+# which treats zero differently depending on its type:
+#
+#   >>> np.cos(0)/0
+#   inf
+#   >>> np.cos(0+0j)/(0+0j)
+#   inf + nan*j
+#
+# So, real zero is assumed to be "positive zero", while complex zero has an
+# unspecified sign and produces nans.  Similarly, complex infinity is taken to
+# represent the "point at infinity", an ambiguity which for some functions
+# makes `nan` the correct return value.
 
 import cython
 from libc.math cimport cos, sin, sqrt, M_PI_2
@@ -70,7 +85,10 @@ cdef inline double spherical_jn_real(long n, double x) nogil:
     if x == inf or x == -inf:
         return 0
     if x == 0:
-        return 0
+        if n == 0:
+            return 1
+        else:
+            return 0
 
     if n > 1 and n <= x:
         return sqrt(M_PI_2/x)*cbesj(n + 0.5, x)
@@ -108,7 +126,10 @@ cdef inline double complex spherical_jn_complex(long n, double complex z) nogil:
         else:
             return (1+1j)*inf
     if z.real == 0 and z.imag == 0:
-        return 0
+        if n == 0:
+            return 1
+        else:
+            return 0
 
     return zsqrt(M_PI_2/z)*cbesj(n + 0.5, z)
 
@@ -125,6 +146,8 @@ cdef inline double spherical_yn_real(long n, double x) nogil:
         return nan
     if x == inf or x == -inf:
         return 0
+    if x == 0:
+        return -inf
 
     s0 = -cos(x)/x
     if n == 0:
@@ -175,7 +198,10 @@ cdef inline double spherical_in_real(long n, double z) nogil:
         return nan
     if z == 0:
         # http://dlmf.nist.gov/10.52.E1
-        return 0
+        if n == 0:
+            return 1
+        else:
+            return 0
     if npy_isinf(z):
         # http://dlmf.nist.gov/10.49.E8
         if z == -inf:
@@ -197,7 +223,10 @@ cdef inline double complex spherical_in_complex(long n, double complex z) nogil:
         return nan
     if zabs(z) == 0:
         # http://dlmf.nist.gov/10.52.E1
-        return 0
+        if n == 0:
+            return 1
+        else:
+            return 0
     if zisinf(z):
         # http://dlmf.nist.gov/10.52.E5
         if z.imag == 0:
@@ -206,7 +235,7 @@ cdef inline double complex spherical_in_complex(long n, double complex z) nogil:
             else:
                 return inf
         else:
-            return z
+            return nan
 
     s = cbesi_wrap(n + 0.5, (<npy_cdouble*>&z)[0])
     return zsqrt(M_PI_2/z)*(<double complex*>&s)[0]
@@ -220,6 +249,8 @@ cdef inline double spherical_kn_real(long n, double z) nogil:
     if n < 0:
         sf_error.error("spherical_kn", sf_error.DOMAIN, NULL)
         return nan
+    if z == 0:
+        return inf
     if npy_isinf(z):
         # http://dlmf.nist.gov/10.52.E6
         if z == inf:
@@ -238,6 +269,8 @@ cdef inline double complex spherical_kn_complex(long n, double complex z) nogil:
     if n < 0:
         sf_error.error("spherical_kn", sf_error.DOMAIN, NULL)
         return nan
+    if zabs(z) == 0:
+        return nan
     if zisinf(z):
         # http://dlmf.nist.gov/10.52.E6
         if z.imag == 0:
@@ -246,7 +279,7 @@ cdef inline double complex spherical_kn_complex(long n, double complex z) nogil:
             else:
                 return -inf
         else:
-            return (1+1j)*inf
+            return nan
 
     return zsqrt(M_PI_2/z)*cbesk(n + 0.5, z)
 
