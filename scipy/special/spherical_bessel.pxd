@@ -90,7 +90,7 @@ cdef inline double spherical_jn_real(long n, double x) nogil:
         else:
             return 0
 
-    if n > 1 and n <= x:
+    if n > 0 and n >= x:
         return sqrt(M_PI_2/x)*cbesj(n + 0.5, x)
 
     s0 = sin(x)/x
@@ -101,7 +101,7 @@ cdef inline double spherical_jn_real(long n, double x) nogil:
         return s1
 
     for idx in range(n - 1):
-        sn = (2*idx + 3)/x*s1 - s0
+        sn = (2*idx + 3)*s1/x - s0
         s0 = s1
         s1 = sn
         if npy_isinf(sn):
@@ -157,7 +157,7 @@ cdef inline double spherical_yn_real(long n, double x) nogil:
         return s1
 
     for idx in range(n - 1):
-        sn = (2*idx + 3)/x*s1 - s0
+        sn = (2*idx + 3)*s1/x - s0
         s0 = s1
         s1 = sn
         if npy_isinf(sn):
