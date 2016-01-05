@@ -113,7 +113,7 @@ cdef inline double spherical_jn_real(long n, double x) nogil:
 
 @cython.cdivision(True)
 cdef inline double complex spherical_jn_complex(long n, double complex z) nogil:
-
+    cdef double complex out
     if zisnan(z):
         return z
     if n < 0:
@@ -131,7 +131,13 @@ cdef inline double complex spherical_jn_complex(long n, double complex z) nogil:
         else:
             return 0
 
-    return zsqrt(M_PI_2/z)*cbesj(n + 0.5, z)
+    out = zsqrt(M_PI_2/z)*cbesj(n + 0.5, z)
+
+    if z.imag == 0:
+        # Small imaginary part is spurious
+        return out.real
+    else:
+        return out
 
 
 @cython.cdivision(True)
@@ -144,6 +150,8 @@ cdef inline double spherical_yn_real(long n, double x) nogil:
     if n < 0:
         sf_error.error("spherical_yn", sf_error.DOMAIN, NULL)
         return nan
+    if x < 0:
+        return (-1)**(n+1)*spherical_yn_real(n, -x)
     if x == inf or x == -inf:
         return 0
     if x == 0:
