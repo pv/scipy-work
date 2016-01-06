@@ -1638,7 +1638,7 @@ class TestSystematic(with_metaclass(_SystematicMeta, object)):
             out = (mpmath.besselj(n + mpmath.mpf(1)/2, arg) /
                    mpmath.sqrt(2*arg/mpmath.pi))
             if arg.imag == 0:
-                return out.real # Small imaginary parts are spurious
+                return out.real
             else:
                 return out
 
@@ -1653,7 +1653,7 @@ class TestSystematic(with_metaclass(_SystematicMeta, object)):
             out = (mpmath.besselj(n + mpmath.mpf(1)/2, arg) /
                    mpmath.sqrt(2*arg/mpmath.pi))
             if arg.imag == 0:
-                return out.real # Small imaginary parts are spurious
+                return out.real
             else:
                 return out
 
@@ -1667,7 +1667,7 @@ class TestSystematic(with_metaclass(_SystematicMeta, object)):
             out = (mpmath.bessely(n + mpmath.mpf(1)/2, arg) /
                    mpmath.sqrt(2*arg/mpmath.pi))
             if arg.imag == 0:
-                return out.real # Small imaginary parts are spurious
+                return out.real
             else:
                 return out
 
@@ -1682,7 +1682,7 @@ class TestSystematic(with_metaclass(_SystematicMeta, object)):
             out = (mpmath.bessely(n + mpmath.mpf(1)/2, arg) /
                    mpmath.sqrt(2*arg/mpmath.pi))
             if arg.imag == 0:
-                return out.real # Small imaginary parts are spurious
+                return out.real
             else:
                 return out
 
@@ -1696,7 +1696,7 @@ class TestSystematic(with_metaclass(_SystematicMeta, object)):
             out = (mpmath.besseli(n + mpmath.mpf(1)/2, arg) /
                    mpmath.sqrt(2*arg/mpmath.pi))
             if arg.imag == 0:
-                return out.real # Small imaginary parts are spurious
+                return out.real
             else:
                 return out
 
@@ -1711,7 +1711,7 @@ class TestSystematic(with_metaclass(_SystematicMeta, object)):
             out = (mpmath.besseli(n + mpmath.mpf(1)/2, arg) /
                    mpmath.sqrt(2*arg/mpmath.pi))
             if arg.imag == 0:
-                return out.real # Small imaginary parts are spurious
+                return out.real
             else:
                 return out
 
@@ -1724,7 +1724,7 @@ class TestSystematic(with_metaclass(_SystematicMeta, object)):
             out = (mpmath.besselk(n + mpmath.mpf(1)/2, z) *
                    mpmath.sqrt(mpmath.pi/(2*mpmath.mpmathify(z))))
             if mpmath.mpmathify(z).imag == 0:
-                return out.real # Small imaginary parts are spurious
+                return out.real
             else:
                 return out
 
@@ -1740,7 +1740,7 @@ class TestSystematic(with_metaclass(_SystematicMeta, object)):
             out = (mpmath.besselk(n + mpmath.mpf(1)/2, arg) /
                    mpmath.sqrt(2*arg/mpmath.pi))
             if arg.imag == 0:
-                return out.real # Small imaginary parts are spurious
+                return out.real
             else:
                 return out
 
