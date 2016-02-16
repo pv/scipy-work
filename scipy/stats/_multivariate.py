@@ -16,7 +16,8 @@ __all__ = ['multivariate_normal',
            'wishart',
            'invwishart',
            'special_ortho_group',
-           'ortho_group']
+           'ortho_group',
+           'random_correlation']
 
 _LOG_2PI = np.log(2 * np.pi)
 _LOG_2 = np.log(2)
@@ -2904,3 +2905,180 @@ class ortho_group_gen(multi_rv_generic):
         return H
 
 ortho_group = ortho_group_gen()
+
+class random_correlation_gen(multi_rv_generic):
+    r"""
+    A random correlation matrix.
+
+    Return a random correlation matrix, given a vector of eigenvalues.
+
+    The `eigs` keyword specifies the eigenvalues of the correlation matrix,
+    and implies the dimension.
+
+    Methods
+    -------
+    ``rvs(eigs=None, random_state=None)``
+        Draw random correlation matrices, all with eigenvalues eigs.
+
+    Parameters
+    ----------
+    eigs : 1d ndarray
+        Eigenvalues of correlation matrix.
+
+    Notes
+    ----------
+
+    Generates a random correlation matrix following a numerically stable
+    algorithm spelled out by Davies & Higham. This algorithm uses a single O(N)
+    similarity transformation to construct a symmetric positive semi-definite
+    matrix, and applies a series of Givens rotations to scale it to have ones
+    on the diagonal.
+
+    References
+    ----------
+
+    .. [1] Davies, Philip I; Higham, Nicholas J; "Numerically stable generation
+           of correlation matrices and their factors", BIT 2000, Vol. 40,
+           No. 4, pp. 640 651
+
+    Examples
+    --------
+    >>> from scipy.stats import random_correlation
+    >>> np.random.seed(514)
+    >>> x = random_correlation.rvs((.5, .8, 1.2, 1.5))
+    >>> x
+    array([[ 1.        , -0.20387311,  0.18366501, -0.04953711],
+           [-0.20387311,  1.        , -0.24351129,  0.06703474],
+           [ 0.18366501, -0.24351129,  1.        ,  0.38530195],
+           [-0.04953711,  0.06703474,  0.38530195,  1.        ]])
+
+    >>> import scipy.linalg
+    >>> e, v = scipy.linalg.eigh(x)
+    >>> e
+    array([ 0.5,  0.8,  1.2,  1.5])
+
+    """
+
+    def __init__(self, seed=None):
+        super(random_correlation_gen, self).__init__(seed)
+        self.__doc__ = doccer.docformat(self.__doc__)
+
+    def _process_parameters(self, eigs, tol):
+        eigs = np.asarray(eigs, dtype=float)
+        dim = eigs.size
+
+        if eigs.ndim != 1 or eigs.shape[0] != dim or dim <= 1:
+            raise ValueError("Array 'eigs' must be a vector of length greater than 1.")
+
+        if np.fabs(np.sum(eigs) - dim) > tol:
+            raise ValueError("Sum of eigenvalues must equal dimensionality.")
+
+        for x in eigs:
+            if x < tol:
+                raise ValueError("All eigenvalues must be strictly positive.")
+
+        return dim, eigs
+
+    def givens_to_1(self, aii, ajj, aij):
+        '''Computes a 2x2 Givens matrix to put 1's on the diagonal for the input matrix.
+
+        The input matrix is a 2x2 symmetric matrix M = [ aii aij ; aij ajj ]. The
+        unique elements must be explicitly provided. The function will produce a
+        result as long as tr(M) - det(M) >= 1, but will only produce a unit diagonal
+        when tr(M) == 2 and M is not already diagonal. Note that when tr(M) == 2, the
+        above condition is necessarily satisfied.
+
+        The output matrix g is a 2x2 anti-symmetric matrix of the form [ c s ; -s c ];
+        the elements c and s are returned.
+
+        Applying the output matrix to the input matrix (as g.T M g) results in a
+        matrix with ones on the diagonal when tr(M) == 2.
+
+        '''
+        # if fabs(aiid) < eps and fabs(ajjd) < eps:
+        #   # Basically have ones on the diagonal already!
+        #   return 1., 0. # return the identity matrix
+        # if fabs(aij) < eps:
+        #     # The matrix is already diagonal; we can't independently scale the diagonal entries through a rotation.
+        #     return 1., 0
+
+        aiid = aii - 1.
+        ajjd = ajj - 1.
+
+        dd = aij**2 - aiid*ajjd
+        if dd > 0.:
+            discriminant = np.sqrt(dd)
+        else:
+            discriminant = 0.
+            # if dd < -eps:
+            #     raise ValueError("Failure due to negative discriminant in givens_to_1")
+            #     # # Error was likely not due to round-off, so give a warning.
+            #     # # TODO: Analyze how this can happen. Only due to numerical issues?
+            #     # print("Potential problem in givens_to_1")
+            #     # print("Arguments are aii, ajj, aij: " + ','.join(map(str, (aii, ajj, aij))))
+            #     # print("aij^2 - (aii-1)*(ajj-1) should be positive but is " + str(dd))
+
+        # The choice of t should be chosen to avoid cancellation, following Davies & Higham
+        # Davies, Philip I; Higham, Nicholas J; "Numerically stable generation of
+        # correlation matrices and their factors", BIT 2000, Vol. 40, No. 4, pp. 640 651
+        # Make sure the numerator is small when ajjd is small.
+        t = (aij + scipy.sign(aij)*discriminant) / ajjd
+        c = 1. / np.sqrt(1. + t*t)
+        s = c*t
+        #  return mat([ [ c, s ], [ -s, c ] ])
+        return c, s
+
+    def o_to_corr(self, m):
+        '''
+        Given an orthogonal matrix m, rotate to put one's on the diagonal, turning it
+        into a correlation matrix.  This also requires the trace equal the
+        dimensionality.
+        '''
+        m = m.copy()  # Leave input unchanged!
+        d = m.shape[0]
+        for i in range(d-1):
+            if m[i,i] == 1.:  # Does this need to be "close to" ie within eps?
+                continue
+            if m[i, i] > 1.:
+                for j in range(i+1, d):
+                    if m[j, j] < 1.:
+                        break
+            else:
+                for j in range(i+1, d):
+                    if m[j, j] > 1.:
+                        break
+            c, s = self.givens_to_1(m[i,i], m[j, j], m[i, j])
+            g = np.eye(d)
+            g[i, i] = c
+            g[j, j] = c
+            g[j, i] = -s
+            g[i, j] = s
+            m = np.dot(np.dot(g.T, m), g)
+        return m
+
+    def rvs(self, eigs, random_state=None, tol=1e-13):
+        """
+        Draw random correlation matrices
+
+        Parameters
+        ----------
+        eigs : 1d ndarray
+            Eigenvalues of correlation matrix
+
+        Returns
+        -------
+        rvs : ndarray or scalar
+            Random size N-dimensional matrices, dimension (size, dim, dim),
+            each having eigenvalues eigs.
+
+        """
+        dim, eigs = self._process_parameters(eigs, tol=tol)
+
+        random_state = self._get_random_state(random_state)
+
+        m = ortho_group.rvs(dim)
+        m = np.dot(np.dot(m, np.diag(eigs)), m.T)  # Set the trace of m
+        m = self.o_to_corr(m)  # Carefully rotate to unit diagonal
+        return m
+
+random_correlation = random_correlation_gen()

@@ -21,6 +21,7 @@ from scipy.stats._multivariate import _PSD, _lnB
 from scipy.stats import multivariate_normal
 from scipy.stats import matrix_normal
 from scipy.stats import special_ortho_group, ortho_group
+from scipy.stats import random_correlation
 from scipy.stats import dirichlet, beta
 from scipy.stats import wishart, invwishart, chi2, invgamma
 from scipy.stats import norm
@@ -1149,6 +1150,58 @@ class TestOrthoGroup(TestCase):
         pairs = [(e0, e1) for e0 in els for e1 in els if e0 > e1]
         ks_tests = [ks_2samp(proj[p0], proj[p1])[1] for (p0, p1) in pairs]
         assert_array_less([ks_prob]*len(pairs), ks_tests)
+
+class TestRandomCorrelation(TestCase):
+    def test_reproducibility(self):
+        np.random.seed(514)
+        eigs = (.5, .8, 1.2, 1.5)
+        x = random_correlation.rvs((.5, .8, 1.2, 1.5))
+        expected = np.array([[1., -0.20387311, 0.18366501, -0.04953711],
+                             [-0.20387311, 1., -0.24351129, 0.06703474],
+                             [0.18366501, -0.24351129, 1., 0.38530195],
+                             [-0.04953711, 0.06703474, 0.38530195, 1.]])
+        assert_array_almost_equal(x, expected)
+
+    def test_invalid_eigs(self):
+        assert_raises(ValueError, random_correlation.rvs, None)
+        assert_raises(ValueError, random_correlation.rvs, 'test')
+        assert_raises(ValueError, random_correlation.rvs, 2.5)
+        assert_raises(ValueError, random_correlation.rvs, [2.5])
+        assert_raises(ValueError, random_correlation.rvs, [[1,2],[3,4]])
+        assert_raises(ValueError, random_correlation.rvs, [2.5, -.5])
+        assert_raises(ValueError, random_correlation.rvs, [1, 2, .1])
+
+    def test_definition(self):
+        '''Test the defintion of a correlation matrix in several dimensions:
+
+        1. Det is product of eigenvalues (and positive by construction
+           in examples)
+        2. 1's on diagonal
+        3. Matrix is symmetric
+
+        '''
+        def norm(i, e):
+            return i*e/sum(e)
+        eigs = [norm(i, np.random.uniform(size=i)) for i in range(2, 6)]
+        ones = [[1.]*i for i in range(2, 6)]
+        xs = [random_correlation.rvs(e) for e in eigs]
+
+        # Test that determinants are products of eigenvalues
+        #   These are positive by construction
+        # Could also test that the eigenvalues themselves are correct,
+        #   but this seems sufficient.
+        dets = [np.fabs(np.linalg.det(x)) for x in xs]
+        dets_known = [np.prod(e) for e in eigs]
+        assert_allclose(dets, dets_known, rtol=1e-13)
+
+        # Test for 1's on the diagonal
+        diags = [np.diag(x) for x in xs]
+        for a, b in zip(diags, ones):
+            assert_allclose(a, b, rtol=1e-13)
+
+        # Correlation matrices are symmetric
+        for x in xs:
+            assert_allclose(x, x.T, rtol=1e-13)
 
 def check_pickling(distfn, args):
     # check that a distribution instance pickles and unpickles
