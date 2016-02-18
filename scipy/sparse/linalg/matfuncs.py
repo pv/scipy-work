@@ -592,6 +592,18 @@ def _expm(A, use_exact_onenorm):
     if len(A.shape) != 2 or A.shape[0] != A.shape[1]:
         raise ValueError('expected a square matrix')
 
+    # Trivial case
+    if A.shape == (1, 1):
+        data = [[np.exp(A[0, 0])]]
+
+        # 'ndarray' constructor does not accept
+        # a 'data' argument, so we need to call
+        # 'np.array' instead
+        if type(A).__name__ == 'ndarray':
+            return np.array(data)
+
+        return A.__class__(data)
+
     # Detect upper triangularity.
     structure = UPPER_TRIANGULAR if _is_upper_triangular(A) else None
 
