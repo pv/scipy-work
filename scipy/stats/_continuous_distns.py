@@ -12,7 +12,8 @@ from scipy import special
 from scipy import optimize
 from scipy import integrate
 from scipy.special import (gammaln as gamln, gamma as gam, boxcox, boxcox1p,
-                           inv_boxcox, inv_boxcox1p, erfc, chndtr, chndtrix)
+                           inv_boxcox, inv_boxcox1p, erfc, chndtr, chndtrix,
+                           _norm_cdf, _norm_logcdf)
 
 from numpy import (where, arange, putmask, ravel, shape,
                    log, sqrt, exp, arctanh, tan, sin, arcsin, arctan,
@@ -81,24 +82,16 @@ def _norm_logpdf(x):
     return -x**2 / 2.0 - _norm_pdf_logC
 
 
-def _norm_cdf(x):
-    return special.ndtr(x)
-
-
-def _norm_logcdf(x):
-    return special.log_ndtr(x)
-
-
 def _norm_ppf(q):
     return special.ndtri(q)
 
 
 def _norm_sf(x):
-    return special.ndtr(-x)
+    return _norm_cdf(-x)
 
 
 def _norm_logsf(x):
-    return special.log_ndtr(-x)
+    return _norm_logcdf(-x)
 
 
 def _norm_isf(q):
@@ -212,13 +205,13 @@ class alpha_gen(rv_continuous):
 
     """
     def _pdf(self, x, a):
-        return 1.0/(x**2)/special.ndtr(a)*_norm_pdf(a-1.0/x)
+        return 1.0/(x**2)/special._norm_cdf(a)*_norm_pdf(a-1.0/x)
 
     def _logpdf(self, x, a):
-        return -2*log(x) + _norm_logpdf(a-1.0/x) - log(special.ndtr(a))
+        return -2*log(x) + _norm_logpdf(a-1.0/x) - log(special._norm_cdf(a))
 
     def _cdf(self, x, a):
-        return special.ndtr(a-1.0/x) / special.ndtr(a)
+        return special._norm_cdf(a-1.0/x) / special._norm_cdf(a)
 
     def _ppf(self, q, a):
         return 1.0/asarray(a-special.ndtri(q*special.ndtr(a)))
@@ -1169,12 +1162,12 @@ class exponnorm_gen(rv_continuous):
     def _cdf(self, x, K):
         invK = 1.0 / K
         expval = invK * (0.5 * invK - x)
-        return special.ndtr(x) - exp(expval) * special.ndtr(x - invK)
+        return special._norm_cdf(x) - exp(expval) * special._norm_cdf(x - invK)
 
     def _sf(self, x, K):
         invK = 1.0 / K
         expval = invK * (0.5 * invK - x)
-        return special.ndtr(-x) + exp(expval) * special.ndtr(x - invK)
+        return special._norm_cdf(-x) + exp(expval) * special._norm_cdf(x - invK)
 
     def _stats(self, K):
         K2 = K * K
@@ -1314,7 +1307,7 @@ class fatiguelife_gen(rv_continuous):
                 0.5*(log(2*pi) + 3*log(x)))
 
     def _cdf(self, x, c):
-        return special.ndtr(1.0 / c * (sqrt(x) - 1.0/sqrt(x)))
+        return special._norm_cdf(1.0 / c * (sqrt(x) - 1.0/sqrt(x)))
 
     def _ppf(self, q, c):
         tmp = c*special.ndtri(q)
@@ -1483,7 +1476,7 @@ class foldnorm_gen(rv_continuous):
         return _norm_pdf(x + c) + _norm_pdf(x-c)
 
     def _cdf(self, x, c):
-        return special.ndtr(x-c) + special.ndtr(x+c) - 1.0
+        return special._norm_cdf(x-c) + special._norm_cdf(x+c) - 1.0
 
     def _stats(self, c):
         # Regina C. Elandt, Technometrics 3, 551 (1961)
@@ -2448,7 +2441,7 @@ class halfnorm_gen(rv_continuous):
         return 0.5 * np.log(2.0/pi) - x*x/2.0
 
     def _cdf(self, x):
-        return special.ndtr(x)*2-1.0
+        return special._norm_cdf(x)*2-1.0
 
     def _ppf(self, q):
         return special.ndtri((1+q)/2.0)
@@ -4162,13 +4155,13 @@ class skew_norm_gen(rv_continuous):
 
     Notes
     -----
-    The pdf is
+    The pdf is::
 
-    skewnorm.pdf(x, a) = 2*norm.pdf(x)*norm.cdf(ax)
+        skewnorm.pdf(x, a) = 2*norm.pdf(x)*norm.cdf(ax)
 
     `skewnorm` takes ``a`` as a skewness parameter
     When a=0 the distribution is identical to a normal distribution.
-    rvs implements the method of [1].
+    rvs implements the method of [1]_.
 
     %(after_notes)s
 
@@ -4178,7 +4171,7 @@ class skew_norm_gen(rv_continuous):
     References
     ----------
 
-    [1] A. Azzalini and A. Capitanio (1999). Statistical applications of the
+    .. [1] A. Azzalini and A. Capitanio (1999). Statistical applications of the
         multivariate skew-normal distribution. J. Roy. Statist. Soc., B 61, 579-602.
         http://azzalini.stat.unipd.it/SN/faq-r.html
     """
