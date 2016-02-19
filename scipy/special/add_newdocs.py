@@ -4441,6 +4441,58 @@ add_newdoc("scipy.special", "ndtri",
     is equal to y.
     """)
 
+add_newdoc("scipy.special", "_norm_cdf",
+    r"""
+    _norm_cdf(x)
+
+    Compute the CDF of the normal distribution.
+
+    .. math::
+
+       \frac{1}{2\pi} \int_{-\infty}^x \exp(-t^2/2) dt
+
+    Parameters
+    ----------
+    x : array_like, real or complex
+        Argument
+
+    Returns
+    -------
+    ndarray
+        The value of the normal CDF evaluated at `x`
+
+    See Also
+    --------
+    scipy.stats.norm
+    ndtr
+    erf
+
+    """)
+
+add_newdoc("scipy.special", "_norm_logcdf",
+    r"""
+    _norm_cdf(x)
+
+    Compute the log of the CDF of the normal distribution.
+
+    Parameters
+    ----------
+    x : array_like, real or complex
+        Argument
+
+    Returns
+    -------
+    ndarray
+        The value of the log of the normal CDF evaluated at `x`
+
+    See Also
+    --------
+    scipy.stats.norm
+    ndtr
+    erf
+
+    """)
+
 add_newdoc("scipy.special", "obl_ang1",
     """
     obl_ang1(m, n, c, x)

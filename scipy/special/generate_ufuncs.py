@@ -289,6 +289,8 @@ erf -- erf: d->d, faddeeva_erf: D->D                       -- cephes.h, _faddeev
 dawsn -- faddeeva_dawsn: d->d, faddeeva_dawsn_complex: D->D -- _faddeeva.h++
 erfcx -- faddeeva_erfcx: d->d, faddeeva_erfcx_complex: D->D -- _faddeeva.h++
 erfi -- faddeeva_erfi: d->d, faddeeva_erfi_complex: D->D   -- _faddeeva.h++
+_norm_cdf -- ndtr: d->d, faddeeva_ndtr: D->D               -- cephes.h, _faddeeva.h++
+_norm_logcdf -- log_ndtr: d->d, faddeeva_log_ndtr: D->D    -- cephes.h, _faddeeva.h++
 xlogy -- xlogy[double]: dd->d, xlogy[double_complex]: DD->D -- _xlogy.pxd
 xlog1py -- xlog1py[double]: dd->d, xlog1py[double_complex]: DD->D   -- _xlogy.pxd
 poch -- poch: dd->d                                        -- c_misc/misc.h

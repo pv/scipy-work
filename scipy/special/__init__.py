@@ -625,6 +625,7 @@ Convenience Functions
 from __future__ import division, print_function, absolute_import
 
 from ._ufuncs import *
+from ._ufuncs import _norm_cdf, _norm_logcdf
 
 from .basic import *
 from . import specfun
