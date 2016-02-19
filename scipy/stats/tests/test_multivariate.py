@@ -1172,16 +1172,18 @@ class TestRandomCorrelation(TestCase):
         assert_raises(ValueError, random_correlation.rvs, [1, 2, .1])
 
     def test_definition(self):
-        '''Test the defintion of a correlation matrix in several dimensions:
+        # Test the defintion of a correlation matrix in several dimensions:
+        #
+        # 1. Det is product of eigenvalues (and positive by construction
+        #    in examples)
+        # 2. 1's on diagonal
+        # 3. Matrix is symmetric
 
-        1. Det is product of eigenvalues (and positive by construction
-           in examples)
-        2. 1's on diagonal
-        3. Matrix is symmetric
-
-        '''
         def norm(i, e):
             return i*e/sum(e)
+
+        np.random.seed(123)
+
         eigs = [norm(i, np.random.uniform(size=i)) for i in range(2, 6)]
         ones = [[1.]*i for i in range(2, 6)]
         xs = [random_correlation.rvs(e) for e in eigs]

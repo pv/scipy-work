@@ -3,11 +3,13 @@
 #
 from __future__ import division, print_function, absolute_import
 
+import math
 import numpy as np
 import scipy.linalg
 from scipy.misc import doccer
 from scipy.special import gammaln, psi, multigammaln
 from scipy._lib._util import check_random_state
+from scipy.linalg.blas import drot
 
 
 __all__ = ['multivariate_normal',
@@ -2979,8 +2981,8 @@ class random_correlation_gen(multi_rv_generic):
 
         return dim, eigs
 
-    def givens_to_1(self, aii, ajj, aij):
-        '''Computes a 2x2 Givens matrix to put 1's on the diagonal for the input matrix.
+    def _givens_to_1(self, aii, ajj, aij):
+        """Computes a 2x2 Givens matrix to put 1's on the diagonal for the input matrix.
 
         The input matrix is a 2x2 symmetric matrix M = [ aii aij ; aij ajj ]. The
         unique elements must be explicitly provided. The function will produce a
@@ -2994,66 +2996,56 @@ class random_correlation_gen(multi_rv_generic):
         Applying the output matrix to the input matrix (as g.T M g) results in a
         matrix with ones on the diagonal when tr(M) == 2.
 
-        '''
-        # if fabs(aiid) < eps and fabs(ajjd) < eps:
-        #   # Basically have ones on the diagonal already!
-        #   return 1., 0. # return the identity matrix
-        # if fabs(aij) < eps:
-        #     # The matrix is already diagonal; we can't independently scale the diagonal entries through a rotation.
-        #     return 1., 0
-
+        """
         aiid = aii - 1.
         ajjd = ajj - 1.
 
-        dd = aij**2 - aiid*ajjd
-        if dd > 0.:
-            discriminant = np.sqrt(dd)
-        else:
-            discriminant = 0.
-            # if dd < -eps:
-            #     raise ValueError("Failure due to negative discriminant in givens_to_1")
-            #     # # Error was likely not due to round-off, so give a warning.
-            #     # # TODO: Analyze how this can happen. Only due to numerical issues?
-            #     # print("Potential problem in givens_to_1")
-            #     # print("Arguments are aii, ajj, aij: " + ','.join(map(str, (aii, ajj, aij))))
-            #     # print("aij^2 - (aii-1)*(ajj-1) should be positive but is " + str(dd))
+        dd = math.sqrt(max(aij**2 - aiid*ajjd, 0))
 
-        # The choice of t should be chosen to avoid cancellation, following Davies & Higham
-        # Davies, Philip I; Higham, Nicholas J; "Numerically stable generation of
-        # correlation matrices and their factors", BIT 2000, Vol. 40, No. 4, pp. 640 651
-        # Make sure the numerator is small when ajjd is small.
-        t = (aij + scipy.sign(aij)*discriminant) / ajjd
-        c = 1. / np.sqrt(1. + t*t)
+        # The choice of t should be chosen to avoid cancellation [1]
+        t = (aij + math.copysign(dd, aij)) / ajjd
+        c = 1. / math.sqrt(1. + t*t)
         s = c*t
-        #  return mat([ [ c, s ], [ -s, c ] ])
         return c, s
 
-    def o_to_corr(self, m):
-        '''
-        Given an orthogonal matrix m, rotate to put one's on the diagonal, turning it
+    def _to_corr(self, m):
+        """
+        Given a psd matrix m, rotate to put one's on the diagonal, turning it
         into a correlation matrix.  This also requires the trace equal the
-        dimensionality.
-        '''
-        m = m.copy()  # Leave input unchanged!
+        dimensionality. Note: modifies input matrix
+        """
+        # Check requirements for in-place Givens
+        if not (m.flags.c_contiguous and m.dtype == np.float64 and m.shape[0] == m.shape[1]):
+            raise ValueError()
+
         d = m.shape[0]
         for i in range(d-1):
-            if m[i,i] == 1.:  # Does this need to be "close to" ie within eps?
+            if m[i,i] == 1:
                 continue
-            if m[i, i] > 1.:
+            elif m[i, i] > 1:
                 for j in range(i+1, d):
-                    if m[j, j] < 1.:
+                    if m[j, j] < 1:
                         break
             else:
                 for j in range(i+1, d):
-                    if m[j, j] > 1.:
+                    if m[j, j] > 1:
                         break
-            c, s = self.givens_to_1(m[i,i], m[j, j], m[i, j])
-            g = np.eye(d)
-            g[i, i] = c
-            g[j, j] = c
-            g[j, i] = -s
-            g[i, j] = s
-            m = np.dot(np.dot(g.T, m), g)
+
+            c, s = self._givens_to_1(m[i,i], m[j, j], m[i, j])
+
+            # Use BLAS to apply Givens rotations in-place. Equivalent to:
+            # g = np.eye(d)
+            # g[i, i] = g[j,j] = c
+            # g[j, i] = -s; g[i, j] = s
+            # m = np.dot(g.T, np.dot(m, g))
+            mv = m.ravel()
+            drot(mv, mv, c, -s, n=d,
+                 offx=i*d, incx=1, offy=j*d, incy=1,
+                 overwrite_x=True, overwrite_y=True)
+            drot(mv, mv, c, -s, n=d,
+                 offx=i, incx=d, offy=j, incy=d,
+                 overwrite_x=True, overwrite_y=True)
+
         return m
 
     def rvs(self, eigs, random_state=None, tol=1e-13):
@@ -3076,9 +3068,9 @@ class random_correlation_gen(multi_rv_generic):
 
         random_state = self._get_random_state(random_state)
 
-        m = ortho_group.rvs(dim)
+        m = ortho_group.rvs(dim, random_state=random_state)
         m = np.dot(np.dot(m, np.diag(eigs)), m.T)  # Set the trace of m
-        m = self.o_to_corr(m)  # Carefully rotate to unit diagonal
+        m = self._to_corr(m)  # Carefully rotate to unit diagonal
         return m
 
 random_correlation = random_correlation_gen()
