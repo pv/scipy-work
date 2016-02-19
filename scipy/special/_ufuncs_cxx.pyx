@@ -40,6 +40,12 @@ np.import_ufunc()
 cdef int _set_errprint(int flag) nogil:
     return sf_error.set_print(flag)
 cdef extern from "_ufuncs_cxx_defs.h":
+    cdef double complex _func_faddeeva_ndtr "faddeeva_ndtr"(double complex) nogil
+cdef void *_export_faddeeva_ndtr = <void*>_func_faddeeva_ndtr
+cdef extern from "_ufuncs_cxx_defs.h":
+    cdef double complex _func_faddeeva_log_ndtr "faddeeva_log_ndtr"(double complex) nogil
+cdef void *_export_faddeeva_log_ndtr = <void*>_func_faddeeva_log_ndtr
+cdef extern from "_ufuncs_cxx_defs.h":
     cdef double _func_faddeeva_dawsn "faddeeva_dawsn"(double) nogil
 cdef void *_export_faddeeva_dawsn = <void*>_func_faddeeva_dawsn
 cdef extern from "_ufuncs_cxx_defs.h":

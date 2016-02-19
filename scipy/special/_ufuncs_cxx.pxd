@@ -1,4 +1,6 @@
 cdef int _set_errprint(int flag) nogil
+cdef void *_export_faddeeva_ndtr
+cdef void *_export_faddeeva_log_ndtr
 cdef void *_export_faddeeva_dawsn
 cdef void *_export_faddeeva_dawsn_complex
 cdef void *_export_faddeeva_erf

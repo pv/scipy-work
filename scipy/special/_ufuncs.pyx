@@ -1228,6 +1228,10 @@ from lambertw cimport lambertw_scalar as _func_lambertw_scalar
 ctypedef double complex _proto_lambertw_scalar_t(double complex, long, double) nogil
 cdef _proto_lambertw_scalar_t *_proto_lambertw_scalar_t_var = &_func_lambertw_scalar
 cdef extern from "_ufuncs_defs.h":
+    cdef double _func_ndtr "ndtr"(double) nogil
+cdef extern from "_ufuncs_defs.h":
+    cdef double _func_log_ndtr "log_ndtr"(double) nogil
+cdef extern from "_ufuncs_defs.h":
     cdef double _func_struve_asymp_large_z "struve_asymp_large_z"(double, double, int, double *) nogil
 cdef extern from "_ufuncs_defs.h":
     cdef double _func_struve_bessel_series "struve_bessel_series"(double, double, int, double *) nogil
@@ -1929,6 +1933,110 @@ ufunc__lambertw_ptr[2*0] = <void*>_func_lambertw_scalar
 ufunc__lambertw_ptr[2*0+1] = <void*>(<char*>"_lambertw")
 ufunc__lambertw_data[0] = &ufunc__lambertw_ptr[2*0]
 _lambertw = np.PyUFunc_FromFuncAndData(ufunc__lambertw_loops, ufunc__lambertw_data, ufunc__lambertw_types, 1, 3, 1, 0, "_lambertw", ufunc__lambertw_doc, 0)
+
+cdef np.PyUFuncGenericFunction ufunc__norm_cdf_loops[4]
+cdef void *ufunc__norm_cdf_ptr[8]
+cdef void *ufunc__norm_cdf_data[4]
+cdef char ufunc__norm_cdf_types[8]
+cdef char *ufunc__norm_cdf_doc = (
+    "_norm_cdf(x)\n"
+    "\n"
+    "Compute the CDF of the normal distribution.\n"
+    "\n"
+    ".. math::\n"
+    "\n"
+    "   \\frac{1}{2\\pi} \\int_{-\\infty}^x \\exp(-t^2/2) dt\n"
+    "\n"
+    "Parameters\n"
+    "----------\n"
+    "x : array_like, real or complex\n"
+    "    Argument\n"
+    "\n"
+    "Returns\n"
+    "-------\n"
+    "ndarray\n"
+    "    The value of the normal CDF evaluated at `x`\n"
+    "\n"
+    "See Also\n"
+    "--------\n"
+    "scipy.stats.norm\n"
+    "ndtr\n"
+    "erf")
+ufunc__norm_cdf_loops[0] = <np.PyUFuncGenericFunction>loop_d_d__As_f_f
+ufunc__norm_cdf_loops[1] = <np.PyUFuncGenericFunction>loop_d_d__As_d_d
+ufunc__norm_cdf_loops[2] = <np.PyUFuncGenericFunction>loop_D_D__As_F_F
+ufunc__norm_cdf_loops[3] = <np.PyUFuncGenericFunction>loop_D_D__As_D_D
+ufunc__norm_cdf_types[0] = <char>NPY_FLOAT
+ufunc__norm_cdf_types[1] = <char>NPY_FLOAT
+ufunc__norm_cdf_types[2] = <char>NPY_DOUBLE
+ufunc__norm_cdf_types[3] = <char>NPY_DOUBLE
+ufunc__norm_cdf_types[4] = <char>NPY_CFLOAT
+ufunc__norm_cdf_types[5] = <char>NPY_CFLOAT
+ufunc__norm_cdf_types[6] = <char>NPY_CDOUBLE
+ufunc__norm_cdf_types[7] = <char>NPY_CDOUBLE
+ufunc__norm_cdf_ptr[2*0] = <void*>_func_ndtr
+ufunc__norm_cdf_ptr[2*0+1] = <void*>(<char*>"_norm_cdf")
+ufunc__norm_cdf_ptr[2*1] = <void*>_func_ndtr
+ufunc__norm_cdf_ptr[2*1+1] = <void*>(<char*>"_norm_cdf")
+ufunc__norm_cdf_ptr[2*2] = <void*>scipy.special._ufuncs_cxx._export_faddeeva_ndtr
+ufunc__norm_cdf_ptr[2*2+1] = <void*>(<char*>"_norm_cdf")
+ufunc__norm_cdf_ptr[2*3] = <void*>scipy.special._ufuncs_cxx._export_faddeeva_ndtr
+ufunc__norm_cdf_ptr[2*3+1] = <void*>(<char*>"_norm_cdf")
+ufunc__norm_cdf_data[0] = &ufunc__norm_cdf_ptr[2*0]
+ufunc__norm_cdf_data[1] = &ufunc__norm_cdf_ptr[2*1]
+ufunc__norm_cdf_data[2] = &ufunc__norm_cdf_ptr[2*2]
+ufunc__norm_cdf_data[3] = &ufunc__norm_cdf_ptr[2*3]
+_norm_cdf = np.PyUFunc_FromFuncAndData(ufunc__norm_cdf_loops, ufunc__norm_cdf_data, ufunc__norm_cdf_types, 4, 1, 1, 0, "_norm_cdf", ufunc__norm_cdf_doc, 0)
+
+cdef np.PyUFuncGenericFunction ufunc__norm_logcdf_loops[4]
+cdef void *ufunc__norm_logcdf_ptr[8]
+cdef void *ufunc__norm_logcdf_data[4]
+cdef char ufunc__norm_logcdf_types[8]
+cdef char *ufunc__norm_logcdf_doc = (
+    "_norm_cdf(x)\n"
+    "\n"
+    "Compute the log of the CDF of the normal distribution.\n"
+    "\n"
+    "Parameters\n"
+    "----------\n"
+    "x : array_like, real or complex\n"
+    "    Argument\n"
+    "\n"
+    "Returns\n"
+    "-------\n"
+    "ndarray\n"
+    "    The value of the log of the normal CDF evaluated at `x`\n"
+    "\n"
+    "See Also\n"
+    "--------\n"
+    "scipy.stats.norm\n"
+    "ndtr\n"
+    "erf")
+ufunc__norm_logcdf_loops[0] = <np.PyUFuncGenericFunction>loop_d_d__As_f_f
+ufunc__norm_logcdf_loops[1] = <np.PyUFuncGenericFunction>loop_d_d__As_d_d
+ufunc__norm_logcdf_loops[2] = <np.PyUFuncGenericFunction>loop_D_D__As_F_F
+ufunc__norm_logcdf_loops[3] = <np.PyUFuncGenericFunction>loop_D_D__As_D_D
+ufunc__norm_logcdf_types[0] = <char>NPY_FLOAT
+ufunc__norm_logcdf_types[1] = <char>NPY_FLOAT
+ufunc__norm_logcdf_types[2] = <char>NPY_DOUBLE
+ufunc__norm_logcdf_types[3] = <char>NPY_DOUBLE
+ufunc__norm_logcdf_types[4] = <char>NPY_CFLOAT
+ufunc__norm_logcdf_types[5] = <char>NPY_CFLOAT
+ufunc__norm_logcdf_types[6] = <char>NPY_CDOUBLE
+ufunc__norm_logcdf_types[7] = <char>NPY_CDOUBLE
+ufunc__norm_logcdf_ptr[2*0] = <void*>_func_log_ndtr
+ufunc__norm_logcdf_ptr[2*0+1] = <void*>(<char*>"_norm_logcdf")
+ufunc__norm_logcdf_ptr[2*1] = <void*>_func_log_ndtr
+ufunc__norm_logcdf_ptr[2*1+1] = <void*>(<char*>"_norm_logcdf")
+ufunc__norm_logcdf_ptr[2*2] = <void*>scipy.special._ufuncs_cxx._export_faddeeva_log_ndtr
+ufunc__norm_logcdf_ptr[2*2+1] = <void*>(<char*>"_norm_logcdf")
+ufunc__norm_logcdf_ptr[2*3] = <void*>scipy.special._ufuncs_cxx._export_faddeeva_log_ndtr
+ufunc__norm_logcdf_ptr[2*3+1] = <void*>(<char*>"_norm_logcdf")
+ufunc__norm_logcdf_data[0] = &ufunc__norm_logcdf_ptr[2*0]
+ufunc__norm_logcdf_data[1] = &ufunc__norm_logcdf_ptr[2*1]
+ufunc__norm_logcdf_data[2] = &ufunc__norm_logcdf_ptr[2*2]
+ufunc__norm_logcdf_data[3] = &ufunc__norm_logcdf_ptr[2*3]
+_norm_logcdf = np.PyUFunc_FromFuncAndData(ufunc__norm_logcdf_loops, ufunc__norm_logcdf_data, ufunc__norm_logcdf_types, 4, 1, 1, 0, "_norm_logcdf", ufunc__norm_logcdf_doc, 0)
 
 cdef np.PyUFuncGenericFunction ufunc__struve_asymp_large_z_loops[1]
 cdef void *ufunc__struve_asymp_large_z_ptr[2]

@@ -1,5 +1,8 @@
 #ifndef UFUNCS_PROTO_H
 #define UFUNCS_PROTO_H 1
+#include "cephes.h"
+npy_double ndtr(npy_double);
+npy_double log_ndtr(npy_double);
 #include "misc.h"
 npy_double struve_asymp_large_z(npy_double, npy_double, npy_int, npy_double *);
 npy_double struve_bessel_series(npy_double, npy_double, npy_int, npy_double *);
@@ -9,7 +12,6 @@ npy_int airy_wrap(npy_double, npy_double *, npy_double *, npy_double *, npy_doub
 npy_int cairy_wrap(npy_cdouble, npy_cdouble *, npy_cdouble *, npy_cdouble *, npy_cdouble *);
 npy_int cairy_wrap_e_real(npy_double, npy_double *, npy_double *, npy_double *, npy_double *);
 npy_int cairy_wrap_e(npy_cdouble, npy_cdouble *, npy_cdouble *, npy_cdouble *, npy_cdouble *);
-#include "cephes.h"
 npy_double bdtr(npy_int, npy_int, npy_double);
 npy_double bdtrc(npy_int, npy_int, npy_double);
 npy_double bdtri(npy_int, npy_int, npy_double);
@@ -132,7 +134,6 @@ npy_cdouble cbesk_wrap(npy_double, npy_cdouble);
 npy_double cbesk_wrap_e_real(npy_double, npy_double);
 npy_cdouble cbesk_wrap_e(npy_double, npy_cdouble);
 npy_double log1p(npy_double);
-npy_double log_ndtr(npy_double);
 npy_float logitf(npy_float);
 npy_double logit(npy_double);
 npy_longdouble logitl(npy_longdouble);
@@ -162,7 +163,6 @@ npy_double cdftnc1_wrap(npy_double, npy_double, npy_double);
 npy_double cdftnc3_wrap(npy_double, npy_double, npy_double);
 npy_double cdftnc4_wrap(npy_double, npy_double, npy_double);
 npy_double cdftnc2_wrap(npy_double, npy_double, npy_double);
-npy_double ndtr(npy_double);
 npy_double ndtri(npy_double);
 npy_double cdfnor3_wrap(npy_double, npy_double, npy_double);
 npy_double cdfnor4_wrap(npy_double, npy_double, npy_double);
