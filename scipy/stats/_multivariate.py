@@ -2984,28 +2984,34 @@ class random_correlation_gen(multi_rv_generic):
     def _givens_to_1(self, aii, ajj, aij):
         """Computes a 2x2 Givens matrix to put 1's on the diagonal for the input matrix.
 
-        The input matrix is a 2x2 symmetric matrix M = [ aii aij ; aij ajj ]. The
-        unique elements must be explicitly provided. The function will produce a
-        result as long as tr(M) - det(M) >= 1, but will only produce a unit diagonal
-        when tr(M) == 2 and M is not already diagonal. Note that when tr(M) == 2, the
-        above condition is necessarily satisfied.
+        The input matrix is a 2x2 symmetric matrix M = [ aii aij ; aij ajj ].
 
         The output matrix g is a 2x2 anti-symmetric matrix of the form [ c s ; -s c ];
         the elements c and s are returned.
 
-        Applying the output matrix to the input matrix (as g.T M g) results in a
-        matrix with ones on the diagonal when tr(M) == 2.
+        Applying the output matrix to the input matrix (as b=g.T M g)
+        results in a matrix with bii=1, provided tr(M) - det(M) >= 1
+        and floating point issues do not occur. Otherwise, some other
+        valid rotation is returned. When tr(M)==2, also bjj=1.
 
         """
         aiid = aii - 1.
         ajjd = ajj - 1.
+
+        if ajjd == 0:
+            # ajj==1, so swap aii and ajj to avoid division by zero
+            return 0., 1.
 
         dd = math.sqrt(max(aij**2 - aiid*ajjd, 0))
 
         # The choice of t should be chosen to avoid cancellation [1]
         t = (aij + math.copysign(dd, aij)) / ajjd
         c = 1. / math.sqrt(1. + t*t)
-        s = c*t
+        if c == 0:
+            # Underflow
+            s = 1.0
+        else:
+            s = c*t
         return c, s
 
     def _to_corr(self, m):
@@ -3031,7 +3037,7 @@ class random_correlation_gen(multi_rv_generic):
                     if m[j, j] > 1:
                         break
 
-            c, s = self._givens_to_1(m[i,i], m[j, j], m[i, j])
+            c, s = self._givens_to_1(m[i,i], m[j,j], m[i,j])
 
             # Use BLAS to apply Givens rotations in-place. Equivalent to:
             # g = np.eye(d)
@@ -3048,7 +3054,7 @@ class random_correlation_gen(multi_rv_generic):
 
         return m
 
-    def rvs(self, eigs, random_state=None, tol=1e-13):
+    def rvs(self, eigs, random_state=None, tol=1e-13, diag_tol=1e-7):
         """
         Draw random correlation matrices
 
@@ -3056,6 +3062,17 @@ class random_correlation_gen(multi_rv_generic):
         ----------
         eigs : 1d ndarray
             Eigenvalues of correlation matrix
+        tol : float, optional
+            Tolerance for input parameter checks
+        diag_tol : float, optional
+            Tolerance for deviation of the diagonal of the resulting
+            matrix. Default: 1e-7
+
+        Raises
+        ------
+        RuntimeError
+            Floating point error prevented generating a valid correlation
+            matrix.
 
         Returns
         -------
@@ -3071,6 +3088,11 @@ class random_correlation_gen(multi_rv_generic):
         m = ortho_group.rvs(dim, random_state=random_state)
         m = np.dot(np.dot(m, np.diag(eigs)), m.T)  # Set the trace of m
         m = self._to_corr(m)  # Carefully rotate to unit diagonal
+
+        # Check diagonal
+        if abs(m.diagonal() - 1).max() > diag_tol:
+            raise RuntimeError("Failed to generate a valid correlation matrix")
+
         return m
 
 random_correlation = random_correlation_gen()

@@ -8,7 +8,7 @@ import pickle
 
 from numpy.testing import (assert_allclose, assert_almost_equal,
                            assert_array_almost_equal, assert_equal,
-                           assert_array_less, assert_raises,
+                           assert_array_less, assert_raises, assert_,
                            run_module_suite, TestCase)
 
 from test_continuous_basic import check_distribution_rvs
@@ -1037,6 +1037,10 @@ class TestSpecialOrthoGroup(TestCase):
                              [-0.09873351, -0.76787024, 0.63295101]])
         assert_array_almost_equal(x, expected)
 
+        random_state = np.random.RandomState(seed=514)
+        x = special_ortho_group.rvs(3, random_state=random_state)
+        assert_array_almost_equal(x, expected)
+
     def test_invalid_dim(self):
         assert_raises(ValueError, special_ortho_group.rvs, None)
         assert_raises(ValueError, special_ortho_group.rvs, (2, 2))
@@ -1204,6 +1208,39 @@ class TestRandomCorrelation(TestCase):
         # Correlation matrices are symmetric
         for x in xs:
             assert_allclose(x, x.T, rtol=1e-13)
+
+    def test_to_corr(self):
+        # Check some corner cases in to_corr
+
+        # ajj == 1
+        m = np.array([[0.1, 0], [0, 1]], dtype=float)
+        m = random_correlation._to_corr(m)
+        assert_allclose(m, np.array([[1, 0], [0, 0.1]]))
+
+        # Floating point overflow; fails to compute the correct
+        # rotation, but should still produce some valid rotation
+        # rather than infs/nans
+        with np.errstate(over='ignore'):
+            g = np.array([[0, 1], [-1, 0]])
+
+            m0 = np.array([[1e300, 0], [0, np.nextafter(1, 0)]], dtype=float)
+            m = random_correlation._to_corr(m0.copy())
+            assert_allclose(m, g.T.dot(m0).dot(g))
+
+            m0 = np.array([[0.9, 1e300], [1e300, 1.1]], dtype=float)
+            m = random_correlation._to_corr(m0.copy())
+            assert_allclose(m, g.T.dot(m0).dot(g))
+
+        # Zero discriminant; should set the first diag entry to 1
+        m0 = np.array([[2, 1], [1, 2]], dtype=float)
+        m = random_correlation._to_corr(m0.copy())
+        assert_allclose(m[0,0], 1)
+
+        # Slightly negative discriminant; should be approx correct still
+        m0 = np.array([[2 + 1e-7, 1], [1, 2]], dtype=float)
+        m = random_correlation._to_corr(m0.copy())
+        assert_allclose(m[0,0], 1)
+
 
 def check_pickling(distfn, args):
     # check that a distribution instance pickles and unpickles
