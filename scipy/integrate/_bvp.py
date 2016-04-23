@@ -139,6 +139,24 @@ def compute_jac_indices(n, m, k):
     return i, j
 
 
+def _stacked_matmul(a, b):
+    """
+    Stacked matrix multiply; out[i,:,:] = np.dot(a[i,:,:], b[i,:,:])
+    """
+    assert a.ndim == 3
+    assert b.ndim == 3
+
+    if a.shape[1] > 50:
+        # BLAS gives speedups
+        out = np.empty_like(a)
+        for j in range(a.shape[0]):
+            out[j] = np.dot(a[j], b[j])
+        return out
+    else:
+        # Einsum does not use BLAS, but can be faster for small matrices
+        return np.einsum('...ij,...jk->...ik', a, b)
+
+
 def construct_global_jac(n, m, k, i_jac, j_jac, h, df_dy, df_dy_middle, df_dp,
                          df_dp_middle, dbc_dya, dbc_dyb, dbc_dp):
     """Construct the Jacobian of the whole collocation system.
@@ -158,13 +176,13 @@ def construct_global_jac(n, m, k, i_jac, j_jac, h, df_dy, df_dy_middle, df_dp,
     dPhi_dy_0 = np.empty((m - 1, n, n), dtype=dtype)
     dPhi_dy_0[:] = -np.identity(n)
     dPhi_dy_0 -= h / 6 * (df_dy[:-1] + 2 * df_dy_middle)
-    T = np.einsum('...ij,...jk->...ik', df_dy_middle, df_dy[:-1])
+    T = _stacked_matmul(df_dy_middle, df_dy[:-1])
     dPhi_dy_0 -= h**2 / 12 * T
 
     dPhi_dy_1 = np.empty((m - 1, n, n), dtype=dtype)
     dPhi_dy_1[:] = np.identity(n)
     dPhi_dy_1 -= h / 6 * (df_dy[1:] + 2 * df_dy_middle)
-    T = np.einsum('...ij,...jk->...ik', df_dy_middle, df_dy[1:])
+    T = _stacked_matmul(df_dy_middle, df_dy[1:])
     dPhi_dy_1 += h**2 / 12 * T
 
     values = np.hstack((dPhi_dy_0.ravel(), dPhi_dy_1.ravel(), dbc_dya.ravel(),
