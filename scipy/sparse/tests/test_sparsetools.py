@@ -62,6 +62,42 @@ def test_regression_std_vector_dtypes():
         assert_equal(a.getcol(0).todense(), ad[:,0])
 
 
+def test_coo_sum_duplicates():
+    for idx_dtype in [np.int32, np.int64]:
+        for dtype in [int]:#supported_dtypes:
+            np.random.seed(1234)
+
+            n = 100
+
+            row = np.random.randint(0, 6, size=n).astype(idx_dtype)
+            col = np.random.randint(0, 6, size=n).astype(idx_dtype)
+            data = np.random.randint(0, 3, size=n).astype(dtype)
+
+            # Pure-python sum_duplicates
+            order = np.lexsort((col, row))
+            row2 = row[order]
+            col2 = col[order]
+            data2 = data[order]
+            unique_mask = ((row2[1:] != row2[:-1]) |
+                           (col2[1:] != col2[:-1]))
+            unique_mask = np.append(True, unique_mask)
+            row2 = row2[unique_mask]
+            col2 = col2[unique_mask]
+            unique_inds, = np.nonzero(unique_mask)
+            data2 = np.add.reduceat(data2, unique_inds, dtype=dtype)
+
+            # C++ version
+            nnz = _sparsetools.coo_sum_duplicates(n, row, col, data)
+            row = row[:nnz]
+            col = col[:nnz]
+            data = data[:nnz]
+
+            # Must produce same results
+            assert_equal(row, row2)
+            assert_equal(col, col2)
+            assert_equal(data, data2)
+
+
 class TestInt32Overflow(object):
     """
     Some of the sparsetools routines use dense 2D matrices whose

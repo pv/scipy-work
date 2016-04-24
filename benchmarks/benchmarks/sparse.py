@@ -18,7 +18,7 @@ try:
 except ImportError:
     pass
 
-from .common import Benchmark
+from .common import Benchmark, with_attributes
 
 
 def random_sparse(m, n, nnz_per_row):
@@ -316,3 +316,19 @@ class Diagonal(Benchmark):
 
     def time_diagonal(self, density, format):
         self.X.diagonal()
+
+
+class COO(Benchmark):
+    def setup(self):
+        n = 100000
+
+        np.random.seed(1234)
+        row = np.random.randint(0, 30, size=n)
+        col = np.random.randint(0, 30, size=n)
+        data = np.random.rand(n)
+
+        self.A = sparse.coo_matrix((data, (row, col)))
+
+    @with_attributes(number=1, repeat=50)
+    def time_sum_duplicates(self):
+        self.A.sum_duplicates()

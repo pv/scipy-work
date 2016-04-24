@@ -11,7 +11,7 @@ import numpy as np
 
 from scipy._lib.six import zip as izip
 
-from ._sparsetools import coo_tocsr, coo_todense, coo_matvec
+from ._sparsetools import coo_tocsr, coo_todense, coo_matvec, coo_sum_duplicates
 from .base import isspmatrix, SparseEfficiencyWarning, spmatrix
 from .data import _data_matrix, _minmax_mixin
 from .sputils import (upcast, upcast_char, to_native, isshape, getdtype,
@@ -450,21 +450,15 @@ class coo_matrix(_data_matrix, _minmax_mixin):
         self.has_canonical_format = True
 
     def _sum_duplicates(self, row, col, data):
+        """
+        Note: this modifies the input arrays in-place!
+        """
         # Assumes (data, row, col) not in canonical format.
         if len(data) == 0:
             return row, col, data
-        order = np.lexsort((row, col))
-        row = row[order]
-        col = col[order]
-        data = data[order]
-        unique_mask = ((row[1:] != row[:-1]) |
-                       (col[1:] != col[:-1]))
-        unique_mask = np.append(True, unique_mask)
-        row = row[unique_mask]
-        col = col[unique_mask]
-        unique_inds, = np.nonzero(unique_mask)
-        data = np.add.reduceat(data, unique_inds, dtype=self.dtype)
-        return row, col, data
+
+        nnz = coo_sum_duplicates(self.nnz, row, col, data)
+        return row[:nnz], col[:nnz], data[:nnz]
 
     def eliminate_zeros(self):
         """Remove zero entries from the matrix

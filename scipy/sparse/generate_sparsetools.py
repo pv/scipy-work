@@ -110,6 +110,7 @@ OTHER_ROUTINES = """
 coo_tocsr           v iiiIIT*I*I*T
 coo_todense         v iiiIIT*Ti
 coo_matvec          v iIITT*T
+coo_sum_duplicates  i i*I*I*T
 dia_matvec          v iiiiITT*T
 cs_graph_components i iII*I
 """
