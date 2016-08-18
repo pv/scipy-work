@@ -1,6 +1,9 @@
 .. image:: https://travis-ci.org/scipy/scipy.png?branch=master
    :target: https://travis-ci.org/scipy/scipy/
 
+.. image:: https://zenodo.org/badge/23917/scipy/scipy.svg
+   :target: https://zenodo.org/badge/latestdoi/23917/scipy/scipy
+
 =====
 SciPy
 =====
