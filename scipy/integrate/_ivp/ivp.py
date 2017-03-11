@@ -425,19 +425,21 @@ def solve_ivp(fun, t_span, y0, method='RK45', t_eval=None, dense_output=False,
             ts.append(t)
             ys.append(y)
         else:
-            t_step = []
+            if s > 0:
+                k = np.searchsorted(t_eval[t_eval_i:], t, side='left') + t_eval_i
+            else:
+                k = np.searchsorted(-t_eval[t_eval_i:], -t, side='left') + t_eval_i
 
-            while t_eval_i < n_eval and s * (t_eval[t_eval_i] - t) < 0:
-                t_step.append(t_eval[t_eval_i])
-                t_eval_i += 1
+            t_step = t_eval[t_eval_i:k]
+            t_eval_i = k
 
             # This should be handled in the next iteration, but this
             # iteration is the last so we need to save this t.
             if (status is not None and
                     t_eval_i < n_eval and t_eval[t_eval_i] == t):
-                t_step.append(t)
+                t_step = np.r_[t_step, t]
 
-            if t_step:
+            if t_step.size > 0:
                 if sol is None:
                     sol = solver.dense_output()
 
