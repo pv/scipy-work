@@ -159,7 +159,7 @@ init_callback(ccallback_t *callback, PyObject *func, PyObject *extra_arguments)
 
     int ret;
     int ndim;
-    int flags = CCALLBACK_OBTAIN;
+    int flags = CCALLBACK_DEFAULTS;
     int legacy = 0;
     ccallback_signature_t *signatures = quadpack_call_signatures;
 
@@ -187,6 +187,10 @@ init_callback(ccallback_t *callback, PyObject *func, PyObject *extra_arguments)
 
     ret = ccallback_prepare(callback, signatures, func, flags);
     if (ret == -1) {
+        return -1;
+    }
+
+    if (ccallback_prepare_obtain(callback) != 0) {
         return -1;
     }
 

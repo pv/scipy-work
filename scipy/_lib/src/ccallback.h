@@ -24,12 +24,10 @@
 
 /* Default behavior */
 #define CCALLBACK_DEFAULTS 0x0
-/* Whether calling ccallback_obtain is enabled */
-#define CCALLBACK_OBTAIN   0x1
 /* Deal with also other input objects than LowLevelCallable.
  * Useful for maintaining legacy behavior.
  */
-#define CCALLBACK_PARSE    0x2
+#define CCALLBACK_PARSE    0x1
 
 
 typedef struct ccallback ccallback_t;
@@ -392,15 +390,7 @@ static int ccallback_prepare(ccallback_t *callback, ccallback_signature_t *signa
         goto error;
     }
 
-    if (flags & CCALLBACK_OBTAIN) {
-        callback->prev_callback = ccallback__get_thread_local();
-        if (ccallback__set_thread_local((void *)callback) != 0) {
-            goto error;
-        }
-    }
-    else {
-        callback->prev_callback = NULL;
-    }
+    callback->prev_callback = NULL;
 
     Py_XDECREF(callback_obj2);
     return 0;
@@ -408,6 +398,56 @@ static int ccallback_prepare(ccallback_t *callback, ccallback_signature_t *signa
 error:
     Py_XDECREF(callback_obj2);
     return -1;
+}
+
+
+/*
+ * Setup ccallback_obtain.
+ * Needs GIL.
+ *
+ * Parameters
+ * ----------
+ * callback : ccallback_t
+ *     A callback structure, previously initialized by ccallback_prepare
+ *
+ */
+static int ccallback_prepare_obtain(ccallback_t *callback)
+{
+    if (callback->prev_callback != NULL) {
+        PyErr_SetString(PyExc_RuntimeError, "internal error: callback_obtain already set");
+        return -1;
+    }
+
+    callback->prev_callback = ccallback__get_thread_local();
+
+    if (ccallback__set_thread_local((void *)callback) != 0) {
+        return -1;
+    }
+
+    return 0;
+}
+
+
+/*
+ * Release ccallback_obtain.
+ * Needs GIL.
+ *
+ * Parameters
+ * ----------
+ * callback : ccallback_t
+ *     A callback structure, previously initialized by ccallback_prepare
+ *
+ */
+static int ccallback_release_obtain(ccallback_t *callback)
+{
+    if (callback->prev_callback != NULL) {
+        if (ccallback__set_thread_local(callback->prev_callback) != 0) {
+            return -1;
+        }
+    }
+    callback->prev_callback = NULL;
+
+    return 0;
 }
 
 
@@ -425,15 +465,7 @@ static int ccallback_release(ccallback_t *callback)
     Py_XDECREF(callback->py_function);
     callback->c_function = NULL;
     callback->py_function = NULL;
-
-    if (callback->prev_callback != NULL) {
-        if (ccallback__set_thread_local(callback->prev_callback) != 0) {
-            return -1;
-        }
-    }
-    callback->prev_callback = NULL;
-
-    return 0;
+    return ccallback_release_obtain(callback);
 }
 
 #endif /* CCALLBACK_H_ */

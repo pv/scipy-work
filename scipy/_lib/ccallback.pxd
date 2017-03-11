@@ -22,10 +22,11 @@ cdef extern from "ccallback.h":
         void *info_p
 
     int CCALLBACK_DEFAULTS
-    int CCALLBACK_OBTAIN
     int CCALLBACK_PARSE
 
     ccallback_t *ccallback_obtain() nogil
     int ccallback_prepare(ccallback_t *callback, ccallback_signature_t *sigs,
                           object func, int flags) except -1
-    void ccallback_release(ccallback_t *callback)
+    int ccallback_release(ccallback_t *callback) except -1
+    int ccallback_prepare_obtain(ccallback_t *callback) except -1
+    int ccallback_release_obtain(ccallback_t *callback) except -1

@@ -210,15 +210,17 @@ static PyObject *test_call_nodata(PyObject *obj, PyObject *args)
         return NULL;
     }
 
-    ret = ccallback_prepare(&callback, signatures, callback_obj, CCALLBACK_OBTAIN);
+    ret = ccallback_prepare(&callback, signatures, callback_obj, CCALLBACK_DEFAULTS);
     if (ret != 0) {
         return NULL;
     }
 
     /* Call 3rd party library code */
+    ccallback_prepare_obtain(&callback);
     Py_BEGIN_ALLOW_THREADS
     result = library_call_nodata(value, &error_flag, test_thunk_nodata);
     Py_END_ALLOW_THREADS
+    ccallback_release_obtain(&callback);
 
     ccallback_release(&callback);
 
@@ -243,9 +245,13 @@ static PyObject *test_call_nonlocal(PyObject *obj, PyObject *args)
         return NULL;
     }
 
-    ret = ccallback_prepare(&callback, signatures, callback_obj, CCALLBACK_OBTAIN);
+    ret = ccallback_prepare(&callback, signatures, callback_obj, CCALLBACK_DEFAULTS);
     if (ret != 0) {
         /* Immediate error return */
+        return NULL;
+    }
+
+    if (ccallback_prepare_obtain(&callback) != 0) {
         return NULL;
     }
 
