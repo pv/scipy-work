@@ -1,7 +1,11 @@
+from __future__ import division, print_function, absolute_import
+
 import numpy as np
 from scipy.integrate import ode
 from .common import validate_tol, warn_extraneous
 from .base import OdeSolver, DenseOutput
+
+from ._lsoda import LSODACallbacks
 
 
 class LSODA(OdeSolver):
@@ -101,6 +105,9 @@ class LSODA(OdeSolver):
                  max_step=np.inf, rtol=1e-3, atol=1e-6, jac=None, lband=None,
                  uband=None, vectorized=False, **extraneous):
         warn_extraneous(extraneous)
+
+        self._callbacks = LSODACallbacks(fun, jac)
+
         super(LSODA, self).__init__(fun, t0, y0, t_crit, vectorized)
 
         if first_step is None:
@@ -129,7 +136,10 @@ class LSODA(OdeSolver):
         self.lband = lband
         self.uband = uband
 
-        solver = ode(self.fun, self.jac)
+        fun_obj = self._callbacks.fun_obj or self.fun
+        jac_obj = self._callbacks.jac_obj or self.jac
+
+        solver = ode(fun_obj, jac_obj)
         solver.set_integrator('lsoda', rtol=rtol, atol=atol, max_step=max_step,
                               min_step=min_step, first_step=first_step,
                               lband=lband, uband=uband)
@@ -149,11 +159,15 @@ class LSODA(OdeSolver):
         # itask=5 means take a single step and do not go past t_crit
         itask = integrator.call_args[2]
         integrator.call_args[2] = 5
-        solver._y, solver.t = integrator.run(solver.f,
-                                             solver.jac or (lambda: None),
-                                             solver._y, solver.t, self.t_crit,
-                                             solver.f_params, solver.jac_params)
+
+        solver._y, solver.t = self._callbacks.do_call(integrator.run, solver.f,
+                                                 solver.jac or (lambda: None),
+                                                 solver._y, solver.t, self.t_crit,
+                                                 solver.f_params, solver.jac_params)
         integrator.call_args[2] = itask
+
+        self.nfev += self._callbacks.last_nfev
+        self.njev += self._callbacks.last_njev
 
         if solver.successful():
             self.t = solver.t

@@ -11,6 +11,9 @@ from scipy.integrate._ivp.common import num_jac
 from scipy.integrate._ivp.base import ConstantDenseOutput
 from scipy.sparse import coo_matrix, csc_matrix
 
+from scipy import LowLevelCallable
+from scipy.integrate._ivp import _lsoda
+
 
 def fun_linear(t, y):
     return np.array([-y[0] - 5 * y[1], y[0] + y[1]])
@@ -23,6 +26,17 @@ def jac_linear():
 def sol_linear(t):
     return np.vstack((-5 * np.sin(2 * t),
                       2 * np.cos(2 * t) + np.sin(2 * t)))
+
+
+fun_lsoda_lowlevel = LowLevelCallable.from_cython(_lsoda, 'fun_test')
+
+jac_lsoda_lowlevel = LowLevelCallable.from_cython(_lsoda, 'jac_test')
+
+
+def sol_lsoda_lowlevel(t, y0):
+    y0 = np.asarray(y0)
+    s = np.exp(2*np.asarray(t))
+    return y0[:,None] * s
 
 
 def fun_rational(t, y):
@@ -542,6 +556,13 @@ def test_classes():
         assert_(solver.nfev > 0)
         assert_(solver.njev >= 0)
         assert_(solver.nlu >= 0)
+
+
+def test_lsoda_lowlevel():
+    y0 = [1 / 3, 2 / 9]
+    t = np.linspace(0, 1, 31)
+    sol = solve_ivp(fun_lsoda_lowlevel, (0, 1), y0, method='LSODA', t_eval=t)
+    assert_allclose(sol.y, sol_lsoda_lowlevel(t, y0), rtol=1e-2)
 
 
 def test_OdeSolution():
