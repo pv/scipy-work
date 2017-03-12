@@ -191,6 +191,7 @@ init_callback(ccallback_t *callback, PyObject *func, PyObject *extra_arguments)
     }
 
     if (ccallback_prepare_obtain(callback) != 0) {
+        ccallback_release(callback);
         return -1;
     }
 
@@ -205,6 +206,7 @@ init_callback(ccallback_t *callback, PyObject *func, PyObject *extra_arguments)
     else {
         if (!PyTuple_Check(extra_arguments)) {
             PyErr_SetString(PyExc_ValueError, "multidimensional integrand but invalid extra args");
+            ccallback_release(callback);
             return -1;
         }
 
@@ -213,6 +215,7 @@ init_callback(ccallback_t *callback, PyObject *func, PyObject *extra_arguments)
         callback->info = ndim;
 
         if (init_multivariate_data(callback, ndim, extra_arguments) == -1) {
+            ccallback_release(callback);
             return -1;
         }
     }

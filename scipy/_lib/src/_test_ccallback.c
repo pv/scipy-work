@@ -187,7 +187,9 @@ static PyObject *test_call_simple(PyObject *obj, PyObject *args)
     result = library_call_simple(value, &error_flag, test_thunk_simple, (void *)&callback);
     Py_END_ALLOW_THREADS
 
-    ccallback_release(&callback);
+    if (ccallback_release(&callback) != 0) {
+        return NULL;
+    }
 
     if (error_flag) {
         return NULL;
@@ -216,13 +218,17 @@ static PyObject *test_call_nodata(PyObject *obj, PyObject *args)
     }
 
     /* Call 3rd party library code */
-    ccallback_prepare_obtain(&callback);
+    if (ccallback_prepare_obtain(&callback) != 0) {
+        ccallback_release(&callback);
+        return NULL;
+    }
     Py_BEGIN_ALLOW_THREADS
     result = library_call_nodata(value, &error_flag, test_thunk_nodata);
     Py_END_ALLOW_THREADS
-    ccallback_release_obtain(&callback);
 
-    ccallback_release(&callback);
+    if (ccallback_release(&callback) != 0) {
+        return NULL;
+    }
 
     if (error_flag) {
         return NULL;
@@ -270,7 +276,9 @@ static PyObject *test_call_nonlocal(PyObject *obj, PyObject *args)
 
     PyEval_RestoreThread(_save);
 
-    ccallback_release(&callback);
+    if (ccallback_release(&callback) != 0) {
+        return NULL;
+    }
 
     return PyFloat_FromDouble(result);
 }
