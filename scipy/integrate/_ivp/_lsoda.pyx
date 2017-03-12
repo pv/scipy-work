@@ -106,15 +106,16 @@ cdef class LSODACallbacks:
 
     def __init__(self, fun, jac):
         ccallback_prepare(&self.fun_callback, fun_signatures, fun, CCALLBACK_DEFAULTS)
-        if jac is not None:
-            ccallback_prepare(&self.jac_callback, jac_signatures, jac, CCALLBACK_DEFAULTS)
+        if jac is None:
+            jac = lambda: None
+        ccallback_prepare(&self.jac_callback, jac_signatures, jac, CCALLBACK_DEFAULTS)
 
         if self.fun_callback.c_function != NULL:
             self.fun_obj = F2PyCapsule_FromVoidPtr(&fun_thunk, NULL)
         else:
             self.fun_obj = None
 
-        if jac is not None and self.jac_callback.c_function != NULL:
+        if self.jac_callback.c_function != NULL:
             self.jac_obj = F2PyCapsule_FromVoidPtr(&jac_thunk, NULL)
         else:
             self.jac_obj = None
@@ -124,8 +125,7 @@ cdef class LSODACallbacks:
 
     def __del__(self):
         ccallback_release(&self.fun_callback)
-        if self.jac_obj is not None:
-            ccallback_release(&self.jac_callback)
+        ccallback_release(&self.jac_callback)
 
     def do_call(self, f, *args, **kwargs):
         """
