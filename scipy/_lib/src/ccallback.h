@@ -53,6 +53,8 @@ struct ccallback {
     jmp_buf error_buf;
     /* Previous callback, for TLS reentrancy */
     ccallback_t *prev_callback;
+    /* Pointer to the Python-side callback object (refcount is owned). */
+    PyObject *callback_obj;
 
     /* Unused variables that can be used by the thunk etc. code for any purpose */
     long info;
@@ -392,6 +394,9 @@ static int ccallback_prepare(ccallback_t *callback, ccallback_signature_t *signa
 
     callback->prev_callback = NULL;
 
+    callback->callback_obj = callback_obj;
+    Py_INCREF(callback->callback_obj);
+
     Py_XDECREF(callback_obj2);
     return 0;
 
@@ -463,8 +468,10 @@ static int ccallback_release_obtain(ccallback_t *callback)
 static int ccallback_release(ccallback_t *callback)
 {
     Py_XDECREF(callback->py_function);
+    Py_XDECREF(callback->callback_obj);
     callback->c_function = NULL;
     callback->py_function = NULL;
+    callback->callback_obj = NULL;
     return ccallback_release_obtain(callback);
 }
 
