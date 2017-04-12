@@ -86,7 +86,8 @@ def minimize(fun, x0, args=(), method=None, jac=None, hess=None,
         depending if the problem has constraints or bounds.
     jac : bool or callable, optional
         Jacobian (gradient) of objective function. Only for CG, BFGS,
-        Newton-CG, L-BFGS-B, TNC, SLSQP, dogleg, trust-ncg.
+        Newton-CG, L-BFGS-B, TNC, SLSQP, dogleg, trust-ncg, trust-trlib,
+        trust-region-exact.
         If `jac` is a Boolean and is True, `fun` is assumed to return the
         gradient along with the objective function. If False, the
         gradient will be estimated numerically.
@@ -95,7 +96,7 @@ def minimize(fun, x0, args=(), method=None, jac=None, hess=None,
     hess, hessp : callable, optional
         Hessian (matrix of second-order derivatives) of objective function or
         Hessian of objective function times an arbitrary vector p.  Only for
-        Newton-CG, dogleg, trust-ncg.
+        Newton-CG, dogleg, trust-ncg, trust-trlib, trust-region-exact.
         Only one of `hessp` or `hess` needs to be given.  If `hess` is
         provided, then `hessp` will be ignored.  If neither `hess` nor
         `hessp` is provided, then the Hessian product will be approximated
@@ -450,8 +451,9 @@ def minimize(fun, x0, args=(), method=None, jac=None, hess=None,
             options.setdefault('xtol', tol)
         if meth in ['powell', 'l-bfgs-b', 'tnc', 'slsqp']:
             options.setdefault('ftol', tol)
-        if meth in ['bfgs', 'cg', 'l-bfgs-b', 'tnc', 'dogleg',
-                    'trust-ncg', 'trust-region-exact']:
+        if meth in ['bfgs', 'cg', 'l-bfgs-b', 'tnc',
+                    'dogleg', 'trust-ncg', 'trust-trlib',
+                    'trust-region-exact']:
             options.setdefault('gtol', tol)
         if meth in ['cobyla', '_custom']:
             options.setdefault('tol', tol)
