@@ -25,6 +25,7 @@ from .optimize import (_minimize_neldermead, _minimize_powell, _minimize_cg,
                       _minimize_scalar_golden, MemoizeJac)
 from ._trustregion_dogleg import _minimize_dogleg
 from ._trustregion_ncg import _minimize_trust_ncg
+from ._trustregion_trlib import _minimize_trust_trlib
 from ._trustregion_exact import _minimize_trustregion_exact
 
 # constrained minimization
@@ -76,6 +77,7 @@ def minimize(fun, x0, args=(), method=None, jac=None, hess=None,
             - 'SLSQP'       :ref:`(see here) <optimize.minimize-slsqp>`
             - 'dogleg'      :ref:`(see here) <optimize.minimize-dogleg>`
             - 'trust-ncg'   :ref:`(see here) <optimize.minimize-trustncg>`
+            - 'trust-trlib' :ref:`(see here) <optimize.minimize-trusttrlib>`
             - 'trust-region-exact'   :ref:`(see here) <optimize.minimize-trustexact>`
             - custom - a callable object (added in version 0.14.0),
               see below for description.
@@ -204,6 +206,14 @@ def minimize(fun, x0, args=(), method=None, jac=None, hess=None,
     unconstrained minimization. This algorithm requires the gradient
     and either the Hessian or a function that computes the product of
     the Hessian with a given vector. Suitable for large-scale problems.
+
+    Method :ref:`trust-trlib <optimize.minimize-trusttrlib>` uses
+    the Newton GLTR trust-region algorithm [13]_ for unconstrained
+    minimization. This algorithm requires the gradient
+    and either the Hessian or a function that computes the product of
+    the Hessian with a given vector. Suitable for large-scale problems.
+    On indefinite problems it requires usually less iterations than the
+    `trust-ncg` method and recommended for medium and large-scale problems.
 
     Method :ref:`trust-region-exact <optimize.minimize-trustexact>`
     is a trust-region method for unconstrained minimization in which
@@ -393,12 +403,13 @@ def minimize(fun, x0, args=(), method=None, jac=None, hess=None,
         warn('Method %s does not use gradient information (jac).' % method,
              RuntimeWarning)
     # - hess
-    if meth not in ('newton-cg', 'dogleg', 'trust-ncg',
+    if meth not in ('newton-cg', 'dogleg', 'trust-ncg', 'trust-trlib',
                     'trust-region-exact', '_custom') and hess is not None:
         warn('Method %s does not use Hessian information (hess).' % method,
              RuntimeWarning)
     # - hessp
-    if meth not in ('newton-cg', 'dogleg', 'trust-ncg', '_custom') and hessp is not None:
+    if meth not in ('newton-cg', 'dogleg', 'trust-ncg',
+            'trust-trlib', '_custom') and hessp is not None:
         warn('Method %s does not use Hessian-vector product '
                 'information (hessp).' % method, RuntimeWarning)
     # - constraints or bounds
@@ -477,6 +488,10 @@ def minimize(fun, x0, args=(), method=None, jac=None, hess=None,
     elif meth == 'trust-ncg':
         return _minimize_trust_ncg(fun, x0, args, jac, hess, hessp,
                                    callback=callback, **options)
+    elif meth == 'trust-trlib':
+        return _minimize_trust_trlib(fun, x0, args, jac, hess, hessp,
+                                   callback=callback, **options)
+
     elif meth == 'trust-region-exact':
         return _minimize_trustregion_exact(fun, x0, args, jac, hess,
                                            callback=callback, **options)
