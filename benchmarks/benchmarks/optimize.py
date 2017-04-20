@@ -209,7 +209,7 @@ class _BenchOptimizers(Benchmark):
         if methods is None:
             methods = ["COBYLA", 'Powell',
                        'L-BFGS-B', 'BFGS', 'CG', 'TNC', 'SLSQP',
-                       "Newton-CG", 'dogleg', 'trust-ncg', 'trust-trlib',
+                       "Newton-CG", 'dogleg', 'trust-ncg', 'trust-krylov',
                        'trust-region-exact']
 
         fonly_methods = ["COBYLA", 'Powell']
