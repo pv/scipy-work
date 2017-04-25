@@ -174,6 +174,7 @@ Thomas Keck for adding new scipy.stats distributions used in HEP
 David Nicholson for bug fixes in spectral functions.
 Dominic Antonacci for statistics documentation.
 Felix Lenders for implementing the trust-krylov method.
+David Hagen for the object-oriented ODE solver interface.
 
 Institutions
 ------------
