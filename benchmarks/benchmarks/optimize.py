@@ -234,7 +234,7 @@ class _BenchOptimizers(Benchmark):
                 self.add_result(res, t1-t0, method)
 
         hessian_methods = ["Newton-CG", 'dogleg', 'trust-ncg',
-                           'trlib-trlib', 'trust-region-exact']
+                           'trlib-krylov', 'trust-region-exact']
         if self.hess is not None:
             for method in hessian_methods:
                 if method not in methods:
