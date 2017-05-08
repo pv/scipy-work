@@ -45,13 +45,22 @@ faster convergence.
 `scipy.optimize` improvements
 -----------------------------
 
-The methods `trust-region-exact` and `trust-krylov` have been added to the
+The methods `trust-exact` and `trust-krylov` have been added to the
 function `scipy.optimize.minimize`. These new trust-region methods solve the
 subproblem with higher accuracy at the cost of more Hessian factorizations
 (compared to dogleg) or more matrix vector products (compared to ncg) but
 usually require less nonlinear iterations and are able to deal with indefinite
 Hessians. They seem very competitive against the other Newton methods
 implemented in scipy.
+
+`scipy.stats` improvements
+--------------------------
+
+The methods `logcdf` and `cdf` were added to `scipy.stats.multivariate_normal`,
+providing the cumulative distribution function of the multivariate normal
+distribution.  The underlying code is the classic one by Alan Genz (see
+`scipy/stats/mvndst.f`).
+
 
 Deprecated features
 ===================

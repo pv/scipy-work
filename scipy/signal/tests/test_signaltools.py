@@ -21,7 +21,7 @@ from scipy.signal import (
     hilbert, hilbert2, lfilter, lfilter_zi, filtfilt, butter, zpk2tf, zpk2sos,
     invres, invresz, vectorstrength, lfiltic, tf2sos, sosfilt, sosfiltfilt,
     sosfilt_zi, tf2zpk)
-from scipy.signal.signaltools import _filtfilt_gust
+from scipy.signal.signaltools import _filtfilt_gust, _fftconvolve_valid
 
 if sys.version_info.major >= 3 and sys.version_info.minor >= 5:
     from math import gcd
@@ -181,6 +181,8 @@ class TestConvolve(_TestConvolve):
         for t1, t2, mode in args:
             x1 = array_types[np.dtype(t1).kind].astype(t1)
             x2 = array_types[np.dtype(t2).kind].astype(t2)
+            if not _fftconvolve_valid(x1, x2):
+                continue
 
             results = {key: convolve(x1, x2, method=key, mode=mode)
                        for key in ['fft', 'direct']}
@@ -1405,7 +1407,7 @@ class TestFiltFilt(TestCase):
     def test_basic(self):
         zpk = tf2zpk([1, 2, 3], [1, 2, 3])
         out = self.filtfilt(zpk, np.arange(12))
-        assert_allclose(out, arange(12), atol=1e-14)
+        assert_allclose(out, arange(12), atol=1e-11)
 
     def test_sine(self):
         rate = 2000

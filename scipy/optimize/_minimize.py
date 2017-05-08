@@ -78,7 +78,7 @@ def minimize(fun, x0, args=(), method=None, jac=None, hess=None,
             - 'dogleg'       :ref:`(see here) <optimize.minimize-dogleg>`
             - 'trust-ncg'    :ref:`(see here) <optimize.minimize-trustncg>`
             - 'trust-krylov' :ref:`(see here) <optimize.minimize-trustkrylov>`
-            - 'trust-region-exact'   :ref:`(see here) <optimize.minimize-trustexact>`
+            - 'trust-exact'   :ref:`(see here) <optimize.minimize-trustexact>`
             - custom - a callable object (added in version 0.14.0),
               see below for description.
 
@@ -216,7 +216,7 @@ def minimize(fun, x0, args=(), method=None, jac=None, hess=None,
     On indefinite problems it requires usually less iterations than the
     `trust-ncg` method and is recommended for medium and large-scale problems.
 
-    Method :ref:`trust-region-exact <optimize.minimize-trustexact>`
+    Method :ref:`trust-exact <optimize.minimize-trustexact>`
     is a trust-region method for unconstrained minimization in which
     quadratic subproblems are solved almost exactly [14]_, [15]_. This
     algorithm requires the gradient and the Hessian (which is
@@ -411,7 +411,7 @@ def minimize(fun, x0, args=(), method=None, jac=None, hess=None,
              RuntimeWarning)
     # - hess
     if meth not in ('newton-cg', 'dogleg', 'trust-ncg', 'trust-krylov',
-                    'trust-region-exact', '_custom') and hess is not None:
+                    'trust-exact', '_custom') and hess is not None:
         warn('Method %s does not use Hessian information (hess).' % method,
              RuntimeWarning)
     # - hessp
@@ -459,7 +459,7 @@ def minimize(fun, x0, args=(), method=None, jac=None, hess=None,
             options.setdefault('ftol', tol)
         if meth in ['bfgs', 'cg', 'l-bfgs-b', 'tnc',
                     'dogleg', 'trust-ncg', 'trust-krylov',
-                    'trust-region-exact']:
+                    'trust-exact']:
             options.setdefault('gtol', tol)
         if meth in ['cobyla', '_custom']:
             options.setdefault('tol', tol)
@@ -500,7 +500,7 @@ def minimize(fun, x0, args=(), method=None, jac=None, hess=None,
         return _minimize_trust_krylov(fun, x0, args, jac, hess, hessp,
                                       callback=callback, **options)
 
-    elif meth == 'trust-region-exact':
+    elif meth == 'trust-exact':
         return _minimize_trustregion_exact(fun, x0, args, jac, hess,
                                            callback=callback, **options)
     else:
