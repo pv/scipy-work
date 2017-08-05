@@ -15,10 +15,6 @@ environment:
       NUMPY_HEAD: https://github.com/xoviat/numpy.git
       NUMPY_BRANCH: distutils
       APPVEYOR_SAVE_CACHE_ON_ERROR: true
-      PYPI_USERNAME:
-          secure: rl2zkdPpMWKuqh3paOKNhA==
-      PYPI_PASSWORD:
-          secure: rToy5D17/4zLIaIBq9S4UQ==
       TEST_TIMEOUT: 600
 
   matrix:
@@ -197,14 +193,6 @@ test_script:
       cmd /c mklink /J scipy $ScipyDir
 
   - py.test scipy -n6 --timeout=%TEST_TIMEOUT% --junitxml=junit-results.xml
-
-on_success:
-  - ps: |
-      If ($env:APPVEYOR_REPO_TAG -eq "true") {
-          pip install twine
-          Invoke-Expression "twine upload -u $env:PYPI_USERNAME -p $env:PYPI_PASSWORD --repository-url https://upload.pypi.org/legacy/ --skip-existing dist/*" 2>&1 | Out-Null
-      }
-
 
 after_build:
   # Remove old or huge cache files to hopefully not exceed the 1GB cache limit.
