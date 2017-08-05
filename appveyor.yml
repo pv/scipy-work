@@ -185,14 +185,7 @@ build_script:
       }
 
 test_script:
-  - ps: |
-      $CurrentDir = $(get-location).Path;
-      $ScipyDir = (python -c 'import os; import sys; sys.path.remove(""""); import scipy; print(os.path.dirname(scipy.__file__))') | Out-String
-      $ScipyDir = $ScipyDir.Trim()
-      rm -r -Force scipy
-      cmd /c mklink /J scipy $ScipyDir
-
-  - py.test scipy -n6 --timeout=%TEST_TIMEOUT% --junitxml=junit-results.xml
+  - python runtests.py -n -- -n6 --timeout=%TEST_TIMEOUT% --junitxml=junit-results.xml
 
 after_build:
   # Remove old or huge cache files to hopefully not exceed the 1GB cache limit.
