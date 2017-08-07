@@ -140,13 +140,6 @@ install:
       
       cd "$CurrentDir"
 
-  - ps: |
-      cd scipy\integrate\odepack
-      rm xsetf.f
-      rm xsetun.f
-      cd ..\..\..
-
-
   # Upgrade to the latest pip.
   - '%CMD_IN_ENV% python -m pip install -U pip setuptools wheel'
 
