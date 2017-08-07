@@ -88,8 +88,6 @@ cache:
   # Cache downloaded pip packages and built wheels.
   - '%LOCALAPPDATA%\pip\Cache\http'
   - '%LOCALAPPDATA%\pip\Cache\wheels'
-  - C:\ProgramData\chocolatey\bin
-  - C:\ProgramData\chocolatey\lib
   # - '%USERPROFILE%\.nuget\packages' nuget appears to be quite large
 
 install:
@@ -110,16 +108,11 @@ install:
   #  - install "openblas.lib" to PYTHON\lib
   #  - install OpenBLAS.dll to MINGW\bin
   - ps: |
-      $CurrentDir = $(get-location).Path;
       $PYTHON_ARCH = $env:PYTHON_ARCH
       If ($PYTHON_ARCH -eq 32) {
           $OPENBLAS = $env:OPENBLAS_32
-          $env:MINGW = $env:MINGW_32
-          $specifier = "/MACHINE:x86"
       } Else {
           $OPENBLAS = $env:OPENBLAS_64
-          $env:MINGW = $env:MINGW_64
-          $specifier = "/MACHINE:x64"
       }
       $clnt = new-object System.Net.WebClient
       $file = "$CurrentDir\OpenBLAS.zip"
@@ -141,15 +134,6 @@ install:
 
       cp $lib "${env:PYTHON}\lib\openblas.a"
       ls "${env:PYTHON}\lib\openblas.a"
-      
-      cd "$CurrentDir"
-
-  - ps: |
-      cd scipy\integrate\odepack
-      rm xsetf.f
-      rm xsetun.f
-      cd ..\..\..
-
 
   # Upgrade to the latest pip.
   - '%CMD_IN_ENV% python -m pip install -U pip setuptools wheel'
@@ -189,8 +173,8 @@ build_script:
       }
 
 test_script:
+  # Replace the "scipy" directory with the installed "scipy" directory
   - ps: |
-      $CurrentDir = $(get-location).Path;
       $ScipyDir = (python -c 'import os; import sys; sys.path.remove(""""); import scipy; print(os.path.dirname(scipy.__file__))') | Out-String
       $ScipyDir = $ScipyDir.Trim()
       rm -r -Force scipy
@@ -219,13 +203,6 @@ after_build:
   - C:\cygwin\bin\find "%LOCALAPPDATA%\pip" -empty -delete
   # Show size of cache
   - C:\cygwin\bin\du -hs "%LOCALAPPDATA%\pip\Cache"
-
-  - C:\cygwin\bin\find "C:\ProgramData\chocolatey" -type f -mtime +360 -delete
-  - C:\cygwin\bin\find "C:\ProgramData\chocolatey" -type f -size +10M -delete
-  - C:\cygwin\bin\find "C:\ProgramData\chocolatey" -empty -delete
-  # Show size of cache
-  - C:\cygwin\bin\du -hs "C:\ProgramData\chocolatey"
-
 
 on_finish:
   - ps: |
