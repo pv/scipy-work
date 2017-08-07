@@ -116,30 +116,51 @@ install:
   - ps: |
       $PYTHON_ARCH = $env:PYTHON_ARCH
       If ($PYTHON_ARCH -eq 32) {
-          $OPENBLAS = $env:OPENBLAS_32
+          # Use ATLAS until we get error-free 32-bit OPENBLAS build
+          git clone -q --depth=1 https://github.com/numpy/windows-wheel-builder
+          $lib = Resolve-Path "windows-wheel-builder\atlas-builds\atlas-3.10.1-sse2-32\lib"
+          $buildutils = Resolve-Path "scipy\_build_utils\src"
+          echo "[atlas]
+                include_dirs = $lib\..\include
+                library_dirs = $lib
+                atlas_libs = numpy-atlas
+                lapack_libs = numpy-atlas
+                " | Out-File -Encoding ascii site.cfg
+          # Use numpy.distutils fake library files to tell gfortran what to link
+          # The ATLAS binaries are also using the g77 ABI, so we have to patch that
+          echo "$lib\numpy-atlas.lib" | Out-File -Encoding ascii "$lib\numpy-atlas.cobjects"
+          echo "$lib\numpy-atlas.dll
+      $buildutils\wrap_g77_abi_c.c" | Out-File -Encoding ascii "$lib\numpy-atlas.fobjects"
+          echo "
+      def uses_mkl(info): return True" | Out-File -Encoding ascii -Append scipy\_build_utils\_fortran.py
+          # Copy the ATLAS DLL to current directory so that it's available
+          # when running the tests. The generated wheel doesn't include it
+          # automatically, since it's not a static library.
+          copy "$lib\numpy-atlas.dll" .
       } Else {
           $OPENBLAS = $env:OPENBLAS_64
+
+          $clnt = new-object System.Net.WebClient
+          $file = "$CurrentDir\OpenBLAS.zip"
+
+          echo $file
+          echo $OPENBLAS
+
+          $clnt.DownloadFile($OPENBLAS,$file)
+
+          $shell_app=new-object -com shell.application
+          $zip_file = $shell_app.namespace($file)
+          $destination = $shell_app.namespace((Get-Location).Path)
+          $destination.Copyhere($zip_file.items())
+
+          rm .\$PYTHON_ARCH\lib\*.dll.a
+
+          $lib = ls .\$PYTHON_ARCH\lib\*.a | ForEach { ls $_ } | Select-Object -first 1
+          echo $lib
+
+          cp $lib "${env:PYTHON}\lib\openblas.a"
+          ls "${env:PYTHON}\lib\openblas.a"
       }
-      $clnt = new-object System.Net.WebClient
-      $file = "$CurrentDir\OpenBLAS.zip"
-
-      echo $file
-      echo $OPENBLAS
-
-      $clnt.DownloadFile($OPENBLAS,$file)
-
-      $shell_app=new-object -com shell.application 
-      $zip_file = $shell_app.namespace($file) 
-      $destination = $shell_app.namespace((Get-Location).Path) 
-      $destination.Copyhere($zip_file.items())
-
-      rm .\$PYTHON_ARCH\lib\*.dll.a
-
-      $lib = ls .\$PYTHON_ARCH\lib\*.a | ForEach { ls $_ } | Select-Object -first 1
-      echo $lib
-
-      cp $lib "${env:PYTHON}\lib\openblas.a"
-      ls "${env:PYTHON}\lib\openblas.a"
 
   # Upgrade to the latest pip.
   - '%CMD_IN_ENV% python -m pip install -U pip setuptools wheel'
