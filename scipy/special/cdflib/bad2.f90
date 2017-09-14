@@ -1,3 +1,5 @@
+! cd scipy/special/cdflib
+! gfortran -O1 -o bad2 bad2.f90 alngam.f devlpl.f
 program main
   implicit none
   double precision :: adn, b, xx, yy, dnterm, dnterm_ex
