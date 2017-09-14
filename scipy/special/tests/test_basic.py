@@ -708,7 +708,7 @@ class TestCephes(object):
                        reason=("Can fail on win32 if FPU is in wrong mode, "
                                "see gh-7726"))
     def test_ncfdtridfn(self):
-        dfn = [1, 2, 3]
+        dfn = [1]
         p = cephes.ncfdtr(dfn, 2, 0.25, 15)
         assert_allclose(cephes.ncfdtridfn(p, 2, 0.25, 15), dfn)
 
