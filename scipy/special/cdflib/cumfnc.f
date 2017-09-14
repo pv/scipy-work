@@ -151,9 +151,13 @@ C     Now sum terms backward from icent until convergence or all done
 
       xmult = centwt
       i = icent
+      write(*,*) adn
+      write(*,*) b
+      write(*,*) xx
+      write(*,*) yy
       dnterm = alngam(adn+b)-alngam(adn+1.0D0)-alngam(b)+
      +         adn*log(xx)+b*log(yy)
-      cum = dnterm 
+      cum = dnterm
       return
    30 IF (qsmall(xmult*betdn) .OR. i.LE.0) GO TO 40
       xmult = xmult* (i/xnonc)
