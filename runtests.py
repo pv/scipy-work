@@ -102,6 +102,8 @@ def main(argv):
                         help="Start Unix shell with PYTHONPATH set")
     parser.add_argument("--debug", "-g", action="store_true",
                         help="Debug build")
+    parser.add_argument("--valgrind", action="store_true",
+                        help="Run using tools/run-valgrind.py")
     parser.add_argument("--parallel", "-j", type=int, default=1,
                         help="Number of parallel jobs during build (requires "
                              "Numpy 1.10 or greater).")
@@ -121,6 +123,9 @@ def main(argv):
     if args.bench_compare:
         args.bench = True
         args.no_build = True # ASV does the building
+
+    if args.valgrind:
+        args.debug = True
 
     if args.lcov_html:
         # generate C code coverage output
@@ -145,6 +150,16 @@ def main(argv):
     extra_argv = args.args[:]
     if extra_argv and extra_argv[0] == '--':
         extra_argv = extra_argv[1:]
+
+    if args.valgrind:
+        if args.submodule:
+            extra_argv += [PROJECT_MODULE + "." + args.submodule]
+        elif args.tests:
+            extra_argv += args.tests
+        os.chdir(os.path.join(ROOT_DIR, 'tools'))
+        os.execv(sys.executable, [sys.executable,
+                                  os.path.join(ROOT_DIR, 'tools', 'run-valgrind.py')] + extra_argv)
+        sys.exit(1)
 
     if args.python:
         if extra_argv:

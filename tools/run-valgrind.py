@@ -1,55 +1,65 @@
+"""run-valgrind.py [OPTIONS] [PYTEST_ARGS]
+
+This is a tool to maintain and run scipy with valgrind against a set
+of suppression files.
+
+A suppression file is a list of known memory errors, many of which can
+be false positives.
+
+We scan valgrind log to identify potential erros related to scipy, and
+maintain a suppression db for non-scipy errors.
+
+Examples:
+
+# Find scipy related errors and update the non-scipy suppression db.
+
+python tools/run-valgrind.py --python=python3-debug/bin/python3-debug scipy/_lib/tests/test__gcutils.py
+
+# Find scipy related errors and replace the non-scipy suppression db.
+
+python tools/run-valgrind.py --update-supp=replace --python=python3-debug/bin/python3-debug scipy/_lib/tests
+
+# Find scipy related errors and do not update the non-scipy suppression db.
+
+python tools/run-valgrind.py --update-supp=no --python=python3-debug/bin/python3-debug scipy/_lib/tests
+
+The errors and suppression files for scipy and non-scipy entries are
+stored in the valgrind/ directory for the test case.
+
+Selected rules can be manually merged into the default file
+valgrind-suppression in valgrind directory.
+
+"""
 from __future__ import print_function
-"""
 
-    This is a tool to maintain and run scipy with valgrind against a set of suppression files.
-
-    A suppression file is a list of known memory errors, many of which can be false positives.
-
-    We scan valgrind log to identify potential erros related to scipy, and maintain a suppression
-    db for non-scipy errors.
-
-    Example:
-
-    # Find scipy related errors and update the non-scipy suppression db.
-
-    python tools/run-valgrind.py --python=python3-debug/bin/python3-debug scipy/_lib/tests/test__gcutils.py
-
-    # Find scipy related errors and replace the non-scipy suppression db.
-
-    python tools/run-valgrind.py --update-supp=replace --python=python3-debug/bin/python3-debug scipy/_lib/tests
-
-    # Find scipy related errors and do not update the non-scipy suppression db.
-
-    python tools/run-valgrind.py --update-supp=no --python=python3-debug/bin/python3-debug scipy/_lib/tests
-
-
-    The errors and suppression files for scipy and non-scipy entries are stored in the valgrind/ directory for
-    the test case. 
-
-    Selected rules can be manually merged into the default file valgrind-suppression in valgrind directory.
-
-"""
-
-from argparse import ArgumentParser
 import os
-from subprocess import call
-from tempfile import mkstemp
+import sys
 import time
 
-ap = ArgumentParser("run-valgrind")
-ap.add_argument("tests", nargs='+', help='a list of tests to run')
-ap.add_argument("--update-supp", choices=["merge", "replace", "no"], default='merge', help='strategy for merging non-scipy valgrind errors')
-ap.add_argument("--prefix", default='valgrind',
-        help='specify a python to use, usually better with python-debug')
-ap.add_argument("--python", default='python3-debug',
-        help='specify a python to use, usually better with python-debug')
+from argparse import ArgumentParser
+from subprocess import call
+from tempfile import mkstemp
+
+
+TOOL_DIR = os.path.abspath(os.path.dirname(__file__))
+
+
+ap = ArgumentParser(usage=__doc__.strip())
+ap.add_argument("--update-supp", choices=["merge", "replace", "no"],
+                default='merge',
+                help='strategy for merging non-scipy valgrind errors')
+ap.add_argument("--prefix", default=os.path.join(TOOL_DIR, '..', 'valgrind'))
 ap.add_argument("--valgrind", default='valgrind')
 ap.add_argument("--suppressions", default=[], action='append')
+ap.add_argument("pytest_args", metavar="PYTEST_ARGS", nargs="*",
+                help="pytest arguments")
+DEFAULT_PYTEST_ARGS = ["scipy"]
+
 
 def main():
     ns = ap.parse_args()
-
     rules(ns, update_suppressions=ns.update_supp)
+
 
 def run_valgrind(valgrind, opts, payload, suppressions):
     fid, logfilename = mkstemp()
@@ -65,7 +75,10 @@ def run_valgrind(valgrind, opts, payload, suppressions):
 
     suppressions = [ '--suppressions=%s' % fn for fn in suppressions ]
     cmdline = valgrind + valgrind_opts + suppressions + payload
-    call(cmdline)
+
+    env = dict(os.environ)
+    env['PYTHONMALLOC'] = 'malloc'
+    call(cmdline, env=env)
 
     with open(logfilename, 'r') as ff:
         r = ff.read()
@@ -77,11 +90,13 @@ def run_valgrind(valgrind, opts, payload, suppressions):
         raise RuntimeError("Valgrind failed with")
     return r
 
+
 def ensure_suppression_dir(prefix, path):
     try:
         os.makedirs(os.path.join(prefix, path))
     except:
         pass
+
 
 def find_suppression_files(prefix, path):
     path_suppr = os.path.join(prefix, path, 'valgrind-suppression')
@@ -95,14 +110,21 @@ def find_suppression_files(prefix, path):
     else:
         return higher
 
+
 def find_local_suppression_file(prefix, path):
     path = os.path.join(prefix, path)
     if not os.path.isdir(path): return None
     path_suppr = os.path.join(path, 'valgrind-suppression')
     return path_suppr
 
+
 def rules(ns, update_suppressions):
-    runtests = [ ns.python, 'runtests.py' ]
+    test_command = [sys.executable, '-mpytest', '--pyarg']
+    if ns.pytest_args:
+        test_command += list(ns.pytest_args)
+    else:
+        test_command += DEFAULT_PYTEST_ARGS
+    print(test_command)
 
     opts = [
         '--show-leak-kinds=all',
@@ -113,13 +135,15 @@ def rules(ns, update_suppressions):
         '--gen-suppressions=all', # for suppressions generation
     ]
 
+    ns.tests = ['nope']
+
     for test in ns.tests:
         t0 = time.time()
 
         ensure_suppression_dir(ns.prefix, test)
 
         suppressions = ns.suppressions
-        all_test_suppr = [os.path.join('tools', 'scipy-master.supp')] + find_suppression_files(ns.prefix, test)
+        all_test_suppr = [os.path.join(TOOL_DIR, 'scipy-master.supp')] + find_suppression_files(ns.prefix, test)
         print("all suppression files", all_test_suppr)
 
         suppressions = suppressions + all_test_suppr
@@ -131,14 +155,9 @@ def rules(ns, update_suppressions):
             while local_supp in suppressions:
                 suppressions.remove(local_supp)
 
-        print("rebuild the binaries to avoid valgrind erros during building.")
-        if 0 != call(runtests + ['--build']):
-            raise RuntimeError("building failed")
-
         print("running valgrind with the tests")
-        log = run_valgrind([ns.valgrind], opts, runtests + ['-t', test], suppressions)
+        log = run_valgrind([ns.valgrind], opts, test_command, suppressions)
 
-        #log = open('log-example').read()
         vlog = ValgrindLog.from_string(log)
 
         scipy_errors = ValgrindLog()
@@ -205,6 +224,7 @@ def rules(ns, update_suppressions):
         t1 = time.time()
         print("Testing %s used %g seconds" % (test, t1 - t0))
 
+
 class ValgrindSection(list):
     def __init__(self):
         self.supp_rule = []
@@ -256,6 +276,7 @@ class ValgrindSection(list):
     def format_suppression(self):
         return '\n'.join(self.supp_rule)
 
+
 class ValgrindLog(list):
     def __init__(sections):
         pass
@@ -297,7 +318,8 @@ class ValgrindLog(list):
         return cls(open(filename).read())
 
     def __str__(self):
-        return '\n'.join([str(i) for i in self])
+        return '\n\n'.join([str(i) for i in self])
+
 
 class SuppressionDB(set):
     @classmethod
@@ -319,18 +341,8 @@ class SuppressionDB(set):
         return self
 
     def __str__(self):
-        return '\n'.join(sorted(self))
+        return '\n\n'.join(sorted(self))
 
-main()
-"""
-v = ValgrindLog.fromfile('log-example')
 
-supp = SuppressionDB()
-for s in v:
-    sc = s.get_scipy_related()
-    if sc:
-        print(s)
-    supp.add(s.format_suppression())
-
-print(supp)
-"""
+if __name__ == "__main__":
+    main()
