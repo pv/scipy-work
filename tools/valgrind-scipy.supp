@@ -61,3 +61,20 @@
    fun:__tls_get_addr
    ...
 }
+{
+   <__Pyx_ExportFunction>
+   match-leak-kinds: possible,reachable
+   ...
+   fun:__Pyx_ExportFunction
+   ...
+}
+
+# Ignore anything allocated at import time
+{
+   <_PyImport_LoadDynamicModuleWithSpec>
+   Memcheck:Leak
+   match-leak-kinds: definite,possible,reachable,indirect
+   ...
+   fun:_PyImport_LoadDynamicModuleWithSpec
+   ...
+}
