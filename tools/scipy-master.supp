@@ -47,7 +47,7 @@
 {
    <__Pyx_AddTraceback>
    Memcheck:Leak
-   match-leak-kinds: definite
+   match-leak-kinds: reachable
    ...
    fun:__Pyx_AddTraceback
    ...
