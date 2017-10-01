@@ -327,8 +327,12 @@ def build_project(args):
 
     if args.debug or args.gcov:
         # assume everyone uses gcc/gfortran
-        env['OPT'] = '-O0 -ggdb'
-        env['FOPT'] = '-O0 -ggdb'
+        if args.valgrind:
+            env['OPT'] = '-Og -ggdb'
+            env['FOPT'] = '-Og -ggdb'
+        else:
+            env['OPT'] = '-O0 -ggdb'
+            env['FOPT'] = '-O0 -ggdb'
         if args.gcov:
             import distutils.sysconfig
             cvars = distutils.sysconfig.get_config_vars()

@@ -42,39 +42,41 @@ from tempfile import mkstemp
 
 
 TOOL_DIR = os.path.abspath(os.path.dirname(__file__))
-
-
-ap = ArgumentParser(usage=__doc__.strip())
-ap.add_argument("--update-supp", choices=["merge", "replace", "no"],
-                default='merge',
-                help='strategy for merging non-scipy valgrind errors')
-ap.add_argument("--prefix", default=os.path.join(TOOL_DIR, '..', 'valgrind'))
-ap.add_argument("--valgrind", default='valgrind')
-ap.add_argument("--suppressions", default=[], action='append')
-ap.add_argument("pytest_args", metavar="PYTEST_ARGS", nargs="*",
-                help="pytest arguments")
 DEFAULT_PYTEST_ARGS = ["scipy"]
 
 
 def main():
-    ns = ap.parse_args()
-    rules(ns, update_suppressions=ns.update_supp)
+    ap = ArgumentParser(usage=__doc__.strip())
+    ap.add_argument("--update-supp", choices=["merge", "replace", "no"],
+                    default='merge',
+                    help='strategy for merging non-scipy valgrind errors')
+    ap.add_argument("--prefix", default=os.path.join(TOOL_DIR, '..', 'valgrind'))
+    ap.add_argument("--valgrind", default='valgrind')
+    ap.add_argument("--suppressions", default=[], action='append')
+    ap.add_argument("pytest_args", metavar="PYTEST_ARGS", nargs="*",
+                    help="pytest arguments")
+    args = ap.parse_args()
+
+    rules(prefix=args.prefix,
+          valgrind=args.valgrind,
+          suppressions=args.suppressions,
+          update_suppressions=args.update_supp,
+          pytest_args=args.pytest_args)
+
+    return 0
 
 
-def run_valgrind(valgrind, opts, payload, suppressions):
-    fid, logfilename = mkstemp()
-    os.close(fid)
-
+def run_valgrind(valgrind, opts, payload, suppressions, logfilename):
     valgrind_opts = opts + [
         '--log-file=%s' % logfilename,
-        ]
+    ]
 
     for fn in suppressions:
         if not os.path.exists(fn):
             raise ValueError("file %s not found" % fn)
 
     suppressions = [ '--suppressions=%s' % fn for fn in suppressions ]
-    cmdline = valgrind + valgrind_opts + suppressions + payload
+    cmdline = [valgrind] + valgrind_opts + suppressions + payload
 
     env = dict(os.environ)
     env['PYTHONMALLOC'] = 'malloc'
@@ -83,45 +85,37 @@ def run_valgrind(valgrind, opts, payload, suppressions):
     with open(logfilename, 'r') as ff:
         r = ff.read()
 
-    os.unlink(logfilename)
-    #print("writing log to", logfilename)
     if 'FATAL' in r:
         print(r)
         raise RuntimeError("Valgrind failed with")
+
     return r
 
 
-def ensure_suppression_dir(prefix, path):
-    try:
-        os.makedirs(os.path.join(prefix, path))
-    except:
-        pass
-
-
-def find_suppression_files(prefix, path):
-    path_suppr = os.path.join(prefix, path, 'valgrind-suppression')
-    if len(path) == 0:
-        higher = []
-    else:
-        higher = find_suppression_files(prefix, os.path.dirname(path))
-    print('checking' , path_suppr)
+def find_suppression_files(prefix):
+    path_suppr = os.path.join(prefix, 'valgrind-suppression')
     if os.path.exists(path_suppr):
-        return higher + [path_suppr]
+        return [path_suppr]
     else:
-        return higher
+        return []
 
 
-def find_local_suppression_file(prefix, path):
-    path = os.path.join(prefix, path)
-    if not os.path.isdir(path): return None
-    path_suppr = os.path.join(path, 'valgrind-suppression')
+def find_local_suppression_file(prefix):
+    if not os.path.isdir(prefix):
+        return None
+    path_suppr = os.path.join(prefix, 'valgrind-suppression')
     return path_suppr
 
 
-def rules(ns, update_suppressions):
+def rules(prefix, valgrind, suppressions, update_suppressions,
+          pytest_args):
+    if sys.version_info[:2] < (3, 6):
+        print("WARNING: Python < 3.6 do not support PYTHONMALLOC env variable.\n"
+              "         This will result to lots of garbage valgrind hits.")
+
     test_command = [sys.executable, '-mpytest', '--pyarg']
-    if ns.pytest_args:
-        test_command += list(ns.pytest_args)
+    if pytest_args:
+        test_command += list(pytest_args)
     else:
         test_command += DEFAULT_PYTEST_ARGS
     print(test_command)
@@ -135,94 +129,94 @@ def rules(ns, update_suppressions):
         '--gen-suppressions=all', # for suppressions generation
     ]
 
-    ns.tests = ['nope']
+    t0 = time.time()
 
-    for test in ns.tests:
-        t0 = time.time()
+    if not os.path.isdir(prefix):
+        os.makedirs(prefix)
 
-        ensure_suppression_dir(ns.prefix, test)
+    suppressions = list(suppressions)
+    all_test_suppr = [os.path.join(TOOL_DIR, 'valgrind-scipy.supp'),
+                      os.path.join(TOOL_DIR, 'valgrind-python.supp')] + find_suppression_files(prefix)
+    print("all suppression files", all_test_suppr)
 
-        suppressions = ns.suppressions
-        all_test_suppr = [os.path.join(TOOL_DIR, 'scipy-master.supp')] + find_suppression_files(ns.prefix, test)
-        print("all suppression files", all_test_suppr)
+    suppressions = suppressions + all_test_suppr
 
-        suppressions = suppressions + all_test_suppr
+    print("using suppression files", suppressions)
 
-        print("using suppression files", suppressions)
+    if update_suppressions == "replace":
+        local_supp = find_local_suppression_file(prefix)
+        while local_supp in suppressions:
+            suppressions.remove(local_supp)
 
-        if update_suppressions == "replace":
-            local_supp = find_local_suppression_file(ns.prefix, test)
-            while local_supp in suppressions:
-                suppressions.remove(local_supp)
+    print("running valgrind with the tests")
 
-        print("running valgrind with the tests")
-        log = run_valgrind([ns.valgrind], opts, test_command, suppressions)
+    logfilename = os.path.join(prefix, 'valgrind.log')
+    log = run_valgrind(valgrind, opts, test_command, suppressions, logfilename)
+    vlog = ValgrindLog.from_string(log)
 
-        vlog = ValgrindLog.from_string(log)
+    scipy_errors = ValgrindLog()
+    non_scipy_errors = ValgrindLog()
 
-        scipy_errors = ValgrindLog()
-        non_scipy_errors = ValgrindLog()
+    for section in vlog:
+        if section.is_heap_summary():
+            print('\n'.join(section))
+        if section.is_error_summary():
+            print('\n'.join(section))
+        if section.is_leak_summary():
+            print('\n'.join(section))
 
-        for section in vlog:
-            if section.is_heap_summary():
-                print('\n'.join(section))
-            if section.is_error_summary():
-                print('\n'.join(section))
-            if section.is_leak_summary():
-                print('\n'.join(section))
+        sc = section.get_scipy_related()
+        if sc is not None:
+            scipy_errors.append(section)
+        else:
+            non_scipy_errors.append(section)
 
-            sc = section.get_scipy_related()
-            if sc is not None:
-                scipy_errors.append(section)
-            else:
-                non_scipy_errors.append(section)
+    print('Found %d valgrind anomalies that appeared to be related to scipy' % len(scipy_errors))
+    if len(scipy_errors):
+        print(str(scipy_errors))
 
-        print('Found %d valgrind anomalies that appeared to be related to scipy' % len(scipy_errors))
-        if len(scipy_errors):
-            print(str(scipy_errors))
+    print('Found %d valgrind anomalies that appeared to be unrelated to scipy' % len(non_scipy_errors))
 
-        print('Found %d valgrind anomalies that appeared to be unrelated to scipy' % len(non_scipy_errors))
+    with open(os.path.join(prefix, 'scipy.log'), 'w') as ff:
+        ff.write(str(scipy_errors))
+    print("Scipy error log ", os.path.join(prefix, 'scipy.log'))
 
-        with open(os.path.join(ns.prefix, test, 'scipy.log'), 'w') as ff:
-            ff.write(str(scipy_errors))
-        print("Scipy error log ", os.path.join(ns.prefix, test, 'scipy.log'))
+    with open(os.path.join(prefix, 'scipy.supp'), 'w') as ff:
+        ff.write(str(scipy_errors.get_suppression_db()))
+    print("Scipy suppression rules", os.path.join(prefix, 'scipy.supp'))
 
-        with open(os.path.join(ns.prefix, test, 'scipy.supp'), 'w') as ff:
-            ff.write(str(scipy_errors.get_suppression_db()))
-        print("Scipy suppression rules", os.path.join(ns.prefix, test, 'scipy.supp'))
+    with open(os.path.join(prefix, 'nonscipy.log'), 'w') as ff:
+        ff.write(str(non_scipy_errors))
+    print("Non-scipy error log ", os.path.join(prefix, 'nonscipy.log'))
 
-        with open(os.path.join(ns.prefix, test, 'nonscipy.log'), 'w') as ff:
-            ff.write(str(non_scipy_errors))
-        print("Non-scipy error log ", os.path.join(ns.prefix, test, 'nonscipy.log'))
+    with open(os.path.join(prefix, 'nonscipy.supp'), 'w') as ff:
+        ff.write(str(non_scipy_errors.get_suppression_db()))
+    print("Non-scipy suppression rules ", os.path.join(prefix, 'nonscipy.supp'))
 
-        with open(os.path.join(ns.prefix, test, 'nonscipy.supp'), 'w') as ff:
-            ff.write(str(non_scipy_errors.get_suppression_db()))
-        print("Non-scipy suppression rules ", os.path.join(ns.prefix, test, 'nonscipy.supp'))
+    if update_suppressions != 'no':
+        local_supp = find_local_suppression_file(prefix)
+        newdb = non_scipy_errors.get_suppression_db()
 
-        if update_suppressions != 'no':
-            local_supp = find_local_suppression_file(ns.prefix, test)
-            newdb = non_scipy_errors.get_suppression_db()
+        print("Found %d suppression rules" % len(newdb))
 
-            print("Found %d suppression rules" % len(newdb))
+        if update_suppressions == 'replace':
+            pass
+        elif update_suppressions == 'merge':
+            try:
+                db = SuppressionDB.fromfile(local_supp)
+            except IOError:
+                db = SuppressionDB()
 
-            if update_suppressions == 'replace':
-                pass
-            elif update_suppressions == 'merge':
-                try:
-                    db = SuppressionDB.fromfile(local_supp)
-                except IOError:
-                    db = SuppressionDB()
+            print("Merging existing %d suppression into %d rules" %( len(db), len(newdb)))
 
-                print("Merging existing %d suppression into %d rules" %( len(db), len(newdb)))
+            newdb.update(db)
 
-                newdb.update(db)
+        print("Written %d suppression rules to %s" % (len(newdb), local_supp))
+        with open(local_supp, 'w') as ff:
+            ff.write(str(newdb))
 
-            print("Written %d suppression rules to %s" % (len(newdb), local_supp))
-            with open(local_supp, 'w') as ff:
-                ff.write(str(newdb))
-
-        t1 = time.time()
-        print("Testing %s used %g seconds" % (test, t1 - t0))
+    t1 = time.time()
+    print("Testing used %g seconds" % (t1 - t0,))
 
 
 class ValgrindSection(list):
@@ -345,4 +339,4 @@ class SuppressionDB(set):
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())

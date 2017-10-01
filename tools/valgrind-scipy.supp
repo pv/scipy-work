@@ -39,7 +39,7 @@
 {
    <__Pyx_InitCachedConstants>
    Memcheck:Leak
-   match-leak-kinds: definite
+   match-leak-kinds: definite,indirect
    ...
    fun:__Pyx_InitCachedConstants
    ...
@@ -52,4 +52,12 @@
    fun:__Pyx_AddTraceback
    ...
 }
-
+{
+   <__tls_get_addr>
+   Memcheck:Leak
+   match-leak-kinds: reachable
+   ...
+   fun:tls_get_addr_tail
+   fun:__tls_get_addr
+   ...
+}
