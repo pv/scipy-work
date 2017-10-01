@@ -36,3 +36,20 @@
    fun:_PyObject_GC_*
    ...
 }
+{
+   <__Pyx_InitCachedConstants>
+   Memcheck:Leak
+   match-leak-kinds: definite
+   ...
+   fun:__Pyx_InitCachedConstants
+   ...
+}
+{
+   <__Pyx_AddTraceback>
+   Memcheck:Leak
+   match-leak-kinds: definite
+   ...
+   fun:__Pyx_AddTraceback
+   ...
+}
+
