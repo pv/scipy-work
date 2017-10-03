@@ -342,10 +342,15 @@ def configuration(parent_package='', top_path=None):
 
 
 def setup_package():
+    from scipy._build_utils._bundle_dll import build_ext as our_build_ext
+
     # Rewrite the version file every time
     write_version_py()
 
-    cmdclass = {'sdist': sdist_checked}
+    cmdclass = {
+        'sdist': sdist_checked,
+        'build_ext': our_build_ext,
+    }
     if HAVE_SPHINX:
         cmdclass['build_sphinx'] = ScipyBuildDoc
 
