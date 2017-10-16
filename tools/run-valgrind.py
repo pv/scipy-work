@@ -48,7 +48,7 @@ DEFAULT_PYTEST_ARGS = ["--pyarg", "scipy"]
 def main():
     ap = ArgumentParser(usage=__doc__.strip())
     ap.add_argument("--update-supp", choices=["merge", "replace", "no"],
-                    default='merge',
+                    default='no',
                     help='strategy for merging non-scipy valgrind errors')
     ap.add_argument("--prefix", default=os.path.join(TOOL_DIR, '..', 'valgrind'))
     ap.add_argument("--valgrind", default='valgrind')
