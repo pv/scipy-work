@@ -42,7 +42,7 @@ from tempfile import mkstemp
 
 
 TOOL_DIR = os.path.abspath(os.path.dirname(__file__))
-DEFAULT_PYTEST_ARGS = ["scipy"]
+DEFAULT_PYTEST_ARGS = ["--pyarg", "scipy"]
 
 
 def main():
@@ -113,7 +113,7 @@ def rules(prefix, valgrind, suppressions, update_suppressions,
         print("WARNING: Python < 3.6 do not support PYTHONMALLOC env variable.\n"
               "         This will result to lots of garbage valgrind hits.")
 
-    test_command = [sys.executable, '-mpytest', '--pyarg']
+    test_command = [sys.executable, '-mpytest']
     if pytest_args:
         test_command += list(pytest_args)
     else:
