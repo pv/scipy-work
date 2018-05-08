@@ -6,7 +6,7 @@ from scipy._build_utils import numpy_nodepr_api
 
 def configuration(parent_package='',top_path=None):
     from numpy.distutils.misc_util import Configuration
-    from numpy.distutils.system_info import get_info
+    from scipy._build_utils.system_info import get_info
     config = Configuration('optimize',parent_package, top_path)
 
     minpack_src = [join('minpack','*f')]
