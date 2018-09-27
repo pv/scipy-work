@@ -412,21 +412,6 @@ def setup_package():
     if HAVE_SPHINX:
         cmdclass['build_sphinx'] = ScipyBuildDoc
 
-    # Figure out whether to add ``*_requires = ['numpy']``.
-    # We don't want to do that unconditionally, because we risk updating
-    # an installed numpy which fails too often.  Just if it's not installed, we
-    # may give it a try.  See gh-3379.
-    try:
-        import numpy
-    except ImportError:  # We do not have numpy installed
-        build_requires = ['numpy>=1.13.3']
-    else:
-        # If we're building a wheel, assume there already exist numpy wheels
-        # for this platform, so it is safe to add numpy to build requirements.
-        # See gh-5184.
-        build_requires = (['numpy>=1.13.3'] if 'bdist_wheel' in sys.argv[1:]
-                          else [])
-
     metadata = dict(
         name='scipy',
         maintainer="SciPy Developers",
@@ -440,8 +425,7 @@ def setup_package():
         classifiers=[_f for _f in CLASSIFIERS.split('\n') if _f],
         platforms=["Windows", "Linux", "Solaris", "Mac OS-X", "Unix"],
         test_suite='nose.collector',
-        setup_requires=build_requires,
-        install_requires=build_requires,
+        install_requires=["numpy>=1.13.3"],
         python_requires='>=3.5',
     )
 
