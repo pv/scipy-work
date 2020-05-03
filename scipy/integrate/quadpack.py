@@ -20,7 +20,8 @@ class IntegrationWarning(UserWarning):
     """
     pass
 
-
+@numpy.deprecate(new_name="help(scipy.integrate.quad)",
+                 message="Deprecated in Scipy 1.5.0")
 def quad_explain(output=sys.stdout):
     """
     Print extra information about integrate.quad() parameters and returns.
